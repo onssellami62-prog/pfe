@@ -5,35 +5,77 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace backend.Models
 {
+    /// <summary>
+    /// Représente une facture électronique conforme au format TTN (Tunisie TradeNet)
+    /// </summary>
     public class Facture
     {
-        public int Id { get; set; }
+        public string? IdSaveEfact { get; set; }
 
-        [Required]
+        // ─── Référence TTN ─────────────────────────
         [MaxLength(50)]
-        public string Numero { get; set; } = string.Empty;
+        public string? IdTTN { get; set; }
 
+        [Key]
         [Required]
-        public DateTime DateEmission { get; set; } = DateTime.Now;
+        public int NumeroFacture { get; set; }
 
-        // 🔹 Totaux
+        // ─── Dates ─────────────────────────────────
+        [Required]
+        public DateTime DateFacture { get; set; } = DateTime.Now;
+        public DateTime DateValidation { get; set; } = DateTime.Now;
+
+        public DateTime? DateLimitePaiement { get; set; }
+
+        public DateTime? PeriodeDu { get; set; }
+
+        public DateTime? PeriodeAu { get; set; }
+        public string? QrCode { get; set; }
+        // ─── Timbre fiscal ─────────────────────────
+        public bool TimbreFiscal { get; set; } = false;
+
+        [Column(TypeName = "decimal(18,3)")]
+        public decimal MontantTimbre { get; set; } = 0;
+
+        // ─── Remise globale ────────────────────────
+        [Column(TypeName = "decimal(5,2)")]
+        [Range(0, 100)]
+        public decimal RemiseGlobale { get; set; } = 0;
+
+        [Column(TypeName = "decimal(18,3)")]
+        public decimal MontantRemise { get; set; } = 0;
+
+        // ─── Totaux ────────────────────────────────
+        [Column(TypeName = "decimal(18,3)")]
+        public decimal TotalHTAvantRemise { get; set; }
+
+        [Column(TypeName = "decimal(18,3)")]
         public decimal TotalHT { get; set; }
-        public decimal TotalTVA { get; set; }
-        public decimal TotalTTC { get; set; }
 
+        [Column(TypeName = "decimal(18,3)")]
+        public decimal TotalTVA { get; set; }
+
+        [Column(TypeName = "decimal(18,3)")]
+        public decimal MontantTTC { get; set; }
+
+        [MaxLength(500)]
+        public string? MontantEnLettres { get; set; }
+
+        // ─── Mode / Statut ─────────────────────────
         [MaxLength(50)]
+        public string? ModeConnexion { get; set; }
+
+        [Required]
+        [MaxLength(30)]
         public string Statut { get; set; } = "Brouillon";
 
-        // 🔹 Relations
-        [ForeignKey("Client")]
-        public int ClientId { get; set; }
-        public Client? Client { get; set; }
+        // ─── Relations ─────────────────────────────
+        [Required]
+        public int TiersId { get; set; }
 
-        [ForeignKey("Societe")]
-        public int SocieteId { get; set; }
-        public Societe? Societe { get; set; }
+        [ForeignKey("TiersId")]
+        public Tiers? Tiers { get; set; }
 
-        // 🔹 Navigation vers lignes
-        public ICollection<LigneFacture>? Lignes { get; set; }
+        public ICollection<LigneFacture> Lignes { get; set; } = new List<LigneFacture>();
     }
 }
