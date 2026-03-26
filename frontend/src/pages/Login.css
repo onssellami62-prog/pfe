@@ -187,6 +187,26 @@ body {
   text-decoration: underline;
 }
 
+/* Error message */
+.login-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 14px;
+  border-radius: 8px;
+  animation: fadeInError 0.25s ease;
+}
+
+@keyframes fadeInError {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* Submit button */
 .btn-login {
   width: 100%;

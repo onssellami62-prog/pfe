@@ -31,6 +31,7 @@ function Login({ onLoginSuccess }) {
     const [identifiant, setIdentifiant] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
+    const [loginError, setLoginError] = useState('');
 
     // Carousel state
     const [activeDot, setActiveDot] = useState(0);
@@ -95,10 +96,22 @@ function Login({ onLoginSuccess }) {
         dragStartX.current = null;
     };
 
+    // Liste des utilisateurs statiques pour le test
+    const USERS = [
+        { email: 'test@gmail.com', password: '123', role: 'user', name: 'User Test' },
+        { email: 'ja7479845@gmail.com', password: '123', role: 'admin', name: 'Admin Central' },
+    ];
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Simulation connexion sans backend
-        if (onLoginSuccess) onLoginSuccess();
+        const foundUser = USERS.find(u => u.email === identifiant && u.password === password);
+        
+        if (foundUser) {
+            setLoginError('');
+            if (onLoginSuccess) onLoginSuccess(foundUser);
+        } else {
+            setLoginError('Identifiant ou mot de passe incorrect.');
+        }
     };
 
     const slide = SLIDES[activeDot];
@@ -256,6 +269,18 @@ function Login({ onLoginSuccess }) {
                             Mot de passe oublié ?
                         </a>
                     </div>
+
+                    {/* Error message */}
+                    {loginError && (
+                        <div className="login-error-msg">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                            {loginError}
+                        </div>
+                    )}
 
                     {/* Submit */}
                     <button type="submit" className="btn-login" id="btn-se-connecter">
