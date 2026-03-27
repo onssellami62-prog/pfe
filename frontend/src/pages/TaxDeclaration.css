@@ -1,0 +1,317 @@
+.tax-declaration {
+    padding: 1rem;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #1e293b;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.tax-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tax-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.month-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.month-selector select {
+    background: transparent;
+    border: none;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    outline: none;
+}
+
+/* Summary Cards */
+.tax-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.tax-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.tax-card.border-orange {
+    border-left: 4px solid #f97316;
+}
+
+.tax-card.border-blue {
+    border-left: 4px solid #3b82f6;
+}
+
+.card-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 0.05em;
+}
+
+.card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.card-value .currency {
+    font-size: 1rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.card-value.orange {
+    color: #f97316;
+}
+
+.card-value.blue {
+    color: #2563eb;
+}
+
+.card-trend.positive {
+    font-size: 0.875rem;
+    color: #16a34a;
+    font-weight: 500;
+}
+
+.card-subtitle {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.card-link {
+    font-size: 0.85rem;
+    color: #3b82f6;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Detail Table */
+.tax-detail-container {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.detail-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-text h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.header-text p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 0.625rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #1a56db;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #1e429f;
+}
+
+.btn-secondary {
+    background: white;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #f8fafc;
+}
+
+.tax-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.tax-table th {
+    background: #f8fafc;
+    padding: 1rem 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tax-table td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.95rem;
+}
+
+.tax-table .row-summary td {
+    background: #f8fafc;
+}
+
+.tax-badge {
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.tax-badge.blue {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.tax-badge.purple {
+    background: #f3e8ff;
+    color: #7e22ce;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.blue-text {
+    color: #1a56db;
+}
+
+.italic-text {
+    font-style: italic;
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.tax-table tfoot td {
+    padding: 1.5rem;
+    background: white;
+}
+
+.total-value {
+    font-size: 1.25rem;
+}
+
+/* Footer Section */
+.tax-footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+}
+
+.conformity-info {
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    padding: 1.5rem;
+    border-radius: 12px;
+    display: flex;
+    gap: 1rem;
+}
+
+.info-icon {
+    width: 24px;
+    height: 24px;
+    background: #2563eb;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+}
+
+.info-content h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+    color: #1e3a8a;
+}
+
+.info-content p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #1e40af;
+    line-height: 1.5;
+}
+
+.status-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-info h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.95rem;
+}
+
+.status-info p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.status-badge-orange {
+    background: #ffedd5;
+    color: #9a3412;
+    padding: 0.375rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
