@@ -155,6 +155,40 @@
   margin-bottom: 32px;
 }
 
+.admin-topbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.admin-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  background: white;
+  color: var(--admin-text-sub);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-back-btn:hover {
+  background: #f8fafc;
+  color: var(--admin-primary);
+  border-color: var(--admin-primary);
+}
+
+.admin-back-btn svg {
+  transition: transform 0.2s;
+}
+
+.admin-back-btn:hover svg {
+  transform: translateX(-3px);
+}
+
 .admin-search {
   position: relative;
   width: 340px;

@@ -656,6 +656,17 @@ const AdminDashboard = ({ user, onLogout }) => {
 
       <main className="admin-main">
         <header className="admin-topbar">
+          <div className="admin-topbar-left">
+            {activeNav !== 'dashboard' && (
+              <button className="admin-back-btn" onClick={() => setActiveNav('dashboard')}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Retour au Dashboard</span>
+              </button>
+            )}
+          </div>
           <div className="admin-top-actions">
             <span>🔔</span>
             <span>⚙️</span>
