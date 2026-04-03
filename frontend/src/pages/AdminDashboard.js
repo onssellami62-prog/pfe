@@ -1,20 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [activeNav, setActiveNav] = useState('dashboard');
-  
-  // Data State
-  const [companies, setCompanies] = useState([
-    { id: '123-456-789-00', name: 'Sarl Med-Supply', lastDecl: '12 Oct 2023', status: 'Valide', warning: false },
-    { id: '987-654-321-11', name: 'EURL Building-DZ', lastDecl: '08 Oct 2023', status: 'Valide', warning: false },
-    { id: '445-556-667-88', name: 'Transport Express', lastDecl: '02 Oct 2023', status: 'Expire dans 3j', warning: true },
-    { id: '778-889-990-11', name: 'Algeria Tech Hub', lastDecl: '28 Sep 2023', status: 'Valide', warning: false },
-  ]);
 
-  const [usersList, setUsersList] = useState([
-    { id: 1, name: 'User Test', email: 'test@gmail.com', role: 'Client', status: 'Actif', lastActive: 'Il y a 5 min' },
-  ]);
+  // Data State
+  const [companies, setCompanies] = useState([]);
+  const [usersList, setUsersList] = useState([]);
+
+  // Fetch users and companies from API
+  useEffect(() => {
+    if (activeNav === 'users') {
+      fetchUsers();
+    } else if (activeNav === 'companies' || activeNav === 'dashboard') {
+      fetchCompanies();
+    }
+  }, [activeNav]);
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await fetch('http://localhost:5170/api/Companies');
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(data);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des sociétés:", error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:5170/api/Users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsersList(data);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des utilisateurs:", error);
+    }
+  };
 
   const [certificates, setCertificates] = useState([
     { owner: 'Ste. Alpha Dashboard', serial: 'SN-7822-X9', issued: '01/01/2024', expiry: '01/01/2026', type: 'RNE / XML-TEIF', status: 'Valide' },
@@ -33,6 +58,18 @@ const AdminDashboard = ({ user, onLogout }) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Jamais';
+    const date = new Date(dateString);
+    return date.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   /** ─── USER CRUD ─── **/
   const openUserModal = (mode, user = null) => {
     setUserModal({
@@ -42,7 +79,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     });
   };
 
-  const handleSaveUser = (e) => {
+  const handleSaveUser = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const updatedData = {
@@ -51,23 +88,56 @@ const AdminDashboard = ({ user, onLogout }) => {
       email: formData.get('email'),
       password: formData.get('password'),
       role: formData.get('role'),
-      status: formData.get('status'),
-      lastActive: userModal.mode === 'add' ? 'Jamais' : userModal.data.lastActive
+      entreprise: formData.get('entreprise'),
+      matriculeFiscal: formData.get('matriculeFiscal'),
+      username: formData.get('email'), // Utilise l'email comme username par défaut
     };
 
-    if (userModal.mode === 'add') {
-      updatedData.id = Date.now();
-      setUsersList([...usersList, updatedData]);
-    } else {
-      setUsersList(usersList.map(u => u.id === updatedData.id ? updatedData : u));
+    try {
+      if (userModal.mode === 'add') {
+        const response = await fetch('http://localhost:5170/api/Users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedData)
+        });
+        if (response.ok) fetchUsers();
+      } else {
+        // Optionnel: implémenter PUT ici plus tard
+        setUsersList(usersList.map(u => u.id === updatedData.id ? updatedData : u));
+      }
+    } catch (error) {
+      console.error("Erreur de sauvegarde:", error);
     }
+
     setUserModal({ isOpen: false, data: null });
   };
 
-  const handleDeleteUser = (id) => {
+  const handleDeleteUser = async (id) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-      setUsersList(usersList.filter(u => u.id !== id));
+      try {
+        const response = await fetch(`http://localhost:5170/api/Users/${id}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) fetchUsers();
+      } catch (error) {
+        console.error("Erreur de suppression:", error);
+      }
       setUserModal({ isOpen: false, data: null });
+    }
+  };
+
+  const handleStatusUpdate = async (id, newStatus) => {
+    try {
+      const response = await fetch(`http://localhost:5170/api/Users/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStatus)
+      });
+      if (response.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut:", error);
     }
   };
 
@@ -76,32 +146,55 @@ const AdminDashboard = ({ user, onLogout }) => {
     setCompanyModal({
       isOpen: true,
       mode: mode,
-      data: company || { name: '', id: '', status: 'Valide', warning: false, lastDecl: 'Aucune' }
+      data: company || { name: '', registrationNumber: '', address: '' }
     });
   };
 
-  const handleSaveCompany = (e) => {
+  const handleSaveCompany = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const updatedData = {
       ...companyModal.data,
       name: formData.get('name'),
-      id: formData.get('id'),
-      status: formData.get('status'),
-      warning: formData.get('status') !== 'Valide'
+      registrationNumber: formData.get('registrationNumber'),
+      address: formData.get('address') || '',
+      city: formData.get('city') || '',
+      postalCode: formData.get('postalCode') || '',
+      phone: formData.get('phone') || ''
     };
 
-    if (companyModal.mode === 'add') {
-      setCompanies([...companies, updatedData]);
-    } else {
-      setCompanies(companies.map(c => c.id === companyModal.data.id ? updatedData : c));
+    try {
+      if (companyModal.mode === 'add') {
+        const response = await fetch('http://localhost:5170/api/Companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedData)
+        });
+        if (response.ok) fetchCompanies();
+      } else {
+        const response = await fetch(`http://localhost:5170/api/Companies/${companyModal.data.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedData)
+        });
+        if (response.ok) fetchCompanies();
+      }
+    } catch (error) {
+      console.error("Erreur de sauvegarde de la société:", error);
     }
     setCompanyModal({ isOpen: false, data: null });
   };
 
-  const handleDeleteCompany = (id) => {
+  const handleDeleteCompany = async (id) => {
     if (window.confirm('Supprimer définitivement cette société ?')) {
-      setCompanies(companies.filter(c => c.id !== id));
+      try {
+        const response = await fetch(`http://localhost:5170/api/Companies/${id}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) fetchCompanies();
+      } catch (error) {
+        console.error("Erreur de suppression de la société:", error);
+      }
       setCompanyModal({ isOpen: false, data: null });
     }
   };
@@ -144,7 +237,7 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const handleRevokeCertificate = (serial) => {
     if (window.confirm(`Êtes-vous sûr de vouloir révoquer le certificat ${serial} ?`)) {
-      setCertificates(certificates.map(c => 
+      setCertificates(certificates.map(c =>
         c.serial === serial ? { ...c, status: 'Révoqué' } : c
       ));
     }
@@ -172,7 +265,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const CHART_VALUES = [40, 55, 45, 90, 60, 75, 85];
 
   const renderContent = () => {
-    switch(activeNav) {
+    switch (activeNav) {
       case 'signatures':
         return (
           <div className="admin-content-view">
@@ -208,14 +301,14 @@ const AdminDashboard = ({ user, onLogout }) => {
                       </td>
                       <td>
                         <div className="flex-actions-table">
-                          <button 
-                            className="btn-table-action" 
+                          <button
+                            className="btn-table-action"
                             onClick={() => openCertModal('edit', c)}
                           >
                             ⚙️ Gérer
                           </button>
-                          <button 
-                            className="btn-table-action btn-danger-action" 
+                          <button
+                            className="btn-table-action btn-danger-action"
                             onClick={() => handleRevokeCertificate(c.serial)}
                             disabled={c.status === 'Révoqué'}
                           >
@@ -313,17 +406,17 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </thead>
                 <tbody>
                   {companies.map((c, i) => (
-                    <tr key={i}>
+                    <tr key={c.id || i}>
                       <td className="company-name">{c.name}</td>
-                      <td className="fiscal-id">{c.id}</td>
+                      <td className="fiscal-id">{c.registrationNumber}</td>
                       <td>
-                        <div className={`certify-status ${c.warning ? 'status-warning' : 'status-valid'}`}>
-                          {c.warning ? '⚠️' : '✅'} {c.status}
+                        <div className="certify-status status-valid">
+                          ✅ Valide
                         </div>
                       </td>
                       <td><span className="status-badge-admin">Actif</span></td>
                       <td>
-                        <button 
+                        <button
                           className="btn-table-action"
                           onClick={() => openCompanyModal('edit', c)}
                         >
@@ -352,15 +445,29 @@ const AdminDashboard = ({ user, onLogout }) => {
                           <input name="name" type="text" defaultValue={companyModal.data.name} required />
                         </div>
                         <div className="form-row">
-                          <label>Identifiant Fiscal (NIF)</label>
-                          <input name="id" type="text" defaultValue={companyModal.data.id} required />
+                          <label>Identifiant Fiscal (NIF/SIRET)</label>
+                          <input name="registrationNumber" type="text" defaultValue={companyModal.data.registrationNumber} required />
                         </div>
                         <div className="form-row">
-                          <label>Statut Certificat</label>
-                          <select name="status" defaultValue={companyModal.data.status}>
+                          <label>Adresse</label>
+                          <input name="address" type="text" defaultValue={companyModal.data.address} />
+                        </div>
+                        <div className="form-row">
+                          <label>Ville</label>
+                          <input name="city" type="text" defaultValue={companyModal.data.city} />
+                        </div>
+                        <div className="form-row">
+                          <label>Code Postal</label>
+                          <input name="postalCode" type="text" defaultValue={companyModal.data.postalCode} />
+                        </div>
+                        <div className="form-row">
+                          <label>Téléphone</label>
+                          <input name="phone" type="text" defaultValue={companyModal.data.phone} />
+                        </div>
+                        <div className="form-row">
+                          <label>Statut Certificat (Statique)</label>
+                          <select name="status" disabled defaultValue="Valide">
                             <option value="Valide">Valide</option>
-                            <option value="Expire bientôt">Expire bientôt</option>
-                            <option value="Expiré">Expiré</option>
                           </select>
                         </div>
                       </div>
@@ -408,17 +515,26 @@ const AdminDashboard = ({ user, onLogout }) => {
                       <td className="fiscal-id">{u.email}</td>
                       <td><span className="role-badge">{u.role}</span></td>
                       <td>
-                        <span className={`status-dot ${u.status === 'Actif' ? 'dot-online' : 'dot-offline'}`}></span>
-                        {u.status}
+                        <span className={`status-badge-admin ${(u.status === 'Active' || u.status === 'Actif' || (!u.status && u.actif)) ? 'status-valid' : (u.status === 'Pending' || (!u.status && !u.actif) ? 'status-warning' : 'status-revoked')}`}>
+                          {(u.status === 'Pending' || (!u.status && !u.actif)) ? '⏳ En attente' : (u.status === 'Refused' ? '❌ Refusé' : '✅ Actif')}
+                        </span>
                       </td>
-                      <td>{u.lastActive}</td>
+                      <td>{formatDate(u.lastActivity)}</td>
                       <td>
-                        <button 
-                          className="btn-table-action"
-                          onClick={() => openUserModal('edit', u)}
-                        >
-                          ⚙️ Gérer
-                        </button>
+                        <div className="flex-actions-table">
+                          {u.status === 'Pending' && (
+                            <>
+                              <button className="btn-table-action btn-success-action" onClick={() => handleStatusUpdate(u.id, 'Active')}>✅ Accepter</button>
+                              <button className="btn-table-action btn-danger-action" onClick={() => handleStatusUpdate(u.id, 'Refused')}>❌ Refuser</button>
+                            </>
+                          )}
+                          <button
+                            className="btn-table-action"
+                            onClick={() => openUserModal('edit', u)}
+                          >
+                            ⚙️ Gérer
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -452,6 +568,14 @@ const AdminDashboard = ({ user, onLogout }) => {
                         <div className="form-row">
                           <label>Email</label>
                           <input name="email" type="email" defaultValue={userModal.data.email} required />
+                        </div>
+                        <div className="form-row">
+                          <label>Nom de la Société</label>
+                          <input name="entreprise" type="text" defaultValue={userModal.data.entreprise} required />
+                        </div>
+                        <div className="form-row">
+                          <label>Matricule Fiscal (13 car.)</label>
+                          <input name="matriculeFiscal" type="text" defaultValue={userModal.data.matriculeFiscal} maxLength="13" minLength="13" placeholder="1234567XAM000" required />
                         </div>
                         <div className="form-row">
                           <label>Mot de passe</label>
@@ -580,12 +704,12 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </thead>
                 <tbody>
                   {companies.slice(0, 4).map((c, i) => (
-                    <tr key={i}>
+                    <tr key={c.id || i}>
                       <td className="company-name">{c.name}</td>
-                      <td className="fiscal-id">{c.id}</td>
+                      <td className="fiscal-id">{c.registrationNumber}</td>
                       <td>
-                        <div className={`certify-status ${c.warning ? 'status-warning' : 'status-valid'}`}>
-                          {c.warning ? '⚠️' : '✅'} {c.status}
+                        <div className="certify-status status-valid">
+                          ✅ Valide
                         </div>
                       </td>
                       <td><button className="btn-table-action" onClick={() => setActiveNav('companies')}>Détails</button></td>
@@ -610,25 +734,25 @@ const AdminDashboard = ({ user, onLogout }) => {
         </div>
 
         <nav className="admin-nav">
-          <button 
+          <button
             className={`admin-nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveNav('dashboard')}
           >
             <i>📊</i> Dashboard
           </button>
-          <button 
+          <button
             className={`admin-nav-item ${activeNav === 'signatures' ? 'active' : ''}`}
             onClick={() => setActiveNav('signatures')}
           >
             <i>🔐</i> Certificat Électronique
           </button>
-          <button 
+          <button
             className={`admin-nav-item ${activeNav === 'companies' ? 'active' : ''}`}
             onClick={() => setActiveNav('companies')}
           >
             <i>🏢</i> Gérer Société
           </button>
-          <button 
+          <button
             className={`admin-nav-item ${activeNav === 'users' ? 'active' : ''}`}
             onClick={() => setActiveNav('users')}
           >
@@ -643,7 +767,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               <h4>{user?.name || 'Admin Central'}</h4>
               <p>{user?.email || 'fatoora.admin@gov.dz'}</p>
             </div>
-            <button 
+            <button
               onClick={onLogout}
               style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}
               title="Se déconnecter"

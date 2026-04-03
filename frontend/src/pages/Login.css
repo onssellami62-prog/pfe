@@ -70,7 +70,7 @@ body {
   margin-bottom: 36px;
 }
 
-/* Form */
+/* ─── FORM ─── */
 .login-form {
   display: flex;
   flex-direction: column;
@@ -87,45 +87,73 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: #374151;
+  letter-spacing: 0.01em;
 }
 
+/* ── Tous les champs input ── */
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  color: #111827;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.form-group input[type="email"]::placeholder,
+.form-group input[type="password"]::placeholder,
+.form-group input[type="text"]::placeholder {
+  color: #b0b8c8;
+  font-size: 13.5px;
+}
+
+.form-group input[type="email"]:hover:not(:focus),
+.form-group input[type="password"]:hover:not(:focus),
+.form-group input[type="text"]:hover:not(:focus) {
+  border-color: #c7d2e7;
+  background: #f1f5f9;
+}
+
+.form-group input[type="email"]:focus,
+.form-group input[type="password"]:focus,
+.form-group input[type="text"]:focus {
+  border-color: #1a56db;
+  background: #ffffff;
+  box-shadow: 0 0 0 3.5px rgba(26, 86, 219, 0.10);
+}
+
+/* Input wrapper (compatibilité) */
 .input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-wrapper .input-icon {
-  position: absolute;
-  left: 14px;
-  color: #9ca3af;
-  font-size: 15px;
-  display: flex;
-  align-items: center;
-}
-
 .input-wrapper input {
   width: 100%;
-  padding: 12px 14px 12px 40px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
+  padding: 13px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   color: #111827;
-  background: #f9fafb;
-  transition: all 0.2s ease;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   outline: none;
-}
-
-.input-wrapper input::placeholder {
-  color: #9ca3af;
-  font-size: 13px;
 }
 
 .input-wrapper input:focus {
   border-color: #1a56db;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.08);
+  box-shadow: 0 0 0 3.5px rgba(26, 86, 219, 0.10);
 }
 
 .password-toggle {
@@ -214,7 +242,7 @@ body {
   background: #1a3c7a;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 15px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -307,51 +335,23 @@ body {
 
 /* ─── CAROUSEL SLIDE ─── */
 @keyframes slideInFromRight {
-  from {
-    opacity: 0;
-    transform: translateX(60px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(60px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes slideInFromLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-60px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-60px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes slideOutToLeft {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateX(-60px);
-  }
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-60px); }
 }
 
 @keyframes slideOutToRight {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateX(60px);
-  }
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(60px); }
 }
 
 .carousel-slide {
@@ -454,6 +454,7 @@ body {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
+  border: none;
   transition: all 0.3s;
 }
 

@@ -1,35 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './InvoiceLists.js.css';
+import { generateTeifXml, downloadXml } from '../utils/teifGenerator';
 
-const VALIDATED_DATA = [
-    { id: '#INV-2023-001', client: 'Alain Dupont', date: '12 Oct 2023', amount: '1,250.00 €', status: 'Validée' },
-    { id: '#INV-2023-002', client: 'BatiTech SARL', date: '11 Oct 2023', amount: '4,890.50 €', status: 'Validée' },
-    { id: '#INV-2023-005', client: 'Solar Solutions', date: '10 Oct 2023', amount: '945.00 €', status: 'Validée' },
-    { id: '#INV-2023-008', client: 'Niko Concept', date: '09 Oct 2023', amount: '2,100.00 €', status: 'Validée' },
-    { id: '#INV-2023-012', client: 'Global Media', date: '08 Oct 2023', amount: '720.00 €', status: 'Validée' },
-];
-
-const PENDING_DATA = [
-    { id: 'FAC-2023-0892', client: 'Sarl TechSolutions', date: '12 Oct 2023', amount: '1 450,00 €', status: 'En Attente' },
-    { id: 'FAC-2023-0894', client: 'Global Industrie', date: '14 Oct 2023', amount: '425,50 €', status: 'En cours' },
-    { id: 'FAC-2023-0895', client: 'Architecture & Co', date: '14 Oct 2023', amount: '2 890,00 €', status: 'En Attente' },
-    { id: 'FAC-2023-0897', client: 'Logistique Express', date: '15 Oct 2023', amount: '120,00 €', status: 'En Attente' },
-    { id: 'FAC-2023-0898', client: 'Cabinet Lerois', date: '15 Oct 2023', amount: '3 240,00 €', status: 'En cours' },
-];
-
-const REJECTED_DATA = [
-    { id: '#F2023-1045', client: 'Global Logistics S.A.', date: '22 Oct 2023', amount: '1,450.00 €', status: 'Rejetée' },
-    { id: '#F2023-1042', client: "Boulangerie L'Artisan", date: '21 Oct 2023', amount: '430.50 €', status: 'Rejetée' },
-    { id: '#F2023-1039', client: 'TechNova Solutions', date: '20 Oct 2023', amount: '12,890.00 €', status: 'Rejetée' },
-];
+const API = 'http://localhost:5170/api';
 
 export default function InvoiceLists({ initialFilter = 'validated', onErrorClick }) {
     const [filter, setFilter] = useState(initialFilter); // 'validated', 'pending', 'rejected'
+    const [invoices, setInvoices] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [showXml, setShowXml] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
 
-    const closeModal = () => setSelectedInvoice(null);
+    // Charger les factures depuis l'API
+    const fetchInvoices = React.useCallback(async () => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (!user.companyId) return;
+
+        setLoading(true);
+        try {
+            const res = await fetch(`${API}/Invoices?companyId=${user.companyId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setInvoices(data);
+            }
+        } catch (error) {
+            console.error("Erreur chargement factures:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        fetchInvoices();
+    }, [fetchInvoices]);
+
+
+    const closeModal = () => {
+        setSelectedInvoice(null);
+        setShowXml(false);
+    };
 
     const handleViewInvoice = (invoice) => {
         setSelectedInvoice(invoice);
@@ -42,15 +53,21 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
     };
 
     const getData = () => {
-        if (filter === 'validated') return VALIDATED_DATA;
-        if (filter === 'pending') return PENDING_DATA;
-        return REJECTED_DATA;
+        if (filter === 'validated') return invoices.filter(i => i.status === 'Validée');
+        if (filter === 'pending') return invoices.filter(i => i.status === 'Brouillon' || i.status === 'En cours' || i.status === 'En Attente');
+        return invoices.filter(i => i.status === 'Rejetée');
     };
 
     const filteredData = getData().filter(item =>
-        item.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchTerm.toLowerCase())
+        (item.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const stats = {
+        validated: invoices.filter(i => i.status === 'Validée').length,
+        pending: invoices.filter(i => i.status === 'Brouillon' || i.status === 'En cours' || i.status === 'En Attente').length,
+        rejected: invoices.filter(i => i.status === 'Rejetée').length
+    };
 
     return (
         <div className="invoice-lists-container">
@@ -66,23 +83,23 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                         <span className="badge">+12% vs hier</span>
                     </div>
                     <span className="label">FACTURES VALIDÉES</span>
-                    <span className="value">128</span>
+                    <span className="value">{stats.validated}</span>
                 </div>
                 <div className={`status-card-mini orange ${filter === 'pending' ? 'active' : ''}`} onClick={() => setFilter('pending')}>
                     <div className="card-top">
                         <span className="icon">🔔</span>
-                        <span className="badge">+2% vs hier</span>
+                        <span className="badge">Action requise</span>
                     </div>
-                    <span className="label">EN ATTENTE</span>
-                    <span className="value">12</span>
+                    <span className="label">BRUILLONS / ATTENTE</span>
+                    <span className="value">{stats.pending}</span>
                 </div>
                 <div className={`status-card-mini red ${filter === 'rejected' ? 'active' : ''}`} onClick={() => setFilter('rejected')}>
                     <div className="card-top">
                         <span className="icon">❌</span>
-                        <span className="badge">-1% vs hier</span>
+                        <span className="badge">À corriger</span>
                     </div>
                     <span className="label">REJETÉES / ERREURS</span>
-                    <span className="value">03</span>
+                    <span className="value">{stats.rejected}</span>
                 </div>
             </div>
 
@@ -133,15 +150,15 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                     <tbody>
                         {filteredData.map((row) => (
                             <tr key={row.id}>
-                                <td><span className="invoice-id-link">{row.id}</span></td>
+                                <td><span className="invoice-id-link">{row.invoiceNumber}</span></td>
                                 <td>
                                     <div className="client-info">
-                                        {filter === 'validated' && <span className="avatar-small">{row.client.split(' ').map(n => n[0]).join('')}</span>}
-                                        {row.client}
+                                        <span className="avatar-small">{row.clientName ? row.clientName.charAt(0) : '?'}</span>
+                                        {row.clientName}
                                     </div>
                                 </td>
-                                <td>{row.date}</td>
-                                <td className="font-bold">{row.amount}</td>
+                                <td>{new Date(row.date).toLocaleDateString('fr-TN')}</td>
+                                <td className="font-bold">{parseFloat(row.totalTTC).toFixed(3)} DT</td>
                                 <td>
                                     <span className={`pill ${row.status.toLowerCase().replace(' ', '-')}`}>
                                         {row.status}
@@ -184,23 +201,22 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                                     </div>
                                     <div className="invoice-meta">
                                         <h2>FACTURE</h2>
-                                        <p><strong>N° :</strong> {selectedInvoice.id}</p>
-                                        <p><strong>Date :</strong> {selectedInvoice.date}</p>
+                                        <p><strong>N° :</strong> {selectedInvoice.invoiceNumber}</p>
+                                        <p><strong>Date :</strong> {new Date(selectedInvoice.date).toLocaleDateString('fr-TN')}</p>
                                     </div>
                                 </header>
 
                                 <div className="bill-to-section">
                                     <div className="bill-col">
                                         <span>ÉMETTEUR</span>
-                                        <p><strong>Ste. Alpha Dashboard</strong></p>
-                                        <p>Mat: 1234567/A</p>
-                                        <p>Tunis, Tunisie</p>
+                                        <p><strong>{JSON.parse(localStorage.getItem('user') || '{}').entreprise}</strong></p>
+                                        <p>Mat: {JSON.parse(localStorage.getItem('user') || '{}').matriculeFiscal}</p>
                                     </div>
                                     <div className="bill-col">
                                         <span>DESTINATAIRE</span>
-                                        <p><strong>{selectedInvoice.client}</strong></p>
-                                        <p>Client Professionnel</p>
-                                        <p>Identifiant Fiscal: 99887766/B</p>
+                                        <p><strong>{selectedInvoice.clientName}</strong></p>
+                                        <p>Matricule: {selectedInvoice.clientMatricule}</p>
+                                        <p>{selectedInvoice.clientAddress}</p>
                                     </div>
                                 </div>
 
@@ -209,40 +225,66 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                                         <tr>
                                             <th>Description</th>
                                             <th className="text-right">Qté</th>
-                                            <th className="text-right">Prix Unitaire</th>
-                                            <th className="text-right">Total</th>
+                                            <th className="text-right">P.U HT</th>
+                                            <th className="text-right">Total HT</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>Services de Facturation Électronique - Licence Annuelle</td>
-                                            <td className="text-right">1</td>
-                                            <td className="text-right">{selectedInvoice.amount}</td>
-                                            <td className="text-right">{selectedInvoice.amount}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Frais de traitement TEIF XML</td>
-                                            <td className="text-right">1</td>
-                                            <td className="text-right">0.00 €</td>
-                                            <td className="text-right">0.00 €</td>
-                                        </tr>
+                                        {selectedInvoice.lines && selectedInvoice.lines.map((line, idx) => (
+                                            <tr key={idx}>
+                                                <td>{line.description}</td>
+                                                <td className="text-right">{line.qty}</td>
+                                                <td className="text-right">{parseFloat(line.unitPriceHT).toFixed(3)}</td>
+                                                <td className="text-right">{parseFloat(line.totalHT).toFixed(3)}</td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
 
                                 <div className="invoice-summary-box">
                                     <div className="summary-row">
-                                        <span>Montant HT</span>
-                                        <span>{selectedInvoice.amount}</span>
+                                        <span>Total HT</span>
+                                        <span>{parseFloat(selectedInvoice.totalHT).toFixed(3)} DT</span>
                                     </div>
                                     <div className="summary-row">
-                                        <span>TVA (19%)</span>
-                                        <span>Inclus</span>
+                                        <span>Total TVA</span>
+                                        <span>{parseFloat(selectedInvoice.totalTVA).toFixed(3)} DT</span>
+                                    </div>
+                                    <div className="summary-row">
+                                        <span>Timbre Fiscal</span>
+                                        <span>{parseFloat(selectedInvoice.stampDuty).toFixed(3)} DT</span>
                                     </div>
                                     <div className="summary-row total">
                                         <span>MONTANT TTC</span>
-                                        <span>{selectedInvoice.amount}</span>
+                                        <span>{parseFloat(selectedInvoice.totalTTC).toFixed(3)} DT</span>
                                     </div>
                                 </div>
+
+                                {showXml && (
+                                    <div className="xml-overlay-container">
+                                        <div className="xml-header">
+                                            <h4>Structure XML TEIF V2.0 (Généré)</h4>
+                                            <button onClick={() => downloadXml(generateTeifXml(
+                                                { 
+                                                    name: JSON.parse(localStorage.getItem('user') || '{}').entreprise,
+                                                    address: JSON.parse(localStorage.getItem('user') || '{}').address,
+                                                    matricule: JSON.parse(localStorage.getItem('user') || '{}').matriculeFiscal
+                                                }, 
+                                                selectedInvoice
+                                            ), `${selectedInvoice.invoiceNumber}.xml`)}>📥 Télécharger .xml</button>
+                                        </div>
+                                        <pre className="xml-preview-code">
+                                            {generateTeifXml(
+                                                { 
+                                                    name: JSON.parse(localStorage.getItem('user') || '{}').entreprise,
+                                                    address: JSON.parse(localStorage.getItem('user') || '{}').address,
+                                                    matricule: JSON.parse(localStorage.getItem('user') || '{}').matriculeFiscal
+                                                }, 
+                                                selectedInvoice
+                                            )}
+                                        </pre>
+                                    </div>
+                                )}
 
                                 <footer className="paper-footer">
                                     <p>Cette facture est générée électroniquement et conforme aux normes TEIF.</p>
@@ -251,6 +293,9 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                             </div>
 
                             <div className="modal-actions-footer">
+                                <button className="btn-secondary" onClick={() => setShowXml(!showXml)}>
+                                    {showXml ? "📄 Voir Facture" : "📄 Aperçu TEIF (XML)"}
+                                </button>
                                 <button className="btn-secondary" onClick={() => window.print()}>🖨️ Imprimer</button>
                                 <button className="btn-primary">📥 Télécharger PDF</button>
                             </div>

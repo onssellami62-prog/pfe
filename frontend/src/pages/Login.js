@@ -33,6 +33,14 @@ function Login({ onLoginSuccess }) {
     const [rememberMe, setRememberMe] = useState(false);
     const [loginError, setLoginError] = useState('');
 
+    // Nouveaux états pour l'inscription
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [isWaiting, setIsWaiting] = useState(false);
+    const [nom, setNom] = useState('');
+    const [entreprise, setEntreprise] = useState('');
+    const [mf, setMf] = useState('');
+    const [regSuccess, setRegSuccess] = useState('');
+
     // Carousel state
     const [activeDot, setActiveDot] = useState(0);
     const [animating, setAnimating] = useState(false);
@@ -96,21 +104,76 @@ function Login({ onLoginSuccess }) {
         dragStartX.current = null;
     };
 
-    // Liste des utilisateurs statiques pour le test
-    const USERS = [
-        { email: 'test@gmail.com', password: '123', role: 'user', name: 'User Test' },
-        { email: 'ja7479845@gmail.com', password: '123', role: 'admin', name: 'Admin Central' },
-    ];
-
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const foundUser = USERS.find(u => u.email === identifiant && u.password === password);
-        
-        if (foundUser) {
-            setLoginError('');
-            if (onLoginSuccess) onLoginSuccess(foundUser);
-        } else {
-            setLoginError('Identifiant ou mot de passe incorrect.');
+        setLoginError('');
+
+        try {
+            const response = await fetch('http://localhost:5170/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: identifiant,
+                    password: password
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                // Stocker le token et les infos dans le localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify({
+                    email: data.email,
+                    name: data.name,
+                    entreprise: data.entreprise || data.Entreprise,
+                    matriculeFiscal: data.matriculeFiscal || data.MatriculeFiscal,
+                    role: data.role,
+                    companyId: data.companyId || data.CompanyId,
+                    address: data.address
+                }));
+
+                if (onLoginSuccess) onLoginSuccess(data);
+            } else {
+                const errorMsg = await response.text();
+                setLoginError(errorMsg || 'Identifiant ou mot de passe incorrect.');
+            }
+        } catch (err) {
+            console.error('Erreur lors de la connexion:', err);
+            setLoginError('Serveur backend non disponible.');
+        }
+    };
+
+    const handleRegister = async (e) => {
+        e.preventDefault();
+        setLoginError('');
+
+        try {
+            const response = await fetch('http://localhost:5170/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: identifiant,
+                    password: password,
+                    name: nom,
+                    entreprise: entreprise,
+                    matriculeFiscal: mf,
+                    username: identifiant // Utilise l'email comme username par défaut
+                }),
+            });
+
+            if (response.ok) {
+                setIsWaiting(true);
+            } else {
+                const errorMsg = await response.text();
+                setLoginError(errorMsg || "Échec de l'inscription.");
+            }
+        } catch (err) {
+            setLoginError('Erreur serveur lors de l\'inscription.');
         }
     };
 
@@ -143,150 +206,103 @@ function Login({ onLoginSuccess }) {
                     <span className="login-logo-text">El Fatoora</span>
                 </div>
 
-                {/* Welcome */}
-                <div className="login-welcome">
-                    <h1>Bienvenue</h1>
-                    <p>Accédez à votre plateforme de facturation électronique sécurisée.</p>
-                </div>
-
-                {/* Form */}
-                <form className="login-form" onSubmit={handleSubmit}>
-                    {/* Identifiant */}
-                    <div className="form-group">
-                        <label htmlFor="identifiant">Identifiant / Login</label>
-                        <div className="input-wrapper">
-                            <span className="input-icon">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                    <circle cx="12" cy="7" r="4" />
-                                </svg>
-                            </span>
-                            <input
-                                id="identifiant"
-                                type="text"
-                                placeholder="Entrez votre identifiant"
-                                value={identifiant}
-                                onChange={(e) => setIdentifiant(e.target.value)}
-                                autoComplete="username"
-                                required
-                            />
-                        </div>
+                {isWaiting ? (
+                    <div className="waiting-container" style={{ textAlign: 'center', padding: '20px' }}>
+                        <div className="waiting-icon" style={{ fontSize: '48px', marginBottom: '20px' }}>⏳</div>
+                        <h2>Demande envoyée !</h2>
+                        <p style={{ color: '#64748b', marginBottom: '24px' }}>
+                            Votre compte El Fatoora est en cours d'examen. <br />
+                            Vous recevrez un accès dès que l'administrateur aura validé votre dossier.
+                        </p>
+                        <button className="btn-login" onClick={() => setIsWaiting(false)}>Retour à la connexion</button>
                     </div>
+                ) : (
+                    <>
+                        <div className="login-welcome">
+                            <h1>{isRegistering ? 'Créer un compte' : 'Bienvenue'}</h1>
+                            <p>{isRegistering ? 'Rejoignez la plateforme de facturation éléctronique n°1.' : 'Accédez à votre plateforme de facturation électronique sécurisée.'}</p>
+                        </div>
 
-                    {/* Mot de passe */}
-                    <div className="form-group">
-                        <label htmlFor="password">Mot de passe</label>
-                        <div className="input-wrapper">
-                            <span className="input-icon">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                </svg>
-                            </span>
-                            <input
-                                id="password"
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                autoComplete="current-password"
-                                required
-                            />
-                            <button
-                                type="button"
-                                className="password-toggle"
-                                onClick={() => setShowPassword(!showPassword)}
-                                aria-label={
-                                    showPassword
-                                        ? 'Masquer le mot de passe'
-                                        : 'Afficher le mot de passe'
-                                }
-                            >
-                                {showPassword ? (
-                                    <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                                        <line x1="1" y1="1" x2="23" y2="23" />
+                        <form className="login-form" onSubmit={isRegistering ? handleRegister : handleSubmit}>
+                            {isRegistering && (
+                                <div className="form-group">
+                                    <label>Nom Complet</label>
+                                    <input type="text" placeholder="Ex: Ahmed Khlifi" value={nom} onChange={(e) => setNom(e.target.value)} required />
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label htmlFor="identifiant">Identifiant / Email</label>
+                                <input
+                                  id="identifiant"
+                                  type="email"
+                                  placeholder="Entrez votre email ici"
+                                  autoComplete="new-password"
+                                  readOnly
+                                  onFocus={(e) => e.target.removeAttribute('readonly')}
+                                  value={identifiant}
+                                  onChange={(e) => setIdentifiant(e.target.value)}
+                                  required
+                                />
+                            </div>
+
+                            {isRegistering && (
+                                <>
+                                    <div className="form-group">
+                                        <label>Nom de la Société</label>
+                                        <input type="text" placeholder="Ex: Ste. Alpha" value={entreprise} onChange={(e) => setEntreprise(e.target.value)} required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Matricule Fiscal (13 car.)</label>
+                                        <input type="text" placeholder="1234567XAM000" maxLength="13" value={mf} onChange={(e) => setMf(e.target.value)} required />
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="form-group">
+                                <label htmlFor="password">Mot de passe</label>
+                                <input
+                                  id="password"
+                                  type={showPassword ? 'text' : 'password'}
+                                  placeholder="Entrez votre mot de passe"
+                                  autoComplete="new-password"
+                                  readOnly
+                                  onFocus={(e) => e.target.removeAttribute('readonly')}
+                                  value={password}
+                                  onChange={(e) => setPassword(e.target.value)}
+                                  required
+                                />
+                            </div>
+
+                            {!isRegistering && (
+                                <div className="form-options">
+                                    <label className="remember-me">
+                                        <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} id="remember" />
+                                        <span>Se souvenir de moi</span>
+                                    </label>
+                                    <a href="/mot-de-passe-oublie" className="forgot-link">Oublié ?</a>
+                                </div>
+                            )}
+
+                            {loginError && (
+                                <div className="login-error-msg">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                                     </svg>
-                                ) : (
-                                    <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                        <circle cx="12" cy="12" r="3" />
-                                    </svg>
-                                )}
+                                    {loginError}
+                                </div>
+                            )}
+
+                            <button type="submit" className="btn-login">
+                                {isRegistering ? "Soumettre l'inscription" : "Se connecter"}
                             </button>
-                        </div>
-                    </div>
 
-                    {/* Options */}
-                    <div className="form-options">
-                        <label className="remember-me">
-                            <input
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                                id="remember"
-                            />
-                            <span>Se souvenir de moi</span>
-                        </label>
-                        <a href="/mot-de-passe-oublie" className="forgot-link">
-                            Mot de passe oublié ?
-                        </a>
-                    </div>
-
-                    {/* Error message */}
-                    {loginError && (
-                        <div className="login-error-msg">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="12" y1="8" x2="12" y2="12" />
-                                <line x1="12" y1="16" x2="12.01" y2="16" />
-                            </svg>
-                            {loginError}
-                        </div>
-                    )}
-
-                    {/* Submit */}
-                    <button type="submit" className="btn-login" id="btn-se-connecter">
-                        Se connecter
-                    </button>
-                </form>
+                            <button type="button" className="btn-register-toggle" onClick={() => setIsRegistering(!isRegistering)} style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', color: '#1e40af', cursor: 'pointer', fontWeight: '600' }}>
+                                {isRegistering ? "Déjà un compte ? Se connecter" : "Nouveau ? Créer un compte"}
+                            </button>
+                        </form>
+                    </>
+                )}
 
                 <hr className="login-divider" />
 

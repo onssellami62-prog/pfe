@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './Dashboard.css';
 import CompanyProfile from './CompanyProfile';
 import TaxDeclaration from './TaxDeclaration';
@@ -6,14 +6,9 @@ import Statistics from './Statistics';
 import InvoiceLists from './InvoiceLists';
 import ErrorDiagnostic from './ErrorDiagnostic';
 import InvoiceManagement from './InvoiceManagement';
+import ClientsProducts from './ClientsProducts';
 
-/* ── Mock data ── */
-const FLUX_DATA = [
-    { id: 'EF-98234-X', facture: 'FAC-2023-0041', date: '22 Mai 2024', montant: '1,240.00 DT', statut: 'Validé' },
-    { id: 'EF-98231-A', facture: 'FAC-2023-0042', date: '22 Mai 2024', montant: '450.50 DT', statut: 'En cours' },
-    { id: 'EF-98229-B', facture: 'FAC-2023-0043', date: '21 Mai 2024', montant: '2,100.00 DT', statut: 'Rejeté' },
-    { id: 'EF-98211-C', facture: 'FAC-2023-0044', date: '20 Mai 2024', montant: '89.90 DT', statut: 'Validé' },
-];
+const API = 'http://localhost:5170/api';
 
 const NAV_ITEMS = [
     {
@@ -57,109 +52,106 @@ const NAV_ITEMS = [
             </svg>
         ),
     },
+    {
+        key: 'referentiel', label: 'Clients & Produits',
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+        ),
+    },
 ];
 
-/* ── Status badge helper ── */
 function StatusBadge({ statut }) {
-    const cls = statut === 'Validé' ? 'valide' : statut === 'En cours' ? 'en-cours' : 'rejete';
-    return <span className={`status-badge ${cls}`}>{statut}</span>;
+    const s = (statut || '').toLowerCase();
+    const cls = s === 'validée' || s === 'validé' ? 'valide' : (s === 'rejetée' || s === 'rejeté' ? 'rejete' : 'en-cours');
+    const label = s === 'brouillon' ? 'EN ATTENTE' : statut.toUpperCase();
+    return <span className={`status-badge ${cls}`}>{label}</span>;
 }
 
-/* ══════════════════════════════════════════════════
-   DASHBOARD COMPONENT
-   ══════════════════════════════════════════════════ */
 export default function Dashboard({ onLogout }) {
     const [activeNav, setActiveNav] = useState('accueil');
+    const [invoices, setInvoices] = useState([]);
     const [diagnosticInvoice, setDiagnosticInvoice] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
-    const [dragOver, setDragOver] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
+    const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const companyName = savedUser.entreprise || 'Ma Société';
+
+    const fetchInvoices = useCallback(async () => {
+        if (!savedUser.companyId) return;
+        try {
+            const res = await fetch(`${API}/Invoices?companyId=${savedUser.companyId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setInvoices(data);
+            }
+        } catch (error) {
+            console.error("Erreur dashboard:", error);
+        }
+    }, [savedUser.companyId]);
+
+    useEffect(() => {
+        fetchInvoices();
+    }, [fetchInvoices]);
+
+    const stats = {
+        validated: invoices.filter(i => i.status === 'Validée').length,
+        pending: invoices.filter(i => i.status === 'Brouillon' || i.status === 'En cours' || i.status === 'En Attente').length,
+        rejected: invoices.filter(i => i.status === 'Rejetée').length
+    };
 
     const closeModal = () => setSelectedInvoice(null);
 
-    // Content rendering logic
     const renderContent = () => {
-        if (activeNav === 'gestion-facture') return (
-            <InvoiceManagement 
-                onDiagnostic={(inv) => { setDiagnosticInvoice(inv); setActiveNav('diagnostic'); }} 
-            />
-        );
+        if (activeNav === 'gestion-facture') return <InvoiceManagement onDiagnostic={(inv) => { setDiagnosticInvoice(inv); setActiveNav('diagnostic'); }} />;
         if (activeNav === 'profile') return <CompanyProfile />;
         if (activeNav === 'fiscal') return <TaxDeclaration />;
         if (activeNav === 'stats') return <Statistics />;
-
-        // Deep navigation for invoice lists
+        if (activeNav === 'referentiel') return <ClientsProducts />;
         if (activeNav === 'list-validated' || activeNav === 'list-pending' || activeNav === 'list-rejected') {
             const initialFilter = activeNav === 'list-validated' ? 'validated' : (activeNav === 'list-pending' ? 'pending' : 'rejected');
-            return (
-                <InvoiceLists 
-                    initialFilter={initialFilter} 
-                    onErrorClick={(inv) => { setDiagnosticInvoice(inv); setActiveNav('diagnostic'); }} 
-                />
-            );
+            return <InvoiceLists initialFilter={initialFilter} onErrorClick={(inv) => { setDiagnosticInvoice(inv); setActiveNav('diagnostic'); }} />;
         }
-
-        // Diagnostic Error Page
         if (activeNav === 'diagnostic') return <ErrorDiagnostic invoice={diagnosticInvoice} onBack={() => setActiveNav('list-rejected')} />;
 
-        // Default: Accueil content
         return (
             <>
-                {/* Header */}
                 <div className="page-header">
                     <h1>Tableau de Bord</h1>
                     <p>Bienvenue sur votre espace de gestion de factures électroniques conforme TEIF XML.</p>
                 </div>
 
-                {/* ── STAT CARDS ── */}
                 <div className="stat-cards">
                     <div className="stat-card green" onClick={() => setActiveNav('list-validated')} style={{ cursor: 'pointer' }}>
                         <div className="stat-card-top">
-                            <div className="stat-icon green">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="9 12 11 14 15 10" />
-                                </svg>
-                            </div>
-                            <span className="stat-badge green">+12% vs hier</span>
+                            <div className="stat-icon green">✨</div>
+                            <span className="stat-badge green">Optimisé</span>
                         </div>
                         <div className="stat-label">Factures Validées</div>
-                        <div className="stat-value">128</div>
+                        <div className="stat-value">{stats.validated}</div>
                     </div>
-
                     <div className="stat-card orange" onClick={() => setActiveNav('list-pending')} style={{ cursor: 'pointer' }}>
                         <div className="stat-card-top">
-                            <div className="stat-icon orange">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="12" y1="8" x2="12" y2="12" />
-                                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                                </svg>
-                            </div>
-                            <span className="stat-badge orange">+2% vs hier</span>
+                            <div className="stat-icon orange">🔔</div>
+                            <span className="stat-badge orange">Action requise</span>
                         </div>
                         <div className="stat-label">En Attente</div>
-                        <div className="stat-value">12</div>
+                        <div className="stat-value">{stats.pending}</div>
                     </div>
-
                     <div className="stat-card red" onClick={() => setActiveNav('list-rejected')} style={{ cursor: 'pointer' }}>
                         <div className="stat-card-top">
-                            <div className="stat-icon red">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="15" y1="9" x2="9" y2="15" />
-                                    <line x1="9" y1="9" x2="15" y2="15" />
-                                </svg>
-                            </div>
-                            <span className="stat-badge red">-1% vs hier</span>
+                            <div className="stat-icon red">❌</div>
+                            <span className="stat-badge red">Erreurs</span>
                         </div>
                         <div className="stat-label">Rejetées / Erreurs</div>
-                        <div className="stat-value">03</div>
+                        <div className="stat-value">{stats.rejected.toString().padStart(2, '0')}</div>
                     </div>
                 </div>
 
                 <div className="bottom-panels solo">
-
                     <div className="history-panel">
                         <div className="history-header">
                             <h3>Historique des Flux</h3>
@@ -177,21 +169,28 @@ export default function Dashboard({ onLogout }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {FLUX_DATA.map((row) => (
+                                {invoices.slice(0, 5).map((row) => (
                                     <tr key={row.id}>
-                                        <td><span className="tx-id">{row.id}</span></td>
-                                        <td><div className="facture-num">{row.facture}</div></td>
-                                        <td><div className="date-cell">{row.date}</div></td>
-                                        <td><span className="amount-cell">{row.montant}</span></td>
-                                        <td><StatusBadge statut={row.statut} /></td>
+                                        <td><span className="tx-id">EF-{row.id.toString().padStart(5, '0')}</span></td>
+                                        <td><div className="facture-num">{row.invoiceNumber}</div></td>
+                                        <td><div className="date-cell">{new Date(row.date).toLocaleDateString('fr-TN')}</div></td>
+                                        <td><span className="amount-cell">{parseFloat(row.totalTTC).toFixed(3)} DT</span></td>
+                                        <td><StatusBadge statut={row.status} /></td>
                                         <td>
                                             <div className="actions-cell">
-                                                <button className="action-btn" onClick={() => setSelectedInvoice({ id: row.facture, date: row.date, client: 'Client Inconnu', amount: row.montant })}>👁️</button>
+                                                <button className="action-btn" onClick={() => setSelectedInvoice(row)}>👁️</button>
                                                 <button className="action-btn">📥</button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
+                                {invoices.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                                            Aucune transaction pour le moment.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -210,43 +209,23 @@ export default function Dashboard({ onLogout }) {
                         <span>E-Invoicing Platform</span>
                     </div>
                 </div>
-
                 <nav className="sidebar-nav">
                     {NAV_ITEMS.map((item) => (
-                        <button
-                            key={item.key}
-                            className={`nav-item ${activeNav === item.key ? 'active' : ''}`}
-                            onClick={() => setActiveNav(item.key)}
-                        >
-                            {item.icon}
-                            {item.label}
+                        <button key={item.key} className={`nav-item ${activeNav === item.key ? 'active' : ''}`} onClick={() => setActiveNav(item.key)}>
+                            {item.icon} {item.label}
                         </button>
                     ))}
                     <div className="nav-section-label">Assistance</div>
                     <button className="nav-item">Support</button>
-                    <button
-                        className="nav-item logout-item"
-                        onClick={onLogout}
-                        style={{ marginTop: 'auto', color: '#ef4444' }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
+                    <button className="nav-item logout-item" onClick={onLogout} style={{ marginTop: 'auto', color: '#ef4444' }}>
                         Se déconnecter
                     </button>
                 </nav>
-
-                <div
-                    className={`sidebar-user ${activeNav === 'profile' ? 'active' : ''}`}
-                    onClick={() => setActiveNav('profile')}
-                    style={{ cursor: 'pointer' }}
-                >
-                    <div className="user-avatar">SA</div>
+                <div className="sidebar-user" onClick={() => setActiveNav('profile')} style={{ cursor: 'pointer' }}>
+                    <div className="user-avatar">{savedUser.name?.charAt(0) || 'U'}</div>
                     <div className="user-info">
-                        <h4>Ste. Alpha</h4>
-                        <span>Mat: 1234567/A</span>
+                        <h4>{companyName}</h4>
+                        <span>{savedUser.email}</span>
                     </div>
                 </div>
             </aside>
@@ -256,11 +235,7 @@ export default function Dashboard({ onLogout }) {
                     <div className="topbar-left">
                         {activeNav !== 'accueil' && (
                             <button className="back-btn-header" onClick={() => setActiveNav('accueil')}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                                    <polyline points="12 19 5 12 12 5"></polyline>
-                                </svg>
-                                <span>Retour</span>
+                                Retour
                             </button>
                         )}
                         <div className="topbar-search">
@@ -269,100 +244,70 @@ export default function Dashboard({ onLogout }) {
                     </div>
                     <div className="topbar-right">
                         <button className="notif-btn">🔔</button>
-                        <button
-                            className="company-selector"
-                            onClick={() => setActiveNav('profile')}
-                        >
-                            Sté Alpha Dashboard ▾
-                        </button>
-                        <button
-                            className="logout-btn-top"
-                            onClick={onLogout}
-                            title="Se déconnecter"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                                <polyline points="16 17 21 12 16 7" />
-                                <line x1="21" y1="12" x2="9" y2="12" />
-                            </svg>
-                        </button>
+                        <button className="company-selector" onClick={() => setActiveNav('profile')}>{companyName} ▾</button>
+                        <button className="logout-btn-top" onClick={onLogout}>🚪</button>
                     </div>
                 </header>
 
-                <main className="page-content">
-                    {renderContent()}
-                </main>
+                <main className="page-content">{renderContent()}</main>
 
-                {/* MODAL INVOICE VIEW */}
                 {selectedInvoice && (
                     <div className="invoice-modal-overlay" onClick={closeModal} style={{ zIndex: 3000 }}>
                         <div className="invoice-modal-content" onClick={(e) => e.stopPropagation()}>
                             <button className="close-modal-btn" onClick={closeModal}>✕</button>
-
                             <div className="invoice-paper">
                                 <header className="paper-header">
                                     <div className="company-branding">
                                         <div className="logo-placeholder">EF</div>
                                         <div>
-                                            <h3>El Fatoora Platform</h3>
-                                            <p>Avenue de l'Indépendance, Tunis</p>
+                                            <h3>{savedUser.entreprise}</h3>
+                                            <p>{savedUser.address || 'Tunis, Tunisie'}</p>
                                         </div>
                                     </div>
                                     <div className="invoice-meta">
                                         <h2>FACTURE</h2>
-                                        <p><strong>N° :</strong> {selectedInvoice.id}</p>
-                                        <p><strong>Date :</strong> {selectedInvoice.date}</p>
+                                        <p><strong>N° :</strong> {selectedInvoice.invoiceNumber}</p>
+                                        <p><strong>Date :</strong> {new Date(selectedInvoice.date).toLocaleDateString('fr-TN')}</p>
                                     </div>
                                 </header>
-
                                 <div className="bill-to-section">
                                     <div className="bill-col">
                                         <span>ÉMETTEUR</span>
-                                        <p><strong>Ste. Alpha Dashboard</strong></p>
-                                        <p>Mat: 1234567/A</p>
-                                        <p>Tunis, Tunisie</p>
+                                        <p><strong>{savedUser.entreprise}</strong></p>
+                                        <p>Mat: {savedUser.matriculeFiscal}</p>
                                     </div>
                                     <div className="bill-col">
                                         <span>DESTINATAIRE</span>
-                                        <p><strong>{selectedInvoice.client || 'Client Professionnel'}</strong></p>
-                                        <p>Identifiant Fiscal: 99887766/B</p>
+                                        <p><strong>{selectedInvoice.clientName}</strong></p>
+                                        <p>Mat: {selectedInvoice.clientMatricule}</p>
                                     </div>
                                 </div>
-
                                 <table className="paper-table">
                                     <thead>
                                         <tr>
                                             <th>Description</th>
                                             <th className="text-right">Qté</th>
-                                            <th className="text-right">Prix Unitaire</th>
-                                            <th className="text-right">Total</th>
+                                            <th className="text-right">Total HT</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>Services de Facturation Électronique</td>
-                                            <td className="text-right">1</td>
-                                            <td className="text-right">{selectedInvoice.amount}</td>
-                                            <td className="text-right">{selectedInvoice.amount}</td>
-                                        </tr>
+                                        {selectedInvoice.lines?.map((line, idx) => (
+                                            <tr key={idx}>
+                                                <td>{line.description}</td>
+                                                <td className="text-right">{line.qty}</td>
+                                                <td className="text-right">{parseFloat(line.totalHT).toFixed(3)} DT</td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
-
                                 <div className="invoice-summary-box">
-                                    <div className="summary-row total">
-                                        <span>MONTANT TTC</span>
-                                        <span>{selectedInvoice.amount}</span>
-                                    </div>
+                                    <div className="summary-row"><span>Total HT</span><span>{parseFloat(selectedInvoice.totalHT).toFixed(3)} DT</span></div>
+                                    <div className="summary-row"><span>TVA</span><span>{parseFloat(selectedInvoice.totalTVA).toFixed(3)} DT</span></div>
+                                    <div className="summary-row total"><span>MONTANT TTC</span><span>{parseFloat(selectedInvoice.totalTTC).toFixed(3)} DT</span></div>
                                 </div>
-
-                                <footer className="paper-footer">
-                                    <p>Cette facture est générée électroniquement et conforme aux normes TEIF.</p>
-                                </footer>
                             </div>
-
                             <div className="modal-actions-footer">
                                 <button className="btn-secondary" onClick={() => window.print()}>🖨️ Imprimer</button>
-                                <button className="btn-primary">📥 Télécharger PDF</button>
                             </div>
                         </div>
                     </div>
@@ -371,4 +316,3 @@ export default function Dashboard({ onLogout }) {
         </div>
     );
 }
-

@@ -601,6 +601,9 @@
   border-radius: 20px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
   animation: slideUpModal 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -636,8 +639,16 @@
   font-weight: 800;
 }
 
+.admin-modal-content form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(95vh - 70px); /* Ajuste selon le header */
+}
+
 .modal-body {
   padding: 24px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .user-profile-summary {
@@ -838,4 +849,42 @@
 .tab-btn.active {
   background: var(--admin-primary);
   color: white;
+}
+
+/* 🧪 Statuts et Boutons d'Approbation */
+.btn-success-action {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border: 1px solid #bbf7d0 !important;
+}
+
+.btn-success-action:hover {
+  background: #16a34a !important;
+  color: white !important;
+}
+
+.btn-danger-action {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca !important;
+}
+
+.btn-danger-action:hover {
+  background: #dc2626 !important;
+  color: white !important;
+}
+
+.status-badge-admin.status-warning {
+  background: #fef9c3 !important;
+  color: #854d0e !important;
+}
+
+.status-badge-admin.status-valid {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+.status-badge-admin.status-revoked {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
 }
