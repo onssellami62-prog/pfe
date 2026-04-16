@@ -31,6 +31,14 @@ namespace backend.Models
 
         public DateTime? PeriodeAu { get; set; }
         public string? QrCode { get; set; }
+        /// <summary>I-11 = Facture, I-14 = Avoir</summary>
+        [MaxLength(10)]
+        public string TypeDocument { get; set; } = "I-11";
+
+        public int? FactureOrigineId { get; set; }
+
+        [ForeignKey("FactureOrigineId")]
+        public Facture? FactureOrigine { get; set; }dotne
         // ─── Timbre fiscal ─────────────────────────
         public bool TimbreFiscal { get; set; } = false;
 

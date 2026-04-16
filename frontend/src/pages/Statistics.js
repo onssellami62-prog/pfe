@@ -1,199 +1,281 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './Statistics.css';
 
+const IA_BASE = 'http://localhost:8000';
+
+const fmt = (n) => n ? parseFloat(n).toLocaleString('fr-TN', { minimumFractionDigits: 3 }) : '0.000';
+const MOIS_NOMS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
 export default function Statistics() {
+    const [prediction,  setPrediction]  = useState(null);
+    const [topClients,  setTopClients]  = useState([]);
+    const [topProduits, setTopProduits] = useState([]);
+    const [evolution,   setEvolution]   = useState([]);
+    const [panierMoyen, setPanierMoyen] = useState(null);
+    const [loading,     setLoading]     = useState(true);
+    const [error,       setError]       = useState(null);
+
+    useEffect(() => { fetchAll(); }, []);
+
+    const fetchAll = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [predRes, clientsRes, produitsRes, evoRes, panierRes] = await Promise.all([
+                fetch(`${IA_BASE}/predict/ca`),
+                fetch(`${IA_BASE}/bi/top-clients`),
+                fetch(`${IA_BASE}/bi/top-produits`),
+                fetch(`${IA_BASE}/bi/evolution-ca`),
+                fetch(`${IA_BASE}/bi/panier-moyen`),
+            ]);
+
+            const [pred, clients, produits, evo, panier] = await Promise.all([
+                predRes.json(),
+                clientsRes.json(),
+                produitsRes.json(),
+                evoRes.json(),
+                panierRes.json(),
+            ]);
+
+            setPrediction(pred);
+            setTopClients(clients.topClients   || []);
+            setTopProduits(produits.topProduits || []);
+            setEvolution(evo.evolution          || []);
+            setPanierMoyen(panier);
+        } catch (err) {
+            setError('Erreur connexion au microservice IA. Vérifiez que le service Python tourne sur le port 8000.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const maxCA = evolution.length ? Math.max(...evolution.map(e => e.caHT), 1) : 1;
+
+    const tendanceBadge = (t) => ({
+        'hausse': { bg: '#dcfce7', color: '#16a34a', icon: '📈' },
+        'baisse': { bg: '#fee2e2', color: '#dc2626', icon: '📉' },
+        'stable': { bg: '#f1f5f9', color: '#64748b', icon: '➡️' },
+    }[t] || { bg: '#f1f5f9', color: '#64748b', icon: '➡️' });
+
+    if (loading) return (
+        <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>
+            🤖 Chargement des analyses IA...
+        </div>
+    );
+
+    if (error) return (
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444', background: '#fef2f2', borderRadius: 8, margin: '2rem' }}>
+            {error} — <button onClick={fetchAll} style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>Réessayer</button>
+        </div>
+    );
+
+    const badge = tendanceBadge(prediction?.tendance);
+
     return (
         <div className="stats-page">
             <header className="stats-header">
                 <div className="header-info">
-                    <h1>Tableau de Bord Statistique</h1>
-                    <p>Analysez les performances de votre facturation électronique</p>
+                    <h1>🤖 Tableau de Bord BI & Intelligence Artificielle</h1>
+                    <p>Analyses avancées et prédictions basées sur vos données de facturation</p>
                 </div>
                 <div className="header-controls">
-                    <div className="filter-group">
-                        <button className="filter-btn active">30 derniers jours</button>
-                        <button className="filter-btn">Année en cours</button>
-                        <button className="filter-btn">Personnalisé</button>
-                    </div>
-                    <button className="btn-export">
-                        <span className="icon">📥</span> Exporter PDF
+                    <button className="btn-export" onClick={fetchAll}>
+                        🔄 Actualiser
                     </button>
                 </div>
             </header>
 
-            <div className="stats-kpi-grid">
-                <div className="kpi-card">
-                    <div className="kpi-top">
-                        <div className="kpi-icon blue">💰</div>
-                        <span className="trend positive">📈 +12%</span>
+            {/* ── Prédiction CA ── */}
+            <div style={{ background: 'linear-gradient(135deg, #1e429f 0%, #3b5bdb 100%)', borderRadius: 16, padding: '1.5rem 2rem', marginBottom: '1.5rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                        🤖 Prédiction IA — CA {MOIS_NOMS[(prediction?.moisProchain || 1) - 1]} {prediction?.anneeProchaine}
                     </div>
-                    <div className="kpi-content">
-                        <span className="label">Chiffre d'Affaires Global</span>
-                        <div className="value">145 280,500 <small>DT</small></div>
+                    <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-1px' }}>
+                        {fmt(prediction?.prediction)} <span style={{ fontSize: 16, fontWeight: 400, opacity: 0.7 }}>DT</span>
                     </div>
-                </div>
-
-                <div className="kpi-card">
-                    <div className="kpi-top">
-                        <div className="kpi-icon green">📄</div>
-                        <span className="trend positive">📈 +5.2%</span>
-                    </div>
-                    <div className="kpi-content">
-                        <span className="label">Volume de Factures</span>
-                        <div className="value">1,248</div>
+                    <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>
+                        {prediction?.message}
                     </div>
                 </div>
-
-                <div className="kpi-card">
-                    <div className="kpi-top">
-                        <div className="kpi-icon indigo">🏛️</div>
-                        <span className="trend neutral"> Stable</span>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 18px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>CONFIANCE</div>
+                        <div style={{ fontSize: 22, fontWeight: 700 }}>{prediction?.confiance}%</div>
                     </div>
-                    <div className="kpi-content">
-                        <span className="label">TVA Collectée Totale</span>
-                        <div className="value">27 603,295 <small>DT</small></div>
+                    <div style={{ background: badge.bg, borderRadius: 10, padding: '12px 18px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: badge.color, fontWeight: 600, marginBottom: 4 }}>TENDANCE</div>
+                        <div style={{ fontSize: 22 }}>{badge.icon}</div>
+                        <div style={{ fontSize: 12, color: badge.color, fontWeight: 600 }}>{prediction?.tendance?.toUpperCase()}</div>
                     </div>
                 </div>
+            </div>
 
+            {/* ── KPIs ── */}
+            <div className="stats-kpi-grid" style={{ marginBottom: '1.5rem' }}>
                 <div className="kpi-card">
-                    <div className="kpi-top">
-                        <div className="kpi-icon orange">🎫</div>
-                        <span className="trend negative">📉 -0.5%</span>
-                    </div>
+                    <div className="kpi-top"><div className="kpi-icon blue">🛒</div></div>
                     <div className="kpi-content">
-                        <span className="label">Droit de Timbre Cumulé</span>
-                        <div className="value">1 248,000 <small>DT</small></div>
+                        <span className="label">Panier Moyen Global</span>
+                        <div className="value">{fmt(panierMoyen?.panierMoyenGlobal)} <small>DT</small></div>
+                    </div>
+                </div>
+                <div className="kpi-card">
+                    <div className="kpi-top"><div className="kpi-icon green">👥</div></div>
+                    <div className="kpi-content">
+                        <span className="label">Top Client</span>
+                        <div className="value" style={{ fontSize: 18 }}>{topClients[0]?.nomClient || '—'}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{fmt(topClients[0]?.caTotal)} DT</div>
+                    </div>
+                </div>
+                <div className="kpi-card">
+                    <div className="kpi-top"><div className="kpi-icon orange">📦</div></div>
+                    <div className="kpi-content">
+                        <span className="label">Top Produit</span>
+                        <div className="value" style={{ fontSize: 18 }}>{topProduits[0]?.nomProduit || '—'}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{topProduits[0]?.qteTotale || 0} unités vendues</div>
+                    </div>
+                </div>
+                <div className="kpi-card">
+                    <div className="kpi-top"><div className="kpi-icon indigo">📊</div></div>
+                    <div className="kpi-content">
+                        <span className="label">Mois d'historique</span>
+                        <div className="value">{evolution.length}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>utilisés pour la prédiction</div>
                     </div>
                 </div>
             </div>
 
             <div className="stats-main-grid">
-                <div className="stats-chart-card evolution-card">
-                    <div className="card-header">
-                        <h3>📈 Évolution mensuelle du CA</h3>
-                        <div className="chart-legend">
-                            <span className="legend-item"><span className="dot current"></span> 2024</span>
-                            <span className="legend-item"><span className="dot past"></span> 2023</span>
-                        </div>
-                    </div>
-                    <div className="chart-placeholder">
-                        <svg viewBox="0 0 800 200" className="line-chart">
-                            <path d="M0,150 Q50,140 100,160 T200,120 T300,140 T400,100 T500,110 T600,80 T700,50 T800,80" fill="none" stroke="#1a56db" strokeWidth="3" />
-                            <path d="M0,150 Q50,140 100,160 T200,120 T300,140 T400,100 T500,110 T600,80 T700,50 T800,80 L800,200 L0,200 Z" fill="url(#grad1)" opacity="0.1" />
-                            <defs>
-                                <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stopColor="#1a56db" />
-                                    <stop offset="100%" stopColor="transparent" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <div className="x-axis">
-                            <span>JAN</span><span>FÉV</span><span>MAR</span><span>AVR</span><span>MAI</span><span>JUIN</span><span>JUIL</span><span>AOÛT</span><span>SEPT</span><span>OCT</span><span>NOV</span><span>DÉC</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="stats-chart-card distribution-card">
-                    <div className="card-header">
-                        <h3>📊 Répartition par Taux TVA</h3>
-                    </div>
-                    <div className="distribution-content">
-                        <div className="donut-chart">
-                            <svg viewBox="0 0 36 36" className="circular-chart">
-                                <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                <path className="circle" strokeDasharray="60, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke="#1a56db" />
-                                <path className="circle" strokeDasharray="25, 100" strokeDashoffset="-60" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke="#10b981" />
-                                <path className="circle" strokeDasharray="15, 100" strokeDashoffset="-85" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke="#8b5cf6" />
-                                <text x="18" y="20.35" className="percentage">100%</text>
-                                <text x="18" y="24" className="chart-label">TOTAL TVA</text>
-                            </svg>
-                        </div>
-                        <div className="legend-list">
-                            <div className="legend-item"><span className="dot blue"></span> Taux 19% <strong>60%</strong></div>
-                            <div className="legend-item"><span className="dot green"></span> Taux 13% <strong>25%</strong></div>
-                            <div className="legend-item"><span className="dot purple"></span> Taux 7% <strong>15%</strong></div>
-                        </div>
-                    </div>
-                </div>
-
+                {/* Évolution mensuelle */}
                 <div className="stats-chart-card sales-card">
                     <div className="card-header">
-                        <h3>📊 Ventes par mois</h3>
-                        <span className="date-range">Jan 2024 - Juin 2024</span>
+                        <h3>📊 Évolution mensuelle du CA</h3>
                     </div>
                     <div className="bar-chart">
-                        <div className="bar-container">
-                            <div className="bar" style={{ height: '40%' }}><div className="bar-top"></div></div>
-                            <span>JAN</span>
-                        </div>
-                        <div className="bar-container">
-                            <div className="bar" style={{ height: '60%' }}><div className="bar-top"></div></div>
-                            <span>FÉB</span>
-                        </div>
-                        <div className="bar-container">
-                            <div className="bar" style={{ height: '45%' }}><div className="bar-top"></div></div>
-                            <span>MAR</span>
-                        </div>
-                        <div className="bar-container">
-                            <div className="bar active" style={{ height: '85%' }}><div className="bar-top"></div></div>
-                            <span>APR</span>
-                        </div>
-                        <div className="bar-container">
-                            <div className="bar" style={{ height: '50%' }}><div className="bar-top"></div></div>
-                            <span>MAY</span>
-                        </div>
-                        <div className="bar-container">
-                            <div className="bar" style={{ height: '70%' }}><div className="bar-top"></div></div>
-                            <span>JUN</span>
-                        </div>
+                        {evolution.length > 0
+                            ? evolution.map((e, i) => (
+                                <div className="bar-container" key={i}>
+                                    <div className="bar" style={{ height: `${(e.caHT / maxCA) * 85}%` }}>
+                                        <div className="bar-top"></div>
+                                    </div>
+                                    <span>{['JAN','FÉV','MAR','AVR','MAI','JUIN','JUIL','AOÛT','SEPT','OCT','NOV','DÉC'][e.mois - 1]}</span>
+                                </div>
+                            ))
+                            : <p style={{ color: '#94a3b8', padding: '2rem' }}>Aucune donnée disponible</p>
+                        }
                     </div>
                 </div>
 
+                {/* Top 5 clients */}
                 <div className="stats-chart-card clients-card">
                     <div className="card-header">
-                        <h3>⭐ Top 5 Clients par Revenu</h3>
+                        <h3>⭐ Top 5 Clients par CA</h3>
                     </div>
                     <table className="clients-table">
                         <thead>
                             <tr>
                                 <th>CLIENT</th>
                                 <th>FACTURES</th>
-                                <th>CA TOTAL (DT)</th>
+                                <th>CA HT (DT)</th>
+                                <th>PANIER MOY.</th>
                             </tr>
                         </thead>
                         <tbody>
+                            {topClients.map((c, i) => (
+                                <tr key={i}>
+                                    <td>
+                                        <div className="client-cell">
+                                            <span className="avatar">{c.nomClient.substring(0, 2).toUpperCase()}</span>
+                                            {c.nomClient}
+                                        </div>
+                                    </td>
+                                    <td>{c.nbFactures}</td>
+                                    <td className="font-bold">{fmt(c.caTotal)}</td>
+                                    <td style={{ color: '#64748b', fontSize: 12 }}>{fmt(c.panierMoyen)}</td>
+                                </tr>
+                            ))}
+                            {topClients.length === 0 && (
+                                <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>Aucune donnée</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Top 5 produits */}
+                <div className="stats-chart-card clients-card">
+                    <div className="card-header">
+                        <h3>📦 Top 5 Produits Vendus</h3>
+                    </div>
+                    <table className="clients-table">
+                        <thead>
                             <tr>
-                                <td><div className="client-cell"><span className="avatar">BT</span> Banque de Tunisie</div></td>
-                                <td>45</td>
-                                <td className="font-bold">42 500,000</td>
+                                <th>PRODUIT</th>
+                                <th>QTÉ</th>
+                                <th>CA HT (DT)</th>
+                                <th>PRIX MOY.</th>
                             </tr>
+                        </thead>
+                        <tbody>
+                            {topProduits.map((p, i) => (
+                                <tr key={i}>
+                                    <td>
+                                        <div className="client-cell">
+                                            <span className="avatar">{p.nomProduit.substring(0, 2).toUpperCase()}</span>
+                                            {p.nomProduit}
+                                        </div>
+                                    </td>
+                                    <td>{p.qteTotale}</td>
+                                    <td className="font-bold">{fmt(p.caHT)}</td>
+                                    <td style={{ color: '#64748b', fontSize: 12 }}>{fmt(p.prixMoyen)}</td>
+                                </tr>
+                            ))}
+                            {topProduits.length === 0 && (
+                                <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>Aucune donnée</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Panier moyen par client */}
+                <div className="stats-chart-card clients-card">
+                    <div className="card-header">
+                        <h3>🛒 Panier Moyen par Client</h3>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>Global: {fmt(panierMoyen?.panierMoyenGlobal)} DT</span>
+                    </div>
+                    <table className="clients-table">
+                        <thead>
                             <tr>
-                                <td><div className="client-cell"><span className="avatar tt">TT</span> Tunisie Telecom</div></td>
-                                <td>32</td>
-                                <td className="font-bold">38 240,000</td>
+                                <th>CLIENT</th>
+                                <th>FACTURES</th>
+                                <th>PANIER MOYEN</th>
+                                <th>MAX</th>
                             </tr>
-                            <tr>
-                                <td><div className="client-cell"><span className="avatar of">OF</span> Ooredoo France</div></td>
-                                <td>18</td>
-                                <td className="font-bold">25 100,000</td>
-                            </tr>
-                            <tr>
-                                <td><div className="client-cell"><span className="avatar sf">SF</span> SFBT Tunisie</div></td>
-                                <td>22</td>
-                                <td className="font-bold">18 900,000</td>
-                            </tr>
-                            <tr>
-                                <td><div className="client-cell"><span className="avatar ab">AM</span> Amen Bank</div></td>
-                                <td>14</td>
-                                <td className="font-bold">15 600,000</td>
-                            </tr>
+                        </thead>
+                        <tbody>
+                            {panierMoyen?.parClient?.map((c, i) => (
+                                <tr key={i}>
+                                    <td>
+                                        <div className="client-cell">
+                                            <span className="avatar">{c.nomClient.substring(0, 2).toUpperCase()}</span>
+                                            {c.nomClient}
+                                        </div>
+                                    </td>
+                                    <td>{c.nbFactures}</td>
+                                    <td className="font-bold" style={{ color: '#1e429f' }}>{fmt(c.panierMoyen)}</td>
+                                    <td style={{ color: '#64748b', fontSize: 12 }}>{fmt(c.maxFacture)}</td>
+                                </tr>
+                            ))}
+                            {(!panierMoyen?.parClient || panierMoyen.parClient.length === 0) && (
+                                <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>Aucune donnée</td></tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
             <footer className="stats-footer">
-                <p>© 2024 El Fatoora - Plateforme de facturation électronique certifiée. Données synchronisées en temps réel avec les services fiscaux.</p>
+                <p>🤖 Analyses générées par le microservice IA Python — El Fatoora {new Date().getFullYear()}</p>
             </footer>
         </div>
     );

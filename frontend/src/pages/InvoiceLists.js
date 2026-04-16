@@ -1,94 +1,116 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './InvoiceLists.js.css';
 
-const VALIDATED_DATA = [
-    { id: '#INV-2023-001', client: 'Alain Dupont', date: '12 Oct 2023', amount: '1,250.00 €', status: 'Validée' },
-    { id: '#INV-2023-002', client: 'BatiTech SARL', date: '11 Oct 2023', amount: '4,890.50 €', status: 'Validée' },
-    { id: '#INV-2023-005', client: 'Solar Solutions', date: '10 Oct 2023', amount: '945.00 €', status: 'Validée' },
-    { id: '#INV-2023-008', client: 'Niko Concept', date: '09 Oct 2023', amount: '2,100.00 €', status: 'Validée' },
-    { id: '#INV-2023-012', client: 'Global Media', date: '08 Oct 2023', amount: '720.00 €', status: 'Validée' },
-];
-
-const PENDING_DATA = [
-    { id: 'FAC-2023-0892', client: 'Sarl TechSolutions', date: '12 Oct 2023', amount: '1 450,00 €', status: 'En Attente' },
-    { id: 'FAC-2023-0894', client: 'Global Industrie', date: '14 Oct 2023', amount: '425,50 €', status: 'En cours' },
-    { id: 'FAC-2023-0895', client: 'Architecture & Co', date: '14 Oct 2023', amount: '2 890,00 €', status: 'En Attente' },
-    { id: 'FAC-2023-0897', client: 'Logistique Express', date: '15 Oct 2023', amount: '120,00 €', status: 'En Attente' },
-    { id: 'FAC-2023-0898', client: 'Cabinet Lerois', date: '15 Oct 2023', amount: '3 240,00 €', status: 'En cours' },
-];
-
-const REJECTED_DATA = [
-    { id: '#F2023-1045', client: 'Global Logistics S.A.', date: '22 Oct 2023', amount: '1,450.00 €', status: 'Rejetée' },
-    { id: '#F2023-1042', client: "Boulangerie L'Artisan", date: '21 Oct 2023', amount: '430.50 €', status: 'Rejetée' },
-    { id: '#F2023-1039', client: 'TechNova Solutions', date: '20 Oct 2023', amount: '12,890.00 €', status: 'Rejetée' },
-];
+const API_BASE    = 'http://localhost:5170/api';
+const getToken    = () => localStorage.getItem('token');
+const authHeaders = () => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${getToken()}`
+});
 
 export default function InvoiceLists({ initialFilter = 'validated', onErrorClick }) {
-    const [filter, setFilter] = useState(initialFilter); // 'validated', 'pending', 'rejected'
+    const [filter, setFilter]               = useState(initialFilter);
+    const [factures, setFactures]           = useState([]);
+    const [loading, setLoading]             = useState(true);
+    const [error, setError]                 = useState(null);
+    const [searchTerm, setSearchTerm]       = useState('');
+    const [showFilters, setShowFilters]     = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showFilters, setShowFilters] = useState(false);
+    const [stats, setStats]                 = useState({ nbValidees: 0, nbRejetees: 0 });
+
+    useEffect(() => { fetchFactures(); }, []);
+
+    const fetchFactures = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res  = await fetch(`${API_BASE}/factures`, { headers: authHeaders() });
+            if (!res.ok) throw new Error('Erreur chargement factures');
+            const data = await res.json();
+            setFactures(data);
+            setStats({
+                nbValidees: data.filter(f => f.statut === 'AcceptéeTTN').length,
+                nbRejetees: data.filter(f => f.statut === 'Rejetée').length,
+            });
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Charger détail facture pour le modal
+    const handleViewInvoice = async (facture) => {
+        try {
+            const res  = await fetch(`${API_BASE}/factures/${facture.numeroFacture}`, { headers: authHeaders() });
+            const data = await res.json();
+            setSelectedInvoice(data);
+        } catch {
+            setSelectedInvoice(facture);
+        }
+    };
 
     const closeModal = () => setSelectedInvoice(null);
 
-    const handleViewInvoice = (invoice) => {
-        setSelectedInvoice(invoice);
-    };
-
     const getTitle = () => {
-        if (filter === 'validated') return 'Factures Validées';
-        if (filter === 'pending') return 'Factures en Attente de Traitement';
-        return 'Factures Rejetées & Erreurs de Validation';
+        if (filter === 'validated') return 'Factures Acceptées';
+        return 'Factures Rejetées & Erreurs';
     };
 
-    const getData = () => {
-        if (filter === 'validated') return VALIDATED_DATA;
-        if (filter === 'pending') return PENDING_DATA;
-        return REJECTED_DATA;
-    };
+    // Filtrage selon statut sélectionné
+    const filteredData = factures.filter(f => {
+        const matchStatut = filter === 'validated'
+            ? f.statut === 'AcceptéeTTN'
+            : f.statut === 'Rejetée';
 
-    const filteredData = getData().filter(item =>
-        item.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        const matchSearch =
+            (f.tiersNom  || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(f.numeroFacture).includes(searchTerm);
+
+        return matchStatut && matchSearch;
+    });
+
+    const fmt = (n) => parseFloat(n || 0).toFixed(3);
 
     return (
         <div className="invoice-lists-container">
             <header className="list-header">
-                <p className="welcome-text">Bienvenue sur votre espace de gestion de factures électroniques conforme TEIF XML.</p>
                 <h1>{getTitle()}</h1>
             </header>
 
-            <div className="status-cards-row">
-                <div className={`status-card-mini green ${filter === 'validated' ? 'active' : ''}`} onClick={() => setFilter('validated')}>
+            {/* ── 2 cartes seulement : Acceptées + Rejetées ── */}
+            <div className="status-cards-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <div
+                    className={`status-card-mini green ${filter === 'validated' ? 'active' : ''}`}
+                    onClick={() => setFilter('validated')}
+                >
                     <div className="card-top">
                         <span className="icon">✅</span>
-                        <span className="badge">+12% vs hier</span>
                     </div>
-                    <span className="label">FACTURES VALIDÉES</span>
-                    <span className="value">128</span>
+                    <span className="label">FACTURES ACCEPTÉES</span>
+                    <span className="value">{stats.nbValidees}</span>
                 </div>
-                <div className={`status-card-mini orange ${filter === 'pending' ? 'active' : ''}`} onClick={() => setFilter('pending')}>
-                    <div className="card-top">
-                        <span className="icon">🔔</span>
-                        <span className="badge">+2% vs hier</span>
-                    </div>
-                    <span className="label">EN ATTENTE</span>
-                    <span className="value">12</span>
-                </div>
-                <div className={`status-card-mini red ${filter === 'rejected' ? 'active' : ''}`} onClick={() => setFilter('rejected')}>
+
+                <div
+                    className={`status-card-mini red ${filter === 'rejected' ? 'active' : ''}`}
+                    onClick={() => setFilter('rejected')}
+                >
                     <div className="card-top">
                         <span className="icon">❌</span>
-                        <span className="badge">-1% vs hier</span>
                     </div>
                     <span className="label">REJETÉES / ERREURS</span>
-                    <span className="value">03</span>
+                    <span className="value">{stats.nbRejetees}</span>
                 </div>
             </div>
 
+            {/* ── Tableau ── */}
             <div className={`table-box ${filter}`}>
                 <div className="table-header-row">
-                    <h3>{filter === 'rejected' ? 'Liste des erreurs détectées' : `Liste des Factures ${filter === 'validated' ? 'Validées' : 'en Attente'}`}</h3>
+                    <h3>
+                        {filter === 'validated'
+                            ? 'Liste des Factures Acceptées'
+                            : 'Liste des Factures Rejetées'}
+                    </h3>
                     <div className="table-controls">
                         <div className="search-box">
                             <span className="search-icon">🔍</span>
@@ -96,7 +118,7 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                                 type="text"
                                 placeholder="Rechercher par client ou N°..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={e => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <div className="filter-dropdown-container">
@@ -114,170 +136,235 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                                 </div>
                             )}
                         </div>
-                        <button className="export-btn">Exporter {filter === 'validated' ? '(CSV)' : ''}</button>
-                        {filter === 'pending' && <button className="btn-add-val">+ Nouvelle Facture</button>}
+                        <button className="export-btn" onClick={() => {
+                            const csv = [
+                                ['N° Facture', 'Client', 'Date', 'Montant TTC', 'Statut', 'Référence TTN'],
+                                ...filteredData.map(f => [
+                                    f.numeroFacture,
+                                    f.tiersNom,
+                                    new Date(f.dateFacture).toLocaleDateString('fr-TN'),
+                                    fmt(f.montantTTC),
+                                    f.statut,
+                                    f.idTTN || ''
+                                ])
+                            ].map(r => r.join(',')).join('\n');
+                            const blob = new Blob([csv], { type: 'text/csv' });
+                            const url  = URL.createObjectURL(blob);
+                            const a    = document.createElement('a');
+                            a.href = url; a.download = `factures_${filter}.csv`; a.click();
+                        }}>
+                            Exporter (CSV)
+                        </button>
+                        <button className="export-btn" style={{ background: '#10b981' }} onClick={fetchFactures}>
+                            🔄 Actualiser
+                        </button>
                     </div>
                 </div>
 
-                <table className="custom-table">
-                    <thead>
-                        <tr>
-                            <th>{filter === 'pending' ? 'RÉFÉRENCE' : (filter === 'rejected' ? 'NUMÉRO DE FACTURE' : 'ID FACTURE')}</th>
-                            <th>CLIENT</th>
-                            <th>DATE D'ÉMISSION</th>
-                            <th>MONTANT TTC</th>
-                            <th>STATUT</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredData.map((row) => (
-                            <tr key={row.id}>
-                                <td><span className="invoice-id-link">{row.id}</span></td>
-                                <td>
-                                    <div className="client-info">
-                                        {filter === 'validated' && <span className="avatar-small">{row.client.split(' ').map(n => n[0]).join('')}</span>}
-                                        {row.client}
-                                    </div>
-                                </td>
-                                <td>{row.date}</td>
-                                <td className="font-bold">{row.amount}</td>
-                                <td>
-                                    <span className={`pill ${row.status.toLowerCase().replace(' ', '-')}`}>
-                                        {row.status}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div className="row-actions">
-                                        {filter === 'rejected' ? (
-                                            <>
-                                                <button className="eye-btn" onClick={() => handleViewInvoice(row)}>👁️</button>
-                                                <button className="error-link" onClick={() => onErrorClick && onErrorClick(row)}>Voir l'erreur</button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <button className="eye-btn" onClick={() => handleViewInvoice(row)}>👁️️</button>
-                                                <button className="more-btn">⋮</button>
-                                            </>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                {/* MODAL INVOICE VIEW */}
-                {selectedInvoice && (
-                    <div className="invoice-modal-overlay" onClick={closeModal}>
-                        <div className="invoice-modal-content" onClick={(e) => e.stopPropagation()}>
-                            <button className="close-modal-btn" onClick={closeModal}>✕</button>
-
-                            <div className="invoice-paper">
-                                <header className="paper-header">
-                                    <div className="company-branding">
-                                        <div className="logo-placeholder">EF</div>
-                                        <div>
-                                            <h3>El Fatoora Platform</h3>
-                                            <p>Avenue de l'Indépendance, Tunis</p>
-                                        </div>
-                                    </div>
-                                    <div className="invoice-meta">
-                                        <h2>FACTURE</h2>
-                                        <p><strong>N° :</strong> {selectedInvoice.id}</p>
-                                        <p><strong>Date :</strong> {selectedInvoice.date}</p>
-                                    </div>
-                                </header>
-
-                                <div className="bill-to-section">
-                                    <div className="bill-col">
-                                        <span>ÉMETTEUR</span>
-                                        <p><strong>Ste. Alpha Dashboard</strong></p>
-                                        <p>Mat: 1234567/A</p>
-                                        <p>Tunis, Tunisie</p>
-                                    </div>
-                                    <div className="bill-col">
-                                        <span>DESTINATAIRE</span>
-                                        <p><strong>{selectedInvoice.client}</strong></p>
-                                        <p>Client Professionnel</p>
-                                        <p>Identifiant Fiscal: 99887766/B</p>
-                                    </div>
-                                </div>
-
-                                <table className="paper-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Description</th>
-                                            <th className="text-right">Qté</th>
-                                            <th className="text-right">Prix Unitaire</th>
-                                            <th className="text-right">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Services de Facturation Électronique - Licence Annuelle</td>
-                                            <td className="text-right">1</td>
-                                            <td className="text-right">{selectedInvoice.amount}</td>
-                                            <td className="text-right">{selectedInvoice.amount}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Frais de traitement TEIF XML</td>
-                                            <td className="text-right">1</td>
-                                            <td className="text-right">0.00 €</td>
-                                            <td className="text-right">0.00 €</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-
-                                <div className="invoice-summary-box">
-                                    <div className="summary-row">
-                                        <span>Montant HT</span>
-                                        <span>{selectedInvoice.amount}</span>
-                                    </div>
-                                    <div className="summary-row">
-                                        <span>TVA (19%)</span>
-                                        <span>Inclus</span>
-                                    </div>
-                                    <div className="summary-row total">
-                                        <span>MONTANT TTC</span>
-                                        <span>{selectedInvoice.amount}</span>
-                                    </div>
-                                </div>
-
-                                <footer className="paper-footer">
-                                    <p>Cette facture est générée électroniquement et conforme aux normes TEIF.</p>
-                                    <p>Merci de votre confiance.</p>
-                                </footer>
-                            </div>
-
-                            <div className="modal-actions-footer">
-                                <button className="btn-secondary" onClick={() => window.print()}>🖨️ Imprimer</button>
-                                <button className="btn-primary">📥 Télécharger PDF</button>
-                            </div>
-                        </div>
+                {/* Loading / Error */}
+                {loading && (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                        Chargement des factures...
+                    </div>
+                )}
+                {error && (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444', background: '#fef2f2', margin: '1rem' , borderRadius: 8 }}>
+                        {error} — <button onClick={fetchFactures} style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>Réessayer</button>
                     </div>
                 )}
 
+                {!loading && !error && (
+                    <table className="custom-table">
+                        <thead>
+                            <tr>
+                                <th>N° FACTURE</th>
+                                <th>CLIENT</th>
+                                <th>MATRICULE FISCAL</th>
+                                <th>DATE</th>
+                                <th>MONTANT TTC</th>
+                                <th>RÉFÉRENCE TTN</th>
+                                <th>STATUT</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredData.map(row => (
+                                <tr key={row.numeroFacture}>
+                                    <td>
+                                        <span className="blue-text font-bold">
+                                            FAC-{row.numeroFacture}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="client-info">
+                                            <span className="avatar-small">
+                                                {(row.tiersNom || '?').substring(0, 2).toUpperCase()}
+                                            </span>
+                                            {row.tiersNom}
+                                        </div>
+                                    </td>
+                                    <td style={{ fontFamily: 'monospace', fontSize: 12, color: '#64748b' }}>
+                                        {row.tiersMatricule || '—'}
+                                    </td>
+                                    <td>
+                                        {new Date(row.dateFacture).toLocaleDateString('fr-TN')}
+                                    </td>
+                                    <td className="font-bold">
+                                        {fmt(row.montantTTC)} DT
+                                    </td>
+                                    <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#16a34a' }}>
+                                        {row.idTTN || '—'}
+                                    </td>
+                                    <td>
+                                        <span className={`pill ${filter === 'validated' ? 'validée' : 'rejetée'}`}>
+                                            {filter === 'validated' ? 'Acceptée' : 'Rejetée'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="row-actions">
+                                            <button className="eye-btn" onClick={() => handleViewInvoice(row)}>👁️</button>
+                                            {filter === 'rejected' && (
+                                                <button className="error-link"
+                                                    onClick={() => onErrorClick && onErrorClick(row)}>
+                                                    Voir l'erreur
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filteredData.length === 0 && (
+                                <tr>
+                                    <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                                        Aucune facture {filter === 'validated' ? 'acceptée' : 'rejetée'} trouvée.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                )}
+
                 <div className="table-footer-pagination">
-                    <span>Affichage de 1-5 sur {filter === 'rejected' ? '3' : getData().length} factures</span>
-                    <div className="pagination-controls">
-                        <button className="arrow">‹</button>
-                        <button className="page active">1</button>
-                        <button className="page">2</button>
-                        <button className="page">3</button>
-                        <button className="arrow">›</button>
-                    </div>
+                    <span>{filteredData.length} facture(s) affichée(s)</span>
                 </div>
             </div>
 
+            {/* Hint erreurs */}
             {filter === 'rejected' && (
                 <div className="error-hint-box">
                     <div className="hint-icon">⚠️</div>
                     <div className="hint-content">
                         <h4>Aide au diagnostic</h4>
                         <p>
-                            Les erreurs de validation (TEIF XML) sont souvent liées à des informations manquantes dans la fiche client ou à un format de numéro de TVA intracommunautaire invalide. Cliquez sur "Voir l'erreur" pour obtenir le détail technique du rejet par la plateforme.
+                            Les erreurs de validation TEIF sont souvent liées à un matricule fiscal invalide ou des montants incohérents.
+                            Cliquez sur "Voir l'erreur" pour obtenir le détail technique du rejet TTN.
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal détail facture */}
+            {selectedInvoice && (
+                <div className="invoice-modal-overlay" onClick={closeModal}>
+                    <div className="invoice-modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="close-modal-btn" onClick={closeModal}>✕</button>
+                        <div className="invoice-paper">
+                            <header className="paper-header">
+                                <div className="company-branding">
+                                    <div className="logo-placeholder">EF</div>
+                                    <div>
+                                        <h3>El Fatoora Platform</h3>
+                                        <p>Avenue de l'Indépendance, Tunis</p>
+                                    </div>
+                                </div>
+                                <div className="invoice-meta">
+                                    <h2>FACTURE</h2>
+                                    <p><strong>N° :</strong> FAC-{selectedInvoice.numeroFacture}</p>
+                                    <p><strong>Date :</strong> {new Date(selectedInvoice.dateFacture).toLocaleDateString('fr-TN')}</p>
+                                    {selectedInvoice.idTTN && (
+                                        <p style={{ fontSize: 11, color: '#16a34a', fontFamily: 'monospace' }}>
+                                            TTN: {selectedInvoice.idTTN}
+                                        </p>
+                                    )}
+                                </div>
+                            </header>
+
+                            <div className="bill-to-section">
+                                <div className="bill-col">
+                                    <span>ÉMETTEUR</span>
+                                    <p><strong>El Fatoora Platform</strong></p>
+                                    <p>Tunis, Tunisie</p>
+                                </div>
+                                <div className="bill-col">
+                                    <span>DESTINATAIRE</span>
+                                    <p><strong>{selectedInvoice.tiersNom}</strong></p>
+                                    {selectedInvoice.tiersMatricule && (
+                                        <p>Mat: {selectedInvoice.tiersMatricule}</p>
+                                    )}
+                                    {selectedInvoice.tiersAdresse && (
+                                        <p>{selectedInvoice.tiersAdresse}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Lignes */}
+                            {selectedInvoice.lignes && selectedInvoice.lignes.length > 0 && (
+                                <table className="paper-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Désignation</th>
+                                            <th className="text-right">Qté</th>
+                                            <th className="text-right">PU HT</th>
+                                            <th className="text-right">TVA</th>
+                                            <th className="text-right">Total HT</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedInvoice.lignes.map((l, i) => (
+                                            <tr key={i}>
+                                                <td>{l.designation || l.produitNom}</td>
+                                                <td className="text-right">{l.quantite}</td>
+                                                <td className="text-right">{fmt(l.prixUnitaire)} DT</td>
+                                                <td className="text-right">{l.tauxTVA}%</td>
+                                                <td className="text-right">{fmt(l.montantHT)} DT</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+
+                            <div className="invoice-summary-box">
+                                <div className="summary-row">
+                                    <span>Total HT</span>
+                                    <span>{fmt(selectedInvoice.totalHT)} DT</span>
+                                </div>
+                                <div className="summary-row">
+                                    <span>TVA</span>
+                                    <span>{fmt(selectedInvoice.totalTVA)} DT</span>
+                                </div>
+                                {selectedInvoice.montantTimbre > 0 && (
+                                    <div className="summary-row">
+                                        <span>Timbre Fiscal</span>
+                                        <span>{fmt(selectedInvoice.montantTimbre)} DT</span>
+                                    </div>
+                                )}
+                                <div className="summary-row total">
+                                    <span>MONTANT TTC</span>
+                                    <span>{fmt(selectedInvoice.montantTTC)} DT</span>
+                                </div>
+                            </div>
+
+                            {selectedInvoice.montantEnLettres && (
+                                <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 14px', margin: '1rem 0', fontSize: 12, color: '#475569', fontStyle: 'italic' }}>
+                                    {selectedInvoice.montantEnLettres}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="modal-actions-footer">
+                            <button className="btn-secondary" onClick={() => window.print()}>🖨️ Imprimer</button>
+                            <button className="btn-primary">📥 Télécharger PDF</button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,12 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  FICHIER : Utilisateur.cs
-//  Note    : SocieteId conservé car l'utilisateur (la société qui possède le
-//            système) reste lié à une Societe (émetteur des factures).
-//            Ce n'est pas la même chose que Tiers (= destinataire/client).
-// ══════════════════════════════════════════════════════════════════════════════
 namespace backend.Models
 {
     public class Utilisateur
@@ -24,8 +17,11 @@ namespace backend.Models
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
 
-        /// <summary>Rôles possibles : Admin, Comptable, Commercial.</summary>
+        /// <summary>Rôles : SuperAdmin, Admin, Comptable, Commercial</summary>
         [MaxLength(30)]
         public string Role { get; set; } = "Admin";
+
+        public bool PremierConnexion { get; set; } = true;
+        public bool EstActif { get; set; } = true;
     }
 }

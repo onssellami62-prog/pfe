@@ -1,372 +1,428 @@
 import React, { useState, useEffect } from 'react';
 
-/**
- * UTILS: Expert Billing & Tunisian Validation
- */
-const STAMP_DUTY = 0.600;
-
-// Format: 0000000/A/P/M/000 (standard 5 segments) OR 0000000/A/P/000 (expert spec 4 segments)
-const validateMatriculeFiscal = (value) => {
-  // Supporte majuscules/minuscules et les deux variantes de segments
-  const regex = /^\d{7}\/([A-Z])\/([A-Z])\/([A-Z]\/)?\d{3}$/i;
-  return regex.test(value);
-};
+const API_BASE    = 'http://localhost:5170/api';
+const getToken    = () => localStorage.getItem('token');
+const authHeaders = () => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${getToken()}`
+});
 
 const formatAmount = (num) => parseFloat(num || 0).toFixed(3);
 
 export default function CreateInvoice() {
-  const [invoice, setInvoice] = useState({
-    number: `FAC-${new Date().getFullYear()}-0001`,
-    date: new Date().toISOString().split('T')[0],
-    periodFrom: '',
-    periodTo: '',
-    clientName: '',
-    clientMatricule: '',
-    items: [],
-    totals: {
-      ht: 0,
-      tva: 0,
-      stamp: STAMP_DUTY,
-      ttc: 0
-    }
-  });
+    const [clients, setClients]   = useState([]);
+    const [produits, setProduits] = useState([]);
+    const [status, setStatus]     = useState('draft');
+    const [ttnResponse, setTtnResponse] = useState(null);
+    const [error, setError]       = useState('');
 
-  const [status, setStatus] = useState('draft'); // draft, validating, signing, sending, success, error
-  const [ttnResponse, setTtnResponse] = useState(null);
-
-  // Cascade Calculation logic
-  useEffect(() => {
-    let htTotal = 0;
-    let tvaTotal = 0;
-
-    invoice.items.forEach(item => {
-      const lineHT = (item.qty || 0) * (item.puht || 0);
-      const lineTVA = lineHT * ((item.tvaRate || 0) / 100);
-      htTotal += lineHT;
-      tvaTotal += lineTVA;
+    const [invoice, setInvoice] = useState({
+        tiersId:            '',
+        clientName:         '',
+        clientMatricule:    '',
+        date:               new Date().toISOString().split('T')[0],
+        dateLimitePaiement: '',
+        periodFrom:         '',
+        periodTo:           '',
+        timbreFiscal:       true,
+        remiseGlobale:      0,
+        items:              [],
+        totals:             { ht: 0, tva: 0, stamp: 0.600, ttc: 0 }
     });
 
-    const ttc = htTotal + tvaTotal + STAMP_DUTY;
+    // ── Chargement clients et produits ───────────────────────────────────
+    useEffect(() => {
+        fetch(`${API_BASE}/tiers`, { headers: authHeaders() })
+            .then(r => r.json()).then(setClients).catch(() => {});
+        fetch(`${API_BASE}/produits`, { headers: authHeaders() })
+            .then(r => r.json()).then(setProduits).catch(() => {});
+    }, []);
 
-    setInvoice(prev => ({
-      ...prev,
-      totals: {
-        ht: htTotal,
-        tva: tvaTotal,
-        stamp: STAMP_DUTY,
-        ttc: ttc
-      }
-    }));
-  }, [invoice.items]);
+    // ── Calcul automatique des totaux ────────────────────────────────────
+    useEffect(() => {
+        let ht = 0, tva = 0;
+        invoice.items.forEach(item => {
+            const lineHT  = (item.qty || 0) * (item.puht || 0);
+            const remise  = lineHT * ((item.remise || 0) / 100);
+            const netHT   = lineHT - remise;
+            const lineTVA = netHT * ((item.tvaRate || 0) / 100);
+            ht  += netHT;
+            tva += lineTVA;
+        });
+        const remiseGlob = ht * ((invoice.remiseGlobale || 0) / 100);
+        const htApres    = ht - remiseGlob;
+        const stamp      = invoice.timbreFiscal ? 0.600 : 0;
+        const ttc        = htApres + tva + stamp;
 
-  const addItem = () => {
-    setInvoice({
-      ...invoice,
-      items: [...invoice.items, { description: '', qty: 1, puht: 0, tvaRate: 19 }]
-    });
-  };
+        setInvoice(prev => ({
+            ...prev,
+            totals: { ht: htApres, tva, stamp, ttc }
+        }));
+    }, [invoice.items, invoice.remiseGlobale, invoice.timbreFiscal]);
 
-  const updateItem = (index, field, value) => {
-    const newItems = [...invoice.items];
-    newItems[index][field] = value;
-    setInvoice({ ...invoice, items: newItems });
-  };
+    // ── Sélection client ─────────────────────────────────────────────────
+    const handleClientChange = (id) => {
+        const client = clients.find(c => c.id === parseInt(id));
+        if (client) {
+            setInvoice(prev => ({
+                ...prev,
+                tiersId:         client.id,
+                clientName:      client.nom,
+                clientMatricule: client.matriculeFiscal || client.cin || ''
+            }));
+        }
+    };
 
-  const removeItem = (index) => {
-    setInvoice({ ...invoice, items: invoice.items.filter((_, i) => i !== index) });
-  };
+    // ── Gestion lignes ───────────────────────────────────────────────────
+    const addItem = () => {
+        setInvoice(prev => ({
+            ...prev,
+            items: [...prev.items, { produitId: '', description: '', qty: 1, puht: 0, tvaRate: 19, remise: 0 }]
+        }));
+    };
 
-  /**
-   * SIGNATURE & TTN FLOW SIMULATION
-   */
-  const handleSubmissionFlow = async () => {
-    // 1. Validation Step
-    if (!invoice.clientName || !validateMatriculeFiscal(invoice.clientMatricule)) {
-      alert("Erreur: Le matricule fiscal client est invalide ou absent.");
-      return;
-    }
+    const updateItem = (index, field, value) => {
+        const newItems = [...invoice.items];
+        newItems[index][field] = value;
 
-    setStatus('validating');
-    setTimeout(() => {
-      // 2. Prepare XAdES-BES Placeholder
-      setStatus('signing');
-      console.log("Génération structure XML TEIF v2.0...");
-      setTimeout(() => {
-        // 3. WS Call: saveEfact
-        setStatus('sending');
-        console.log("Appel méthode saveEfact (TTN WS v5)...");
-        setTimeout(() => {
-          // 4. Result: consultEfact status
-          setStatus('success');
-          setTtnResponse({
-            reference: `TTN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-            status: 'Validée',
-            qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://fatoora.tn/verify/' + Math.random().toString(36).substr(2, 6)
-          });
-        }, 1500);
-      }, 1000);
-    }, 800);
-  };
+        // Si on sélectionne un produit → auto-remplir
+        if (field === 'produitId' && value) {
+            const produit = produits.find(p => p.id === parseInt(value));
+            if (produit) {
+                newItems[index].description = produit.nom;
+                newItems[index].puht        = produit.prixUnitaire;
+                newItems[index].tvaRate     = produit.tauxTVA;
+            }
+        }
+        setInvoice(prev => ({ ...prev, items: newItems }));
+    };
 
-  return (
-    <div className="max-w-6xl mx-auto p-8 font-['Plus_Jakarta_Sans'] bg-gray-50 min-h-screen">
-      
-      {/* HEADER SECTION (replica visuelle) */}
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
-        <div className="flex justify-between items-start mb-10 border-b border-gray-100 pb-8">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-blue-600 p-2 rounded-lg text-white font-black text-xl">EF</div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 uppercase">EL FATOORA</h1>
-            </div>
-            <div className="text-gray-500 text-sm leading-relaxed">
-              <p className="font-bold text-gray-800">SOCIETE GENERALE DE COMMERCE SA</p>
-              <p>Avenue Habib Bourguiba, 1001 Tunis</p>
-              <p>Mat. Fiscal: <span className="font-mono text-blue-600">1234567/A/P/M/000</span></p>
-              <p>Registre Commerce: B01234562024</p>
-            </div>
-          </div>
-          <div className="text-right space-y-4">
-            <div className="inline-block bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-xs font-bold tracking-widest border border-blue-100">
-              DOCUMENT CONFORME TEIF v2.0
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-gray-400 text-xs font-bold uppercase">Facture N°</h2>
-              <input 
-                className="text-2xl font-black text-gray-900 border-none p-0 focus:ring-0 text-right w-full bg-transparent"
-                value={invoice.number}
-                onChange={(e) => setInvoice({...invoice, number: e.target.value})}
-              />
-            </div>
-            <p className="text-sm text-gray-500 font-medium">{new Date().toLocaleDateString('fr-TN')}</p>
-          </div>
-        </div>
+    const removeItem = (index) => {
+        setInvoice(prev => ({
+            ...prev,
+            items: prev.items.filter((_, i) => i !== index)
+        }));
+    };
 
-        {/* INFO GRID (CLIENT & PERIOD) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-          <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
-            <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-4">Informations Client</h3>
-            <div className="space-y-4">
-              <input 
-                placeholder="Nom du Client" 
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
-                value={invoice.clientName}
-                onChange={(e) => setInvoice({...invoice, clientName: e.target.value})}
-              />
-              <input 
-                placeholder="Matricule Fiscal (0000000/A/P/M/000)" 
-                className={`w-full bg-white border rounded-lg px-4 py-2 text-sm focus:ring-4 font-mono transition-all outline-none ${invoice.clientMatricule && !validateMatriculeFiscal(invoice.clientMatricule) ? 'border-red-500 focus:ring-red-100' : 'border-gray-200 focus:ring-blue-100'}`}
-                value={invoice.clientMatricule}
-                onChange={(e) => setInvoice({...invoice, clientMatricule: e.target.value})}
-              />
-            </div>
-          </div>
+    // ── Envoi au backend ─────────────────────────────────────────────────
+    const handleSubmit = async () => {
+        setError('');
 
-          <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
-            <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-4">Période d'activité</h3>
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase w-8">Du</label>
-                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-1.5 text-xs outline-none focus:border-blue-500" />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase w-8">Au</label>
-                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-1.5 text-xs outline-none focus:border-blue-500" />
-              </div>
-            </div>
-          </div>
+        if (!invoice.tiersId) {
+            setError('Veuillez sélectionner un client.');
+            return;
+        }
+        if (invoice.items.length === 0) {
+            setError('Ajoutez au moins une ligne produit.');
+            return;
+        }
 
-          <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="text-center z-10">
-              <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-2">Signature Digigo</h3>
-              {status === 'signing' ? (
-                <div className="flex items-center gap-2 text-blue-700 font-bold animate-pulse text-xs">
-                  <span className="w-2 h-2 rounded-full bg-blue-600"></span> Signature XAdES...
+        setStatus('validating');
+
+        try {
+            const body = {
+                tiersId:            invoice.tiersId,
+                dateFacture:        invoice.date,
+                dateLimitePaiement: invoice.dateLimitePaiement || null,
+                periodeDu:          invoice.periodFrom || null,
+                periodeAu:          invoice.periodTo   || null,
+                timbreFiscal:       invoice.timbreFiscal,
+                remiseGlobale:      invoice.remiseGlobale,
+                lignes: invoice.items.map(item => ({
+                    produitId:   parseInt(item.produitId) || 1,
+                    designation: item.description,
+                    quantite:    parseInt(item.qty)       || 1,
+                    prixUnitaire: parseFloat(item.puht)   || 0,
+                    remiseLigne:  parseFloat(item.remise) || 0,
+                    tauxTVA:      parseFloat(item.tvaRate)|| 19
+                }))
+            };
+
+            setStatus('sending');
+
+            const res  = await fetch(`${API_BASE}/factures`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.message || 'Erreur serveur.');
+                setStatus('draft');
+                return;
+            }
+
+            setStatus('success');
+            setTtnResponse({
+                reference:    `FAC-${data.numeroFacture}`,
+                numeroFacture: data.numeroFacture,
+                message:      data.message
+            });
+
+        } catch (err) {
+            setError('Erreur de connexion au serveur.');
+            setStatus('draft');
+        }
+    };
+
+    return (
+        <div className="max-w-6xl mx-auto p-8 font-['Plus_Jakarta_Sans'] bg-gray-50 min-h-screen">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+
+                {/* HEADER */}
+                <div className="flex justify-between items-start mb-10 border-b border-gray-100 pb-8">
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-blue-600 p-2 rounded-lg text-white font-black text-xl">EF</div>
+                            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 uppercase">EL FATOORA</h1>
+                        </div>
+                        <div className="text-gray-500 text-sm leading-relaxed">
+                            <p className="font-bold text-gray-800">SOCIETE GENERALE DE COMMERCE SA</p>
+                            <p>Avenue Habib Bourguiba, 1001 Tunis</p>
+                            <p>Mat. Fiscal: <span className="font-mono text-blue-600">1234567/A/P/M/000</span></p>
+                        </div>
+                    </div>
+                    <div className="text-right space-y-2">
+                        <div className="inline-block bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-xs font-bold tracking-widest border border-blue-100">
+                            DOCUMENT CONFORME TEIF v1.8.8
+                        </div>
+                        <p className="text-sm text-gray-500 font-medium">{new Date().toLocaleDateString('fr-TN')}</p>
+                    </div>
                 </div>
-              ) : status === 'success' ? (
-                <div className="text-green-600 flex flex-col items-center gap-1 font-bold">
-                  <span className="text-lg">✅</span>
-                  <span className="text-[10px] uppercase">Certificat Validé</span>
-                </div>
-              ) : (
-                <button className="text-[10px] bg-white border border-blue-200 text-blue-600 font-bold py-2 px-6 rounded-full hover:bg-blue-50 translate-y-1 shadow-sm">
-                  DÉVEROUILLER CERTIFICAT
-                </button>
-              )}
-            </div>
-            {/* Background pattern */}
-            <div className="absolute top-0 right-0 p-1 opacity-5">
-               <svg height="80" width="80"><path d="M0 0 L80 80 M80 0 L0 80" stroke="blue" strokeWidth="2" /></svg>
-            </div>
-          </div>
-        </div>
 
-        {/* ITEMS TABLE */}
-        <div className="mb-8 overflow-hidden rounded-xl border border-gray-100 shadow-sm">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="px-6 py-4 font-black uppercase text-[10px] text-gray-500">Désignation</th>
-                <th className="px-4 py-4 font-black uppercase text-[10px] text-gray-500 text-center">Qté</th>
-                <th className="px-4 py-4 font-black uppercase text-[10px] text-gray-500 text-center">TVA (%)</th>
-                <th className="px-4 py-4 font-black uppercase text-[10px] text-gray-500 text-right">PUHT (DT)</th>
-                <th className="px-6 py-4 font-black uppercase text-[10px] text-gray-500 text-right">Total HT</th>
-                <th className="w-10"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 bg-white">
-              {invoice.items.map((item, index) => (
-                <tr key={index} className="hover:bg-blue-50/30 transition-colors group">
-                  <td className="px-6 py-4">
-                    <input 
-                      className="bg-transparent border-none p-0 focus:ring-0 w-full font-bold text-gray-800 placeholder-gray-300"
-                      placeholder="Désignation de l'article..."
-                      value={item.description}
-                      onChange={(e) => updateItem(index, 'description', e.target.value)}
-                    />
-                  </td>
-                  <td className="px-4 py-4 w-20">
-                    <input 
-                      type="number"
-                      className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold"
-                      value={item.qty}
-                      onChange={(e) => updateItem(index, 'qty', e.target.value)}
-                    />
-                  </td>
-                  <td className="px-4 py-4 w-24">
-                    <select 
-                      className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-blue-600 appearance-none bg-none"
-                      value={item.tvaRate}
-                      onChange={(e) => updateItem(index, 'tvaRate', parseInt(e.target.value))}
-                    >
-                      <option value="7">7%</option>
-                      <option value="13">13%</option>
-                      <option value="19">19%</option>
-                    </select>
-                  </td>
-                  <td className="px-4 py-4 w-32">
-                    <input 
-                      type="number"
-                      step="0.001"
-                      className="bg-transparent border-none p-0 focus:ring-0 w-full text-right font-bold text-gray-700"
-                      value={item.puht}
-                      onChange={(e) => updateItem(index, 'puht', parseFloat(e.target.value))}
-                    />
-                  </td>
-                  <td className="px-6 py-4 text-right font-black text-gray-900">
-                    {formatAmount(item.qty * item.puht)}
-                  </td>
-                  <td className="px-4">
-                    <button 
-                      onClick={() => removeItem(index)}
-                      className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      ✕
+                {/* INFOS FACTURE */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+                    {/* Sélection client */}
+                    <div className="bg-gray-50 p-5 rounded-xl border border-dashed border-gray-200">
+                        <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-3">Client</h3>
+                        <select
+                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2 outline-none focus:border-blue-500"
+                            value={invoice.tiersId}
+                            onChange={e => handleClientChange(e.target.value)}
+                        >
+                            <option value="">-- Sélectionner un client --</option>
+                            {clients.map(c => (
+                                <option key={c.id} value={c.id}>{c.nom}</option>
+                            ))}
+                        </select>
+                        {invoice.clientMatricule && (
+                            <p className="text-xs font-mono text-blue-600 mt-1">
+                                Mat: {invoice.clientMatricule}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Dates */}
+                    <div className="bg-gray-50 p-5 rounded-xl border border-dashed border-gray-200">
+                        <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-3">Dates</h3>
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase w-16">Facture</label>
+                                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                                    value={invoice.date}
+                                    onChange={e => setInvoice(prev => ({ ...prev, date: e.target.value }))} />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase w-16">Échéance</label>
+                                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                                    value={invoice.dateLimitePaiement}
+                                    onChange={e => setInvoice(prev => ({ ...prev, dateLimitePaiement: e.target.value }))} />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase w-16">Du</label>
+                                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                                    value={invoice.periodFrom}
+                                    onChange={e => setInvoice(prev => ({ ...prev, periodFrom: e.target.value }))} />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase w-16">Au</label>
+                                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                                    value={invoice.periodTo}
+                                    onChange={e => setInvoice(prev => ({ ...prev, periodTo: e.target.value }))} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Options */}
+                    <div className="bg-gray-50 p-5 rounded-xl border border-dashed border-gray-200">
+                        <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-3">Options</h3>
+                        <div className="space-y-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={invoice.timbreFiscal}
+                                    onChange={e => setInvoice(prev => ({ ...prev, timbreFiscal: e.target.checked }))}
+                                    className="w-4 h-4 accent-blue-600" />
+                                <span className="text-xs font-bold text-gray-700">Timbre fiscal (0.600 DT)</span>
+                            </label>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Remise globale (%)</label>
+                                <input type="number" min="0" max="100" step="0.01"
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                                    value={invoice.remiseGlobale}
+                                    onChange={e => setInvoice(prev => ({ ...prev, remiseGlobale: parseFloat(e.target.value) || 0 }))} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* LIGNES PRODUITS */}
+                <div className="mb-8 overflow-hidden rounded-xl border border-gray-100 shadow-sm">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th className="px-4 py-3 font-black uppercase text-[10px] text-gray-500">Produit</th>
+                                <th className="px-4 py-3 font-black uppercase text-[10px] text-gray-500">Désignation</th>
+                                <th className="px-3 py-3 font-black uppercase text-[10px] text-gray-500 text-center">Qté</th>
+                                <th className="px-3 py-3 font-black uppercase text-[10px] text-gray-500 text-center">TVA</th>
+                                <th className="px-3 py-3 font-black uppercase text-[10px] text-gray-500 text-center">Remise%</th>
+                                <th className="px-3 py-3 font-black uppercase text-[10px] text-gray-500 text-right">PU HT</th>
+                                <th className="px-4 py-3 font-black uppercase text-[10px] text-gray-500 text-right">Total HT</th>
+                                <th className="w-8"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 bg-white">
+                            {invoice.items.map((item, index) => {
+                                const lineHT = (item.qty || 0) * (item.puht || 0) * (1 - (item.remise || 0) / 100);
+                                return (
+                                    <tr key={index} className="hover:bg-blue-50/30 transition-colors group">
+                                        <td className="px-4 py-3 w-40">
+                                            <select
+                                                className="bg-transparent border border-gray-200 rounded px-2 py-1 text-xs w-full outline-none focus:border-blue-500"
+                                                value={item.produitId}
+                                                onChange={e => updateItem(index, 'produitId', e.target.value)}
+                                            >
+                                                <option value="">-- Produit --</option>
+                                                {produits.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.nom}</option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input
+                                                className="bg-transparent border-none p-0 focus:ring-0 w-full font-bold text-gray-800 placeholder-gray-300 text-sm"
+                                                placeholder="Désignation..."
+                                                value={item.description}
+                                                onChange={e => updateItem(index, 'description', e.target.value)}
+                                            />
+                                        </td>
+                                        <td className="px-3 py-3 w-16">
+                                            <input type="number" min="1"
+                                                className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-sm"
+                                                value={item.qty}
+                                                onChange={e => updateItem(index, 'qty', e.target.value)} />
+                                        </td>
+                                        <td className="px-3 py-3 w-20">
+                                            <select
+                                                className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-blue-600 text-sm"
+                                                value={item.tvaRate}
+                                                onChange={e => updateItem(index, 'tvaRate', parseInt(e.target.value))}>
+                                                <option value="7">7%</option>
+                                                <option value="13">13%</option>
+                                                <option value="19">19%</option>
+                                            </select>
+                                        </td>
+                                        <td className="px-3 py-3 w-20">
+                                            <input type="number" min="0" max="100"
+                                                className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-sm"
+                                                value={item.remise}
+                                                onChange={e => updateItem(index, 'remise', e.target.value)} />
+                                        </td>
+                                        <td className="px-3 py-3 w-28">
+                                            <input type="number" step="0.001"
+                                                className="bg-transparent border-none p-0 focus:ring-0 w-full text-right font-bold text-gray-700 text-sm"
+                                                value={item.puht}
+                                                onChange={e => updateItem(index, 'puht', parseFloat(e.target.value))} />
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-black text-gray-900 text-sm">
+                                            {formatAmount(lineHT)}
+                                        </td>
+                                        <td className="px-2">
+                                            <button onClick={() => removeItem(index)}
+                                                className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">✕</button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    <button onClick={addItem}
+                        className="w-full bg-white border-t border-gray-100 py-3 text-[10px] font-black tracking-[0.2em] text-blue-600 hover:bg-gray-50 transition-colors">
+                        + AJOUTER UNE LIGNE PRODUIT / SERVICE
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button 
-            onClick={addItem}
-            className="w-full bg-white border-t border-gray-100 py-4 text-[10px] font-black tracking-[0.2em] text-blue-600 hover:bg-gray-50 transition-colors"
-          >
-            + AJOUTER UNE LIGNE PRODUIT / SERVICE
-          </button>
-        </div>
-
-        {/* BOTTOM SECTION: TAX RECAP & TOTALS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-          <div className="space-y-6">
-             <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                <h3 className="text-xs font-black uppercase text-gray-400 mb-4 tracking-widest">Récapitulatif Fiscal (Cascading)</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm py-1 border-b border-gray-50 italic">
-                    <span className="text-gray-500 font-medium">Référentiel I-1601 (Timbre)</span>
-                    <span className="font-bold text-gray-700">{formatAmount(STAMP_DUTY)} DT</span>
-                  </div>
-                  <div className="flex justify-between text-sm py-1 border-b border-gray-50 italic">
-                    <span className="text-gray-500 font-medium">Référentiel I-1602 (TVA Totale)</span>
-                    <span className="font-bold text-gray-700">{formatAmount(invoice.totals.tva)} DT</span>
-                  </div>
                 </div>
-             </div>
 
-             {/* TTN STATUS PANEL */}
-             {ttnResponse && (
-               <div className="bg-green-50 border border-green-200 rounded-xl p-6 flex items-center gap-6 animate-fadeIn">
-                 <img src={ttnResponse.qrCode} alt="QR Code Signature" className="w-24 h-24 bg-white p-1 rounded-lg shadow-inner" />
-                 <div>
-                   <h4 className="text-xs font-black text-green-700 uppercase mb-1">Dépôt validé (out@ttn:FTP)</h4>
-                   <p className="text-[10px] font-bold text-green-600 mb-2 font-mono">{ttnResponse.reference}</p>
-                   <p className="text-[11px] text-green-800/80 leading-relaxed italic">
-                     "La structure XML XAdES-BES a été transmise à la méthode saveEfact. Le jeton de consultation est valide."
-                   </p>
-                 </div>
-               </div>
-             )}
-          </div>
+                {/* TOTAUX */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    <div>
+                        {/* Message erreur */}
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-sm text-red-700 font-medium">
+                                {error}
+                            </div>
+                        )}
 
-          <div className="bg-gray-900 rounded-2xl p-10 text-white shadow-2xl space-y-6 relative overflow-hidden">
-            <div className="space-y-4 relative z-10">
-              <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                <span>Total Hors Taxes (HT)</span>
-                <span>{formatAmount(invoice.totals.ht)} DT</span>
-              </div>
-              <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                <span>Montant TVA</span>
-                <span>{formatAmount(invoice.totals.tva)} DT</span>
-              </div>
-              <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                <span>Droit de Timbre (Légal)</span>
-                <span>{formatAmount(invoice.totals.stamp)} DT</span>
-              </div>
-              <div className="border-t border-white/10 pt-6 mt-4 flex justify-between items-center">
-                <span className="text-sm font-black uppercase tracking-tighter">NET À PAYER (TTC)</span>
-                <span className="text-4xl font-extrabold text-blue-400 tracking-tight">{formatAmount(invoice.totals.ttc)} <span className="text-base font-light opacity-50">DT</span></span>
-              </div>
+                        {/* Réponse succès */}
+                        {ttnResponse && (
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-center gap-4">
+                                <div className="text-3xl">✅</div>
+                                <div>
+                                    <h4 className="text-xs font-black text-green-700 uppercase mb-1">Facture enregistrée</h4>
+                                    <p className="text-xs font-mono text-green-600">{ttnResponse.reference}</p>
+                                    <p className="text-xs text-green-800 mt-1">{ttnResponse.message}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-gray-900 rounded-2xl p-8 text-white shadow-2xl space-y-4">
+                        <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
+                            <span>Total HT</span>
+                            <span>{formatAmount(invoice.totals.ht)} DT</span>
+                        </div>
+                        <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
+                            <span>TVA</span>
+                            <span>{formatAmount(invoice.totals.tva)} DT</span>
+                        </div>
+                        {invoice.timbreFiscal && (
+                            <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
+                                <span>Timbre Fiscal</span>
+                                <span>{formatAmount(invoice.totals.stamp)} DT</span>
+                            </div>
+                        )}
+                        {invoice.remiseGlobale > 0 && (
+                            <div className="flex justify-between text-orange-400 font-bold uppercase text-[10px] tracking-widest">
+                                <span>Remise globale ({invoice.remiseGlobale}%)</span>
+                                <span>- {formatAmount(invoice.totals.ht * invoice.remiseGlobale / 100)} DT</span>
+                            </div>
+                        )}
+                        <div className="border-t border-white/10 pt-4 flex justify-between items-center">
+                            <span className="text-sm font-black uppercase">NET À PAYER TTC</span>
+                            <span className="text-3xl font-extrabold text-blue-400">{formatAmount(invoice.totals.ttc)} <span className="text-sm font-light opacity-50">DT</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ACTIONS */}
+                <div className="mt-10 flex gap-4 items-center justify-end border-t border-gray-100 pt-8">
+                    <button className="border border-gray-200 text-gray-600 font-black text-xs py-3 px-8 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest">
+                        📄 Aperçu TEIF
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={status === 'sending' || status === 'validating'}
+                        className={`bg-blue-600 text-white font-black text-xs py-3 px-10 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center gap-2 ${status === 'sending' || status === 'validating' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 hover:-translate-y-0.5'}`}>
+                        {status === 'sending'    ? '⏳ Enregistrement...' :
+                         status === 'validating' ? '🔍 Validation...'     :
+                         status === 'success'    ? '✅ Nouvelle Facture'  :
+                         '💾 Enregistrer la Facture'}
+                    </button>
+                </div>
             </div>
-            {/* Background design */}
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500 opacity-20 blur-3xl rounded-full"></div>
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-40"></div>
-          </div>
+
+            <footer className="text-center text-[10px] text-gray-400 uppercase font-black tracking-widest pb-8">
+                Module Digital Trust & Signature — Conforme TEIF v1.8.8 TTN
+            </footer>
         </div>
-
-        {/* FOOTER ACTIONS */}
-        <div className="mt-12 flex flex-col md:flex-row gap-4 items-center justify-between border-t border-gray-100 pt-10">
-           <div className="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase">
-             <div className="w-2 h-2 rounded-full bg-green-500"></div>
-             Service WS v5 Opérationnel (connecté)
-           </div>
-           
-           <div className="flex gap-4 w-full md:w-auto">
-             <button className="flex-1 md:flex-none border border-gray-200 text-gray-600 font-black text-xs py-4 px-10 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest">
-               📄 Aperçu TEIF
-             </button>
-             <button 
-               onClick={handleSubmissionFlow}
-               disabled={status !== 'draft' && status !== 'success'}
-               className={`flex-1 md:flex-none bg-blue-600 text-white font-black text-xs py-4 px-12 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-3 ${status !== 'draft' && status !== 'success' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 hover:-translate-y-1'}`}
-             >
-               {status === 'sending' ? (
-                 <>Envoi à TTN (saveEfact)...</>
-               ) : status === 'validating' ? (
-                 <>Validation Structure...</>
-               ) : (
-                 <>Lancer la procédure d'envoi</>
-               )}
-             </button>
-           </div>
-        </div>
-
-      </div>
-      
-      {/* SECURITY FOOTER */}
-      <footer className="text-center text-[10px] text-gray-400 uppercase font-black tracking-widest pb-10">
-         Module Digital Trust & Signature - Conforme au décret de facturation électronique n°2023-XXXX
-      </footer>
-
-    </div>
-  );
+    );
 }

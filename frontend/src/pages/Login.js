@@ -97,22 +97,43 @@ function Login({ onLoginSuccess }) {
     };
 
     // Liste des utilisateurs statiques pour le test
-    const USERS = [
-        { email: 'test@gmail.com', password: '123', role: 'user', name: 'User Test' },
-        { email: 'ja7479845@gmail.com', password: '123', role: 'admin', name: 'Admin Central' },
-    ];
+   const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const foundUser = USERS.find(u => u.email === identifiant && u.password === password);
-        
-        if (foundUser) {
-            setLoginError('');
-            if (onLoginSuccess) onLoginSuccess(foundUser);
-        } else {
-            setLoginError('Identifiant ou mot de passe incorrect.');
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoading(true);
+
+    try {
+        const response = await fetch('http://localhost:5170/api/Auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: identifiant, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            setLoginError(data.message || 'Identifiant ou mot de passe incorrect.');
+            return;
         }
-    };
+
+        localStorage.setItem('token', data.token);
+        if (rememberMe) localStorage.setItem('rememberUser', identifiant);
+
+        if (onLoginSuccess) onLoginSuccess({
+            name:  data.name,
+            email: data.email,
+            role:  data.role,
+            token: data.token,
+        });
+
+    } catch (err) {
+        setLoginError('Erreur de connexion au serveur. Vérifiez que le backend est lancé.');
+    } finally {
+        setLoading(false);
+    }
+};
 
     const slide = SLIDES[activeDot];
 
