@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace backend.Models
 {
@@ -15,6 +16,7 @@ namespace backend.Models
 
         // Relationship: A product belongs to a specific company
         public int CompanyId { get; set; }
+        [JsonIgnore]
         public Company? Company { get; set; }
     }
 }

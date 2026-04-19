@@ -5,16 +5,64 @@ import { validateMatriculeFiscal, normalizeMatricule } from '../utils/matriculeV
 
 const API = 'http://localhost:5170/api';
 
+const Icons = {
+    Check: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+        </svg>
+    ),
+    Document: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+        </svg>
+    ),
+    Save: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+        </svg>
+    ),
+    Send: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+        </svg>
+    ),
+    Copy: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+    ),
+    Download: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+    ),
+    Clock: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+        </svg>
+    )
+};
+
 const formatCurrency = (num) => {
   const value = parseFloat(num || 0);
   return value.toFixed(3);
 };
 
 export default function CreateInvoice() {
+  const today = new Date().toLocaleDateString('en-CA');
+
   const [invoice, setInvoice] = useState({
     number: `FAC-${new Date().getFullYear()}-0001`,
     documentType: '380',
-    date: new Date().toISOString().split('T')[0],
+    date: today,
     periodFrom: '',
     periodTo: '',
     clientId: null,
@@ -22,7 +70,8 @@ export default function CreateInvoice() {
     clientMatricule: '',
     clientAddress: '',
     items: [],
-    totals: { ht: 0, tva: 0, stamp: STAMP_DUTY, ttc: 0 }
+    totals: { ht: 0, tva: 0, stamp: STAMP_DUTY, ttc: 0 },
+    dbId: null // Added to store database ID
   });
 
   const [issuer, setIssuer] = useState({
@@ -33,6 +82,7 @@ export default function CreateInvoice() {
   });
 
   const [companyId, setCompanyId] = useState(null);
+  const [companyLogo, setCompanyLogo] = useState(null);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
   const [showXmlPreview, setShowXmlPreview] = useState(false);
@@ -55,6 +105,14 @@ export default function CreateInvoice() {
 
     if (cid) {
       setCompanyId(cid);
+
+      // Fetch company logo
+      fetch(`${API}/Companies/${cid}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data?.logoPath) setCompanyLogo(`http://localhost:5170/${data.logoPath}`);
+        })
+        .catch(() => {});
 
       // Fetch clients
       fetch(`${API}/Clients?companyId=${cid}`)
@@ -190,11 +248,15 @@ export default function CreateInvoice() {
     };
 
     try {
-      const res = await fetch(`${API}/Invoices`, {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const performerName = storedUser.name || 'Utilisateur';
+
+      const res = await fetch(`${API}/Invoices?performerName=${performerName}&userId=${storedUser.userId || ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       
       const responseData = await res.text();
 
@@ -211,8 +273,9 @@ export default function CreateInvoice() {
       }
 
       setSaveSuccess(true);
-      if (saved && saved.invoiceNumber) {
-        setInvoice(prev => ({ ...prev, number: saved.invoiceNumber }));
+      if (saved && saved.id) {
+        setInvoice(prev => ({ ...prev, number: saved.invoiceNumber, dbId: saved.id }));
+        return saved.id;
       }
       
       setTimeout(() => setSaveSuccess(false), 5000);
@@ -229,21 +292,45 @@ export default function CreateInvoice() {
       alert('Erreur: Le matricule fiscal client est invalide ou absent. Format attendu : 1234567ABM000');
       return;
     }
+
     setStatus('validating');
-    setTimeout(() => {
+    
+    try {
+      // 1. Save if not already saved
+      let currentDbId = invoice.dbId;
+      if (!currentDbId) {
+        currentDbId = await handleSaveInvoice();
+      }
+      
+      if (!currentDbId) throw new Error("Impossible d'obtenir l'ID de la facture.");
+
+      // 2. Real Signing Process
       setStatus('signing');
+      const signRes = await fetch(`${API}/Invoices/${currentDbId}/sign`, { method: 'POST' });
+      
+      if (!signRes.ok) {
+        const errText = await signRes.text();
+        throw new Error(errText || "Erreur lors de la signature.");
+      }
+      
+      const signData = await signRes.json();
+
+      // 3. Mock the Sending to TTN (since we don't have their real WS endpoint yet)
+      setStatus('sending');
       setTimeout(() => {
-        setStatus('sending');
-        setTimeout(() => {
-          setStatus('success');
-          setTtnResponse({
-            reference: `TTN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-            status: 'Validée',
-            qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://fatoora.tn/verify/${Math.random().toString(36).substr(2, 6)}`
-          });
-        }, 1500);
-      }, 1000);
-    }, 800);
+        setStatus('success');
+        setTtnResponse({
+          reference: `TTN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          status: 'Validée & Signée',
+          qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://fatoora.tn/verify/${Math.random().toString(36).substr(2, 6)}`
+        });
+      }, 1500);
+
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert(`Échec de l'envoi : ${error.message}`);
+      setStatus('draft');
+    }
   };
 
   const copyXml = () => {
@@ -274,20 +361,24 @@ export default function CreateInvoice() {
         <div className="flex justify-between items-start mb-10 border-b border-gray-100 pb-8">
           <div className="space-y-3">
             <div className="flex items-center gap-3 mb-4">
-              <div className="bg-blue-600 p-2 rounded-lg text-white font-black text-xl">
-                {issuer.name.charAt(0).toUpperCase()}{issuer.name.charAt(1).toUpperCase()}
-              </div>
+              {companyLogo ? (
+                <img src={companyLogo} alt="Logo" style={{ maxWidth: '48px', maxHeight: '48px', objectFit: 'contain', borderRadius: '8px' }} />
+              ) : (
+                <div className="bg-emerald-700 p-2 rounded-lg text-white font-black text-xl">
+                  {issuer.name.charAt(0).toUpperCase()}{issuer.name.charAt(1).toUpperCase()}
+                </div>
+              )}
               <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 uppercase">{issuer.name}</h1>
             </div>
             <div className="text-gray-500 text-sm leading-relaxed">
               <p className="font-bold text-gray-800">{issuer.name}</p>
               <p>{issuer.address}</p>
-              <p>Mat. Fiscal: <span className="font-mono text-blue-600">{issuer.matricule}</span></p>
+              <p>Mat. Fiscal: <span className="font-mono text-emerald-700">{issuer.matricule}</span></p>
               <p>Registre Commerce: {issuer.rc}</p>
             </div>
           </div>
           <div className="text-right space-y-4">
-            <div className="inline-block bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-xs font-bold tracking-widest border border-blue-100">
+            <div className="inline-block bg-emerald-50 text-emerald-700 px-4 py-1 rounded-full text-xs font-bold tracking-widest border border-emerald-100">
               DOCUMENT CONFORME TEIF v2.0
             </div>
             <div className="space-y-1">
@@ -309,7 +400,21 @@ export default function CreateInvoice() {
                 onChange={(e) => setInvoice({ ...invoice, number: e.target.value })}
               />
             </div>
-            <p className="text-sm text-gray-500 font-medium">{new Date(invoice.date).toLocaleDateString('fr-TN')}</p>
+            <input 
+                type="date"
+                className="text-sm text-gray-500 font-medium border-none p-0 focus:ring-0 text-right w-full bg-transparent outline-none"
+                value={invoice.date}
+                max={today}
+                onChange={(e) => {
+                    const newDate = e.target.value;
+                    setInvoice(prev => ({
+                        ...prev,
+                        date: newDate,
+                        periodFrom: prev.periodFrom && prev.periodFrom > newDate ? newDate : prev.periodFrom,
+                        periodTo: prev.periodTo && prev.periodTo > newDate && !prev.periodTo.startsWith('20') ? newDate : prev.periodTo // Allow future if deliberately future
+                    }));
+                }}
+            />
           </div>
         </div>
 
@@ -317,13 +422,13 @@ export default function CreateInvoice() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
           {/* Client */}
           <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
-            <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-4">Informations Client</h3>
+            <h3 className="text-xs font-extrabold text-emerald-700 uppercase tracking-widest mb-4">Informations Client</h3>
             <div className="space-y-4">
               <div className="relative">
                 <input
                   list="clients-list"
                   placeholder="Sélectionner ou saisir un Client"
-                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none font-bold"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none font-bold"
                   value={invoice.clientName}
                   onChange={(e) => handleClientSelection(e.target.value)}
                 />
@@ -333,14 +438,14 @@ export default function CreateInvoice() {
               </div>
               <input
                 placeholder="Matricule Fiscal (1234567ABM000) *"
-                className={`w-full bg-white border rounded-lg px-4 py-2 text-sm focus:ring-4 font-mono transition-all outline-none ${invoice.clientMatricule && !validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) ? 'border-red-500 focus:ring-red-100' : 'border-gray-200 focus:ring-blue-100'}`}
+                className={`w-full bg-white border rounded-lg px-4 py-2 text-sm focus:ring-4 font-mono transition-all outline-none ${invoice.clientMatricule && !validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) ? 'border-red-500 focus:ring-red-100' : 'border-gray-200 focus:ring-emerald-100'}`}
                 value={invoice.clientMatricule}
                 onChange={(e) => setInvoice({ ...invoice, clientMatricule: normalizeMatricule(e.target.value) })}
                 maxLength={13}
               />
               <textarea
                 placeholder="Adresse du Client"
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none resize-none"
+                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:ring-4 focus:ring-emerald-100 transition-all outline-none resize-none"
                 rows="2"
                 value={invoice.clientAddress}
                 onChange={(e) => setInvoice({ ...invoice, clientAddress: e.target.value })}
@@ -350,18 +455,27 @@ export default function CreateInvoice() {
 
           {/* Period */}
           <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
-            <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-4">Période d'activité</h3>
+            <h3 className="text-xs font-extrabold text-emerald-700 uppercase tracking-widest mb-4">Période d'activité</h3>
             <div className="grid grid-cols-1 gap-3">
               <div className="flex items-center gap-2">
                 <label className="text-[10px] font-bold text-gray-400 uppercase w-8">Du</label>
-                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-1.5 text-xs outline-none focus:border-blue-500"
+                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-1.5 text-xs outline-none focus:border-emerald-500"
                   value={invoice.periodFrom}
-                  onChange={e => setInvoice({ ...invoice, periodFrom: e.target.value })} />
+                  max={invoice.date}
+                  onChange={e => {
+                      const from = e.target.value;
+                      setInvoice(prev => ({ 
+                          ...prev, 
+                          periodFrom: from,
+                          periodTo: (prev.periodTo && prev.periodTo < from) ? from : prev.periodTo 
+                      }));
+                  }} />
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-[10px] font-bold text-gray-400 uppercase w-8">Au</label>
-                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-1.5 text-xs outline-none focus:border-blue-500"
+                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-1.5 text-xs outline-none focus:border-emerald-500"
                   value={invoice.periodTo}
+                  min={invoice.periodFrom}
                   onChange={e => setInvoice({ ...invoice, periodTo: e.target.value })} />
               </div>
             </div>
@@ -370,18 +484,18 @@ export default function CreateInvoice() {
           {/* Signature */}
           <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center relative overflow-hidden">
             <div className="text-center z-10">
-              <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-2">Signature Digigo</h3>
+              <h3 className="text-xs font-extrabold text-emerald-700 uppercase tracking-widest mb-2">Signature Digigo</h3>
               {status === 'signing' ? (
-                <div className="flex items-center gap-2 text-blue-700 font-bold animate-pulse text-xs">
-                  <span className="w-2 h-2 rounded-full bg-blue-600"></span> Signature XAdES...
+                <div className="flex items-center gap-2 text-emerald-700 font-bold animate-pulse text-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-700"></span> Signature XAdES...
                 </div>
               ) : status === 'success' ? (
                 <div className="text-green-600 flex flex-col items-center gap-1 font-bold">
-                  <span className="text-lg">✅</span>
+                  <span className="text-lg"><Icons.Check /></span>
                   <span className="text-[10px] uppercase">Certificat Validé</span>
                 </div>
               ) : (
-                <button className="text-[10px] bg-white border border-blue-200 text-blue-600 font-bold py-2 px-6 rounded-full hover:bg-blue-50 translate-y-1 shadow-sm">
+                <button className="text-[10px] bg-white border border-emerald-200 text-emerald-700 font-bold py-2 px-6 rounded-full hover:bg-emerald-50 translate-y-1 shadow-sm">
                   DÉVEROUILLER CERTIFICAT
                 </button>
               )}
@@ -417,7 +531,7 @@ export default function CreateInvoice() {
             </thead>
             <tbody className="divide-y divide-gray-50 bg-white">
               {invoice.items.map((item, index) => (
-                <tr key={index} className="hover:bg-blue-50/30 transition-colors group">
+                <tr key={index} className="hover:bg-emerald-50/30 transition-colors group">
                   <td className="px-6 py-4">
                     <input
                       list="products-list"
@@ -452,7 +566,7 @@ export default function CreateInvoice() {
                   </td>
                   <td className="px-4 py-4 w-24">
                     <select
-                      className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-blue-600 appearance-none cursor-pointer"
+                      className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-emerald-700 appearance-none cursor-pointer"
                       value={item.tvaRate}
                       onChange={(e) => updateItem(index, 'tvaRate', parseInt(e.target.value))}
                     >
@@ -477,7 +591,7 @@ export default function CreateInvoice() {
                   <td className="px-4">
                     <button
                       onClick={() => removeItem(index)}
-                      className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      className="text-gray-500 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                     >✕</button>
                   </td>
                 </tr>
@@ -486,7 +600,7 @@ export default function CreateInvoice() {
           </table>
           <button
             onClick={addItem}
-            className="w-full bg-white border-t border-gray-100 py-4 text-[10px] font-black tracking-[0.2em] text-blue-600 hover:bg-gray-50 transition-colors"
+            className="w-full bg-white border-t border-gray-100 py-4 text-[10px] font-black tracking-[0.2em] text-emerald-700 hover:bg-gray-50 transition-colors"
           >
             + AJOUTER UNE LIGNE PRODUIT / SERVICE
           </button>
@@ -522,29 +636,28 @@ export default function CreateInvoice() {
             )}
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-10 text-white shadow-2xl space-y-6 relative overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm space-y-5 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400"></div>
             <div className="space-y-4 relative z-10">
-              <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                <span>Total HT</span>
-                <span>{formatCurrency(invoice.totals.ht)} DT</span>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Total HT</span>
+                <span className="text-sm font-bold text-gray-700">{formatCurrency(invoice.totals.ht)} DT</span>
               </div>
-              <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                <span>Montant TVA global</span>
-                <span>{formatCurrency(invoice.totals.tva)} DT</span>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Montant TVA global</span>
+                <span className="text-sm font-bold text-gray-700">{formatCurrency(invoice.totals.tva)} DT</span>
               </div>
-              <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                <span>Droit de Timbre</span>
-                <span>{formatCurrency(invoice.totals.stamp)} DT</span>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Droit de Timbre</span>
+                <span className="text-sm font-bold text-gray-700">{formatCurrency(invoice.totals.stamp)} DT</span>
               </div>
-              <div className="border-t border-white/10 pt-6 mt-4 flex justify-between items-center">
-                <span className="text-sm font-black uppercase tracking-tighter text-blue-400">Net à Payer TTC</span>
-                <span className="text-4xl font-extrabold text-white tracking-tight">
-                  {formatCurrency(invoice.totals.ttc)} <span className="text-base font-light opacity-50">DT</span>
+              <div className="pt-4 mt-2 flex justify-between items-center">
+                <span className="text-sm font-black uppercase tracking-tight text-emerald-700">Net à Payer TTC</span>
+                <span className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                  {formatCurrency(invoice.totals.ttc)} <span className="text-sm font-medium text-gray-400">DT</span>
                 </span>
               </div>
             </div>
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500 opacity-20 blur-3xl rounded-full"></div>
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-40"></div>
           </div>
         </div>
 
@@ -558,23 +671,23 @@ export default function CreateInvoice() {
           <div className="flex gap-3 w-full md:w-auto flex-wrap">
             <button
               onClick={() => setShowXmlPreview(true)}
-              className="flex-1 md:flex-none border border-gray-200 text-gray-600 font-black text-xs py-4 px-8 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest"
+              className="flex-1 md:flex-none border border-gray-200 text-gray-600 font-black text-xs py-4 px-8 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
             >
-              📄 Aperçu TEIF
+              <Icons.Document /> Aperçu TEIF
             </button>
             <button
               onClick={handleSaveInvoice}
               disabled={saving}
               className={`flex-1 md:flex-none font-black text-xs py-4 px-8 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-2 ${saving ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:-translate-y-1'}`}
             >
-              {saving ? '⏳ Enregistrement...' : '💾 Enregistrer la facture'}
+              {saving ? <><Icons.Clock /> Enregistrement...</> : <><Icons.Save /> Enregistrer la facture</>}
             </button>
             <button
               onClick={handleSubmissionFlow}
               disabled={status !== 'draft' && status !== 'success'}
-              className={`flex-1 md:flex-none bg-blue-600 text-white font-black text-xs py-4 px-8 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-3 ${status !== 'draft' && status !== 'success' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 hover:-translate-y-1'}`}
+              className={`flex-1 md:flex-none bg-emerald-700 text-white font-black text-xs py-4 px-8 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-3 ${status !== 'draft' && status !== 'success' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-800 hover:-translate-y-1'}`}
             >
-              {status === 'sending' ? <>Envoi TTN...</> : status === 'validating' ? <>Validation...</> : <>🚀 Lancer envoi TTN</>}
+              {status === 'sending' ? <><Icons.Clock /> Envoi TTN...</> : status === 'validating' ? <><Icons.Clock /> Validation...</> : status === 'signing' ? <><Icons.Clock /> Signature XML-DSIG...</> : <><Icons.Send /> Signer et Envoyer vers TTN</>}
             </button>
           </div>
         </div>
@@ -595,16 +708,16 @@ export default function CreateInvoice() {
               >✕ FERMER</button>
             </div>
             <div className="flex-1 overflow-auto p-6 bg-[#1e1e1e]">
-              <pre className="text-blue-300 font-mono text-xs leading-relaxed">
+              <pre className="text-emerald-300 font-mono text-xs leading-relaxed">
                 {generateTeifXml(issuer, invoice)}
               </pre>
             </div>
             <div className="p-6 border-t border-gray-100 flex gap-4 bg-gray-50">
-              <button onClick={copyXml} className="flex-1 bg-white border border-gray-200 text-gray-700 font-black text-[10px] py-3 rounded-xl hover:bg-gray-100 uppercase tracking-widest">
-                📋 Copier le XML
+              <button onClick={copyXml} className="flex-1 bg-white border border-gray-200 text-gray-700 font-black text-[10px] py-3 rounded-xl hover:bg-gray-100 uppercase tracking-widest flex items-center justify-center">
+                <Icons.Copy /> Copier le XML
               </button>
-              <button onClick={handleDownloadXml} className="flex-1 bg-blue-600 text-white font-black text-[10px] py-3 rounded-xl hover:bg-blue-700 uppercase tracking-widest shadow-lg shadow-blue-200">
-                📥 Télécharger .xml
+              <button onClick={handleDownloadXml} className="flex-1 bg-emerald-700 text-white font-black text-[10px] py-3 rounded-xl hover:bg-emerald-800 uppercase tracking-widest shadow-lg shadow-emerald-200 flex items-center justify-center">
+                <Icons.Download /> Télécharger .xml
               </button>
             </div>
           </div>

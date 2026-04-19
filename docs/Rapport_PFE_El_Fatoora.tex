@@ -1,0 +1,1800 @@
+% ============================================================================
+% MÉMOIRE DE STAGE — EL FATOORA
+% Université de Sfax — FSEGS — Département d'Informatique Appliquée à la Gestion
+% Licence en Informatique Appliquée à la Gestion
+% Année universitaire 2024–2025
+% ============================================================================
+\documentclass[a4paper,12pt]{report}
+
+% ─── ENCODAGE ET LANGUE ─────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{mathptmx}              % Times New Roman
+
+% ─── MISE EN PAGE ────────────────────────────────────────────────────────────
+\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{setspace}
+\setstretch{1.3}                    % Interligne ~16pt
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+% ─── GRAPHIQUES ET COULEURS ──────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds}
+
+% ─── TABLEAUX ────────────────────────────────────────────────────────────────
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+
+% ─── LISTES ET CODE ──────────────────────────────────────────────────────────
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{fancyvrb}
+
+% ─── HYPERLIENS ET PDF ───────────────────────────────────────────────────────
+\usepackage[hidelinks]{hyperref}
+\usepackage{bookmark}
+
+% ─── EN-TÊTES ET PIEDS DE PAGE ───────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small El Fatoora — PFE 2024/2025}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── CONFIGURATION DES LISTINGS ──────────────────────────────────────────────
+\definecolor{codebg}{rgb}{0.95,0.95,0.97}
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+\definecolor{codeblue}{rgb}{0.0,0.0,0.7}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  captionpos=b,
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{codeblue}\bfseries,
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{red!60!black},
+  frame=single,
+  rulecolor=\color{black!30},
+  numbers=left,
+  numbersep=5pt,
+  showstringspaces=false,
+  tabsize=2,
+  xleftmargin=1em,
+  framexleftmargin=1em
+}
+
+% ─── COMMANDES PERSONNALISÉES ────────────────────────────────────────────────
+\newcommand{\elfattoora}{\textbf{El Fatoora}}
+\newcommand{\teif}{\textbf{TEIF}}
+\newcommand{\ttn}{\textbf{TTN}}
+
+% ============================================================================
+%                           DÉBUT DU DOCUMENT
+% ============================================================================
+\begin{document}
+
+% ════════════════════════════════════════════════════════════════════════════
+%                           PAGE DE GARDE
+% ════════════════════════════════════════════════════════════════════════════
+\begin{titlepage}
+\begin{center}
+
+\textbf{\large Université de Sfax}\\[4pt]
+\textbf{\large Faculté des Sciences Économiques et de Gestion}\\[4pt]
+\textbf{Département d'Informatique Appliquée à la Gestion}\\[1.5cm]
+
+% ── Logo (décommenter si disponible) ──
+% \includegraphics[height=2.5cm]{logo_fsegs.png}\\[1cm]
+
+\rule{\linewidth}{0.5pt}\\[0.6cm]
+{\LARGE \textbf{MÉMOIRE DE STAGE}}\\[0.3cm]
+{\large POUR L'OBTENTION DE LA LICENCE EN}\\[0.2cm]
+{\large \textbf{INFORMATIQUE APPLIQUÉE À LA GESTION}}\\[0.3cm]
+\rule{\linewidth}{0.5pt}\\[1.2cm]
+
+{\Huge \textbf{El Fatoora}}\\[0.5cm]
+{\Large \textit{Plateforme de Facturation Électronique\\
+Conforme au Standard TEIF}}\\[2cm]
+
+\begin{minipage}[t]{0.45\textwidth}
+\begin{flushleft}
+\textbf{Réalisé par :}\\[4pt]
+\textit{(À compléter)}
+\end{flushleft}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.45\textwidth}
+\begin{flushright}
+\textbf{Encadré par :}\\[4pt]
+\textit{(À compléter)}
+\end{flushright}
+\end{minipage}
+
+\vfill
+
+\textbf{JURY}\\[4pt]
+\begin{tabular}{l l}
+Président   & : \textit{(À compléter)} \\
+Rapporteur  & : \textit{(À compléter)} \\
+Encadrant   & : \textit{(À compléter)} \\
+\end{tabular}
+
+\vfill
+
+\textbf{Année universitaire}\\[4pt]
+{\Large \textbf{2024 – 2025}}
+
+\end{center}
+\end{titlepage}
+
+% ════════════════════════════════════════════════════════════════════════════
+%                        TABLE DES MATIÈRES
+% ════════════════════════════════════════════════════════════════════════════
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+\pagenumbering{arabic}
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%                      INTRODUCTION GÉNÉRALE
+% ════════════════════════════════════════════════════════════════════════════
+\chapter*{Introduction générale}
+\addcontentsline{toc}{chapter}{Introduction générale}
+\markboth{Introduction générale}{Introduction générale}
+
+La transformation digitale des processus administratifs et financiers constitue un enjeu stratégique majeur pour les économies émergentes. En Tunisie, la Direction Générale des Impôts (DGI), en partenariat avec Tunisie TradeNet (TTN), a engagé un chantier de modernisation de la facturation à travers l'introduction progressive de la \textbf{facturation électronique obligatoire} basée sur le standard \teif{} (\textit{Tunisian Electronic Invoice Format}), un format XML structuré conforme aux normes internationales UN/CEFACT.
+
+Malgré l'existence de ce cadre réglementaire, de nombreuses PME et TPE tunisiennes rencontrent des difficultés majeures pour s'y conformer : complexité technique de la génération de fichiers XML conformes, coût des solutions commerciales existantes, absence d'outils d'importation pour la numérisation des factures papier, et manque de visibilité sur la situation fiscale.
+
+Dans ce contexte, le présent projet de fin d'études porte sur la \textbf{conception, le développement et la mise en \oe{}uvre d'une plateforme web de facturation électronique} dénommée \elfattoora{}. Cette application full-stack permet aux entreprises tunisiennes de créer, gérer, signer numériquement et transmettre leurs factures au format TEIF XML, en assurant la conformité avec les exigences réglementaires nationales.
+
+Ce mémoire est organisé en quatre chapitres conformément à la démarche méthodologique adoptée :
+
+\begin{itemize}[nosep]
+    \item Le \textbf{premier chapitre} présente la \textit{modélisation du métier} : nous y décrivons l'organisme d'accueil, les objectifs de la mission, les acteurs métier, les processus métier et les supports d'information ;
+    \item Le \textbf{deuxième chapitre} est consacré à la \textit{capture des besoins} fonctionnels et non fonctionnels du futur système informatisé ;
+    \item Le \textbf{troisième chapitre} présente l'\textit{analyse et la conception} : diagrammes de séquence, modèle du domaine, architecture logicielle et schéma physique de la base de données ;
+    \item Le \textbf{quatrième chapitre} décrit l'\textit{implémentation} : environnement technique, réalisation des cas d'utilisation et captures d'écran.
+\end{itemize}
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%        CHAPITRE 1 — MODÉLISATION DU MÉTIER
+% ════════════════════════════════════════════════════════════════════════════
+\chapter{Modélisation du Métier}
+
+\section{Introduction}
+
+Le but de la modélisation métier est de comprendre le domaine de la facturation électronique en Tunisie, ses activités et le rôle des personnes qui y travaillent, afin de mieux répondre à leurs besoins. Il s'agit également de concevoir un modèle représentant l'organisation étudiée.
+
+Ce chapitre est structuré comme suit : nous commençons par définir la mission du projet et présenter l'organisme d'accueil (section~1.2), puis nous repérons le domaine en identifiant les acteurs métier \textbf{externes} et leurs échanges avec le domaine (section~1.3). Ensuite, nous décrivons les processus métier \textbf{internes} — c'est-à-dire comment les travailleurs réalisent leurs tâches au quotidien (section~1.4). Enfin, nous analysons les supports d'information utilisés (section~1.5).
+
+\section{Définition de la mission}
+
+L'objectif de ce projet est de concevoir et de développer une application web de facturation électronique, dénommée \elfattoora{}, qui permettra aux entreprises tunisiennes de :
+\begin{itemize}[nosep]
+    \item Créer des factures électroniques conformes au standard TEIF v2.0 ;
+    \item Signer numériquement ces factures à l'aide de certificats X.509 (profil XAdES-EPES) ;
+    \item Gérer leurs référentiels (clients, produits, sociétés) ;
+    \item Importer des factures papier par reconnaissance optique (OCR) ;
+    \item Suivre leur situation fiscale (TVA, droit de timbre) via des tableaux de bord statistiques.
+\end{itemize}
+
+\subsection{Présentation de l'organisme d'accueil}
+
+Le projet \elfattoora{} s'inscrit dans l'écosystème de la facturation électronique tunisien, réglementé par la \textbf{Direction Générale des Impôts (DGI)} et opéré par \textbf{Tunisie TradeNet (TTN)}.
+
+Tunisie TradeNet est l'opérateur national désigné pour la gestion de la plateforme de facturation électronique. Fondée en partenariat public-privé, TTN est chargée de :
+\begin{itemize}[nosep]
+    \item La réception et la validation des factures électroniques transmises par les entreprises ;
+    \item L'archivage légal des documents conformément à la réglementation fiscale ;
+    \item La transmission sécurisée des données fiscales aux services de la DGI ;
+    \item La délivrance de certificats numériques X.509 pour la signature électronique.
+\end{itemize}
+
+Le projet est destiné aux \textbf{entreprises tunisiennes} (PME, TPE et grandes entreprises) souhaitant se conformer aux exigences de la facturation électronique TEIF sans investir dans des solutions commerciales onéreuses.
+
+\subsection{Structure organisationnelle}
+
+Le contexte organisationnel dans lequel s'inscrit l'application \elfattoora{} fait intervenir plusieurs entités hiérarchiques. La figure~\ref{fig:organigramme} illustre l'organigramme du domaine de la facturation électronique en Tunisie, montrant les relations entre les autorités de régulation, l'opérateur technique et les entreprises utilisatrices.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 2cm,
+    every node/.style={draw, rounded corners, minimum width=3cm, minimum height=0.9cm, align=center, font=\small},
+    arrow/.style={-{Stealth[length=2mm]}, thick}
+]
+\node (dgi) [fill=blue!15] {Direction Générale\\des Impôts (DGI)};
+\node (ttn) [below=of dgi, fill=green!15] {Tunisie TradeNet\\(TTN)};
+\node (ent) [below left=1.5cm and 0.5cm of ttn, fill=orange!15] {Entreprise\\Émettrice};
+\node (dest) [below right=1.5cm and 0.5cm of ttn, fill=orange!15] {Entreprise\\Destinataire};
+
+\draw[arrow] (dgi) -- node[draw=none, fill=none, minimum width=0cm, right, font=\scriptsize] {Réglemente} (ttn);
+\draw[arrow] (ent) -- node[draw=none, fill=none, minimum width=0cm, left, font=\scriptsize] {Transmet\\factures signées} (ttn);
+\draw[arrow] (ttn) -- node[draw=none, fill=none, minimum width=0cm, right, font=\scriptsize] {Distribue\\factures validées} (dest);
+\end{tikzpicture}
+\caption{Organigramme du domaine de la facturation électronique}
+\label{fig:organigramme}
+\end{figure}
+
+Au sein de chaque \textbf{entreprise utilisatrice}, on distingue les rôles suivants :
+\begin{itemize}[nosep]
+    \item \textbf{Le responsable facturation} : employé qui saisit les factures, gère les clients et produits, lance les signatures ;
+    \item \textbf{L'administrateur de la plateforme} : gestionnaire qui valide les inscriptions, gère les sociétés, les certificats et supervise l'activité.
+\end{itemize}
+
+\subsection{Présentation de l'application}
+
+L'application \elfattoora{} est une \textbf{plateforme web full-stack} composée de :
+\begin{itemize}
+    \item Un \textbf{frontend} développé en React 19 avec Tailwind CSS 3.4, offrant une SPA (Single Page Application) responsive avec 13 composants de pages ;
+    \item Un \textbf{backend} développé en ASP.NET Core 8, exposant une API REST de 37 endpoints répartis sur 8 contrôleurs ;
+    \item Une \textbf{base de données} MySQL 8 (\texttt{elfatoora\_db}) contenant 7 tables principales et une table de jointure, gérée par Entity Framework Core 8.
+\end{itemize}
+
+Ses principales fonctionnalités sont :
+\begin{itemize}[nosep]
+    \item Création de factures avec numérotation automatique (\texttt{FAC-YYYY-NNNN}) et calcul des totaux (HT, TVA, droit de timbre, TTC) ;
+    \item Signature électronique XAdES-EPES à l'aide de certificats P12/PFX ;
+    \item Génération automatique de fichiers XML TEIF v2.0 conformes au schéma TTN ;
+    \item Importation de factures papier par OCR (Tesseract.js + pdfjs-dist) ;
+    \item Tableaux de bord statistiques (CA, volume, répartition TVA, top clients) ;
+    \item Gestion multi-entreprises : un utilisateur peut gérer plusieurs sociétés ;
+    \item Système d'authentification JWT avec vérification OTP par e-mail.
+\end{itemize}
+
+\subsection{Objectifs à atteindre}
+
+Les objectifs spécifiques que le projet vise à atteindre sont :
+
+\begin{enumerate}
+    \item \textbf{Conformité réglementaire} : produire des factures strictement conformes au standard TEIF v2.0 avec signature XAdES-EPES ;
+    \item \textbf{Accessibilité} : offrir une solution web gratuite accessible aux PME et TPE tunisiennes ;
+    \item \textbf{Automatisation} : réduire le temps de traitement des factures grâce à l'auto-complétion, au calcul automatique et à l'OCR ;
+    \item \textbf{Traçabilité fiscale} : fournir des outils de suivi de la TVA collectée et de préparation des déclarations mensuelles ;
+    \item \textbf{Sécurité} : garantir l'intégrité et l'authenticité des documents par la signature numérique et l'authentification JWT + OTP ;
+    \item \textbf{Multi-entreprises} : permettre la gestion de plusieurs sociétés depuis un même compte utilisateur.
+\end{enumerate}
+
+
+\section{Repérage du domaine}
+
+Le repérage du domaine consiste à identifier les acteurs métier \textbf{externes} à l'organisation étudiée et à représenter les échanges d'informations entre ces acteurs et le domaine, pris comme boîte noire. Ce modèle est appelé le \textit{modèle de contexte métier}.
+
+\subsection{Acteurs métiers}
+
+Les acteurs métier sont les entités \textbf{externes} à l'entreprise qui interagissent avec le domaine de la facturation électronique. Le tableau~\ref{tab:acteurs_metier} les recense.
+
+\begin{table}[htbp]
+\centering
+\caption{Acteurs métiers du domaine (externes à l'entreprise)}
+\label{tab:acteurs_metier}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Acteur métier} & \textbf{Description} \\
+\hline
+Client destinataire & Entreprise ou personne physique qui reçoit les factures émises. Identifié par son Matricule Fiscal à 13 caractères (format \texttt{\textbackslash d\{7\}[A-Z]\{3\}\textbackslash d\{3\}}). C'est l'acteur externe principal car il est le destinataire des documents émis par le domaine. \\
+\hline
+Tunisie TradeNet (TTN) & Opérateur national de la facturation électronique. Reçoit les factures signées au format TEIF XML, les valide, les archive (archivage légal) et transmet les données fiscales agrégées à la DGI. Délivre également les certificats numériques X.509. \\
+\hline
+Direction Générale des Impôts (DGI) & Autorité fiscale de tutelle. Définit les normes et réglementations de la facturation électronique, fixe les taux de TVA (0\%, 7\%, 13\%, 19\%) et le droit de timbre (1,000~DT). Reçoit les données fiscales via TTN. \\
+\hline
+Autorité de certification & Organisme habilité à délivrer les certificats numériques X.509 au format P12/PFX nécessaires à la signature électronique XAdES-EPES des factures. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Échange de flux entre acteurs et domaine}
+
+La figure~\ref{fig:contexte_metier} représente le modèle de contexte métier sous forme de diagramme de collaboration. Le domaine (l'entreprise qui utilise \elfattoora{}) est représenté comme une boîte noire, et les flux d'informations échangés avec chaque acteur externe sont détaillés.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=2.5cm,
+    actor/.style={draw, ellipse, minimum width=2.5cm, minimum height=1cm, align=center, font=\small},
+    domain/.style={draw, very thick, fill=blue!8, rounded corners=8pt, minimum width=5cm, minimum height=3cm, align=center, font=\large\bfseries},
+    flux/.style={-{Stealth[length=2.5mm]}, thick, font=\scriptsize}
+]
+
+\node[domain] (dom) {Entreprise\\{\normalfont\small (Domaine)}};
+
+\node[actor, fill=orange!15] (client) [above=2.5cm of dom] {Client\\destinataire};
+\node[actor, fill=green!15]  (ttn)    [right=4cm of dom] {TTN};
+\node[actor, fill=blue!10]   (dgi)    [below right=2.5cm and 3cm of dom] {DGI};
+\node[actor, fill=red!10]    (cert)   [below left=2.5cm and 3cm of dom] {Autorité de\\certification};
+
+% Flux sortants du domaine
+\draw[flux] (dom) -- node[right, align=left] {1: Facture TEIF signée\\2: Bon de livraison} (client);
+\draw[flux] (dom) -- node[above, align=center] {1: Fichier XML TEIF signé\\2: Demande de certificat} (ttn);
+
+% Flux entrants vers le domaine
+\draw[flux] (client) -- node[left, align=right] {1: Bon de commande\\2: Coordonnées (MF)} (dom);
+\draw[flux] (ttn) -- node[below, align=center] {1: Accusé de réception\\2: Rapport de validation} (dom);
+\draw[flux] (dgi) -- node[below, sloped, align=center] {1: Normes TEIF v2.0\\2: Taux TVA / droit de timbre} (dom);
+\draw[flux] (cert) -- node[below, sloped, align=center] {1: Certificat X.509 (P12)\\2: Liste de révocation} (dom);
+
+\end{tikzpicture}
+\caption{Modèle de contexte métier — Échange de flux entre acteurs et domaine}
+\label{fig:contexte_metier}
+\end{figure}
+
+Le tableau~\ref{tab:flux} détaille les flux identifiés.
+
+\begin{table}[htbp]
+\centering
+\caption{Description des flux d'information}
+\label{tab:flux}
+\begin{tabularx}{\textwidth}{|l|l|l|X|}
+\hline
+\textbf{N°} & \textbf{Source} & \textbf{Destination} & \textbf{Description du flux} \\
+\hline
+F1 & Client & Domaine & Bon de commande, coordonnées du client (nom, Matricule Fiscal, adresse, ville, téléphone) \\
+\hline
+F2 & Domaine & Client & Facture TEIF signée (XML + version lisible) \\
+\hline
+F3 & Domaine & TTN & Fichier XML TEIF v2.0 signé électroniquement (XAdES-EPES) \\
+\hline
+F4 & TTN & Domaine & Accusé de réception, rapport de conformité de la facture \\
+\hline
+F5 & DGI & Domaine & Normes TEIF v2.0, barèmes de TVA (0\%, 7\%, 13\%, 19\%), montant du droit de timbre (1,000~DT) \\
+\hline
+F6 & Autorité cert. & Domaine & Certificat numérique X.509 au format P12/PFX \\
+\hline
+\end{tabularx}
+\end{table}
+
+
+\section{Description des processus métier}
+
+Nous adoptons maintenant une vue \textbf{intérieure} de l'entreprise pour décrire comment les \textit{travailleurs du métier} (les employés internes) réalisent leurs tâches au quotidien. Nous définissons d'abord les travailleurs et leurs rôles, puis nous décrivons chaque processus métier avec ses activités et ses règles de gestion.
+
+\textbf{Les travailleurs du métier} sont les personnes qui travaillent \textit{à l'intérieur} de l'entreprise et qui participent aux processus métier :
+
+\begin{table}[htbp]
+\centering
+\caption{Travailleurs du métier}
+\label{tab:travailleurs}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Travailleur} & \textbf{Rôle} \\
+\hline
+Responsable facturation & Employé de l'entreprise (rôle \texttt{CLIENT} dans le système). Il crée les factures, sélectionne les clients et produits depuis les catalogues, vérifie les montants et déclenche la signature électronique. Il gère également les référentiels (clients, produits) et consulte les statistiques. \\
+\hline
+Administrateur & Gestionnaire de la plateforme (rôle \texttt{admin}). Il valide ou refuse les demandes d'inscription des nouveaux utilisateurs, crée des comptes manuellement, gère les sociétés et les certificats numériques, et supervise le journal d'activités. \\
+\hline
+Système El Fatoora & Composant logiciel interne qui automatise certaines tâches : calcul des totaux, génération du numéro de facture, production du XML TEIF, envoi des e-mails OTP, journalisation des actions. \\
+\hline
+Service de signature & Composant technique interne (\texttt{SignatureService}) qui charge le certificat P12, construit les propriétés XAdES-EPES et injecte la signature dans le XML. \\
+\hline
+\end{tabularx}
+\end{table}
+
+La figure~\ref{fig:uc_metier} présente le \textbf{diagramme de cas d'utilisation métier} dans lequel chaque processus est représenté par un cas d'utilisation.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    uc/.style={draw, ellipse, minimum width=3.8cm, minimum height=1cm, align=center, font=\small, fill=blue!5},
+    worker/.style={font=\small, align=center},
+    arrow/.style={-{Stealth[length=2mm]}, thick}
+]
+
+% Cadre du domaine
+\draw[thick, rounded corners=10pt, fill=gray!5] (-1.5,-0.5) rectangle (9.5,7);
+\node[font=\small\bfseries] at (4,6.6) {<< Domaine >> Entreprise utilisatrice El Fatoora};
+
+% Processus métier
+\node[uc] (p1) at (4,5.5) {Processus de\\facturation électronique};
+\node[uc] (p2) at (4,3.8) {Processus de\\signature et transmission};
+\node[uc] (p3) at (4,2.1) {Processus de gestion\\des référentiels};
+\node[uc] (p4) at (4,0.4) {Processus\\d'administration};
+
+% Travailleurs (internes)
+\node[worker] (resp) at (-3.5,4.5) {Responsable\\facturation};
+\node[worker] (adm) at (-3.5,1) {Administrateur};
+
+% Acteur externe
+\node[worker] (cli) at (12,5.5) {Client\\destinataire};
+\node[worker] (ttn2) at (12,3.8) {TTN};
+
+% Relations
+\draw[arrow] (resp) -- (p1);
+\draw[arrow] (resp) -- (p2);
+\draw[arrow] (resp) -- (p3);
+\draw[arrow] (adm) -- (p3);
+\draw[arrow] (adm) -- (p4);
+\draw[arrow] (p1) -- (cli);
+\draw[arrow] (p2) -- (ttn2);
+
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation métier}
+\label{fig:uc_metier}
+\end{figure}
+
+
+\subsection{Le processus métier A — Processus de facturation électronique}
+
+\subsubsection*{Description}
+
+Le processus de facturation électronique est le processus central du domaine. Il décrit comment le \textit{responsable facturation} (travailleur interne) crée une facture, depuis la saisie des données jusqu'à l'enregistrement et la génération du fichier XML TEIF v2.0.
+
+Ce processus se déclenche lorsque l'entreprise doit émettre une facture à destination d'un client suite à une prestation de service ou une vente de marchandises. Le responsable facturation accède au module de création, renseigne les informations et le système automatise les calculs, la numérotation et la génération XML.
+
+\subsubsection*{Intervenants}
+
+\begin{table}[htbp]
+\centering
+\caption{Intervenants du processus de facturation}
+\label{tab:intervenants_a}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Intervenant} & \textbf{Type} & \textbf{Rôle} \\
+\hline
+Responsable facturation & Travailleur & Saisit les données de la facture (type de document, date, client, lignes), vérifie les totaux affichés et déclenche la sauvegarde. \\
+\hline
+Système El Fatoora & Travailleur & Attribue le numéro auto-incrémenté (\texttt{FAC-YYYY-NNNN}), valide les champs obligatoires, recalcule les totaux côté serveur et persiste les données. \\
+\hline
+Générateur TEIF & Travailleur & Décompose les Matricules Fiscaux (émetteur et destinataire) en segments \texttt{ID\_0088} à \texttt{ID\_0091} et construit le document XML TEIF v2.0 conforme. \\
+\hline
+Client destinataire & Acteur externe & Fournit ses coordonnées (nom, Matricule Fiscal, adresse) en amont. Réceptionnaire de la facture. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsubsection*{Flot d'événements et activités}
+
+\begin{enumerate}[nosep]
+    \item Le responsable facturation accède au module \og{}Création Manuelle\fg{}.
+    \item Le système interroge \texttt{GET /api/Invoices/next-number} et affiche le prochain numéro \texttt{FAC-YYYY-NNNN} (calculé : \texttt{COUNT(factures) + 1} pour la société et l'année).
+    \item Le responsable sélectionne le type de document : \texttt{380} (Facture) ou \texttt{381} (Note d'avoir).
+    \item Il renseigne la date d'émission et éventuellement la période (\texttt{PeriodFrom}, \texttt{PeriodTo}).
+    \item Il sélectionne un client depuis le catalogue (\texttt{GET /api/Clients?companyId=\{id\}}) ou saisit manuellement les coordonnées (nom, Matricule Fiscal, adresse).
+    \item Le système valide le format du Matricule Fiscal (regex : \texttt{\textasciicircum\textbackslash d\{7\}[A-Z]\{3\}\textbackslash d\{3\}\$}, soit 13 caractères).
+    \item Le responsable ajoute les lignes de facturation depuis le catalogue produits ou en saisie libre (description, unité, quantité, prix unitaire HT, taux TVA).
+    \item Le système calcule en temps réel les totaux par ligne et globaux pour prévisualisation.
+    \item Le responsable clique sur \og{}Sauvegarder\fg{}.
+    \item Le backend vérifie les 3 contraintes obligatoires : \texttt{CompanyId > 0}, \texttt{ClientName} non vide, au moins une ligne.
+    \item Le backend \textbf{recalcule côté serveur} tous les totaux :
+    \begin{itemize}[nosep]
+        \item Par ligne : $\text{TotalHT} = \text{Qty} \times \text{UnitPriceHT}$, $\text{TotalTVA} = \text{TotalHT} \times (\text{TvaRate} / 100)$
+        \item Global : $\text{TotalHT} = \sum \text{lignes.TotalHT}$, $\text{TotalTVA} = \sum \text{lignes.TotalTVA}$, $\text{TotalTTC} = \text{TotalHT} + \text{TotalTVA} + \text{StampDuty}$
+    \end{itemize}
+    \item La facture est enregistrée avec \texttt{Status = "Brouillon"}.
+    \item Le \texttt{TeifGenerator} produit le XML TEIF v2.0 en décomposant le MF en 4 segments (\texttt{ID\_0088} à \texttt{ID\_0091}) et en structurant les sections \texttt{INVOICEHEADER}, \texttt{PartnerSection}, \texttt{LINSECTION}, \texttt{TAXSECTION}, \texttt{MOASECTION}.
+    \item L'action est journalisée dans \texttt{ActivityLogs} (type \texttt{invoice\_creation}).
+\end{enumerate}
+
+\subsubsection*{Règles de gestion}
+
+\begin{table}[htbp]
+\centering
+\caption{Règles de gestion — Processus de facturation}
+\label{tab:rg_fact}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Règle} & \textbf{Description} \\
+\hline
+\textbf{RG-01} & Le numéro de facture est auto-incrémenté : \texttt{FAC-\{année\}-\{count+1 sur 4 chiffres\}}, unique par société et par année. \\
+\hline
+\textbf{RG-02} & Le type de document est \texttt{380} (Facture) ou \texttt{381} (Note d'avoir), correspondant au champ \texttt{Element1001} du BGM TEIF. \\
+\hline
+\textbf{RG-03} & Le Matricule Fiscal du client contient exactement 13 caractères : 7 chiffres + 3 lettres (clé + catégorie + code TVA) + 3 chiffres (établissement). \\
+\hline
+\textbf{RG-04} & Tous les montants sont recalculés côté serveur avec arrondi à 3 décimales (\texttt{Math.Round(..., 3)}). \\
+\hline
+\textbf{RG-05} & Un droit de timbre de \textbf{1,000~DT} (code fiscal \texttt{I-1601}) est ajouté à chaque facture. \\
+\hline
+\textbf{RG-06} & Les taux de TVA autorisés sont : 0\%, 7\%, 13\%, 19\% (code fiscal \texttt{I-1602}). \\
+\hline
+\textbf{RG-07} & Toute facture est créée avec le statut \texttt{"Brouillon"}, non modifiable par le client. \\
+\hline
+\textbf{RG-08} & Les champs \texttt{CompanyId}, \texttt{ClientName} et \texttt{Lines} (au moins 1) sont obligatoires ; leur absence provoque une erreur 400. \\
+\hline
+\textbf{RG-09} & Si la date n'est pas fournie, le système affecte \texttt{DateTime.UtcNow}. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsubsection*{Diagramme d'activité}
+
+La figure~\ref{fig:act_facturation} représente le diagramme d'activité du processus de facturation.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    start/.style={circle, fill=black, minimum size=6mm},
+    stop/.style={circle, fill=black, minimum size=6mm, draw, double, double distance=1.5pt},
+    activity/.style={draw, rounded corners=4pt, minimum width=5cm, minimum height=0.7cm, align=center, font=\small},
+    actU/.style={activity, fill=blue!10},
+    actS/.style={activity, fill=green!10},
+    actT/.style={activity, fill=orange!10},
+    decision/.style={draw, diamond, minimum width=1.8cm, minimum height=1cm, align=center, font=\scriptsize, fill=yellow!15, inner sep=1pt},
+    arrow/.style={-{Stealth[length=2mm]}, thick}
+]
+
+% Légende
+\node[actU, minimum width=2.2cm, minimum height=0.4cm, font=\scriptsize] at (-3.5,0.6) {Resp. facturation};
+\node[actS, minimum width=2.2cm, minimum height=0.4cm, font=\scriptsize] at (-3.5,0) {Système (Backend)};
+\node[actT, minimum width=2.2cm, minimum height=0.4cm, font=\scriptsize] at (-3.5,-0.6) {Générateur TEIF};
+
+\node[start] (s) at (3,1.5) {};
+\node[actU, below=of s] (a1) {Accéder au module\\Création Manuelle};
+\node[actS, below=of a1] (a2) {Attribuer le numéro\\FAC-YYYY-NNNN};
+\node[actU, below=of a2] (a3) {Sélectionner le type\\de document (380/381)};
+\node[actU, below=of a3] (a4) {Saisir date, client\\(MF validé), adresse};
+\node[decision, below=0.7cm of a4] (d0) {MF\\valide ?};
+\node[actU, left=2cm of d0] (fix0) {Corriger le\\Matricule Fiscal};
+\node[actU, below=1cm of d0] (a5) {Ajouter les lignes :\\produit, qté, prix HT, TVA};
+\node[actU, below=of a5] (a5b) {Vérifier les totaux\\affichés (prévisualisation)};
+\node[actU, below=of a5b] (a6) {Cliquer sur\\Sauvegarder};
+\node[actS, below=of a6] (a7) {Valider : CompanyId,\\ClientName, lignes};
+\node[decision, below=0.7cm of a7] (d1) {Données\\valides ?};
+\node[actS, left=2cm of d1] (err) {Retourner\\erreur 400};
+\node[actS, below=1cm of d1] (a8) {Recalculer tous les totaux\\(arrondi 3 décimales)};
+\node[actS, below=of a8] (a9) {Enregistrer la facture\\(statut : Brouillon)};
+\node[actT, below=of a9] (a10) {Décomposer les MF\\en ID\_0088..ID\_0091};
+\node[actT, below=of a10] (a11) {Générer XML TEIF v2.0\\(Header, Body, Tax, MOA)};
+\node[actS, below=of a11] (a12) {Journaliser l'action\\(ActivityLog)};
+\node[stop, below=of a12] (e) {};
+
+\draw[arrow] (s) -- (a1);
+\draw[arrow] (a1) -- (a2);
+\draw[arrow] (a2) -- (a3);
+\draw[arrow] (a3) -- (a4);
+\draw[arrow] (a4) -- (d0);
+\draw[arrow] (d0) -- node[above, font=\scriptsize] {Non} (fix0);
+\draw[arrow] (fix0.north) |- (a4.west);
+\draw[arrow] (d0) -- node[right, font=\scriptsize] {Oui} (a5);
+\draw[arrow] (a5) -- (a5b);
+\draw[arrow] (a5b) -- (a6);
+\draw[arrow] (a6) -- (a7);
+\draw[arrow] (a7) -- (d1);
+\draw[arrow] (d1) -- node[above, font=\scriptsize] {Non} (err);
+\draw[arrow] (d1) -- node[right, font=\scriptsize] {Oui} (a8);
+\draw[arrow] (a8) -- (a9);
+\draw[arrow] (a9) -- (a10);
+\draw[arrow] (a10) -- (a11);
+\draw[arrow] (a11) -- (a12);
+\draw[arrow] (a12) -- (e);
+
+\end{tikzpicture}
+\caption{Diagramme d'activité — Processus de facturation électronique}
+\label{fig:act_facturation}
+\end{figure}
+
+
+\subsection{Le processus métier B — Processus de signature électronique et transmission}
+
+\subsubsection*{Description}
+
+Le processus de signature électronique intervient \textbf{après} la création d'une facture (processus A). Il décrit comment le \textit{responsable facturation} déclenche la signature numérique d'une facture existante (statut \og{}Brouillon\fg{}), et comment le \textit{service de signature} (travailleur interne) applique le profil XAdES-EPES à l'aide d'un certificat X.509, avant que la facture signée ne soit transmise à TTN (acteur externe).
+
+Ce processus est déclenché via l'endpoint \texttt{POST /api/Invoices/\{id\}/sign}. Le service de signature (\texttt{SignatureService}, 231 lignes) utilise une classe personnalisée \texttt{XadesSignedXml} héritant de \texttt{SignedXml} pour supporter la résolution d'identifiants dans les \texttt{DataObjects} XAdES. La signature suit 7 étapes techniques : chargement du certificat P12, création des références, ajout du KeyInfo X.509, construction des QualifyingProperties (SigningTime, SigningCertificate SHA-256, SignaturePolicyIdentifier), ajout de l'objet XAdES, référence aux SignedProperties, puis calcul et injection de la signature.
+
+\subsubsection*{Intervenants}
+
+\begin{table}[htbp]
+\centering
+\caption{Intervenants du processus de signature}
+\label{tab:intervenants_b}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Intervenant} & \textbf{Type} & \textbf{Rôle} \\
+\hline
+Responsable facturation & Travailleur & Consulte la liste des factures \og{}Brouillon\fg{} et déclenche la signature. \\
+\hline
+Contrôleur (Backend) & Travailleur & Charge la facture avec ses relations, vérifie qu'elle n'est pas déjà signée, génère le XML TEIF si absent, délègue au service de signature, met à jour les champs. \\
+\hline
+Service de signature & Travailleur & Charge le certificat P12, construit les propriétés XAdES-EPES, calcule la signature RSA et l'injecte dans le XML. \\
+\hline
+Générateur TEIF & Travailleur & Génère le XML TEIF si le champ \texttt{XmlContent} est vide (fallback). \\
+\hline
+Tunisie TradeNet (TTN) & Acteur externe & Reçoit les factures signées pour validation, archivage légal et transmission à la DGI. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsubsection*{Flot d'événements et activités}
+
+\begin{enumerate}[nosep]
+    \item Le responsable facturation consulte la liste des factures au statut \og{}Brouillon\fg{}.
+    \item Il clique sur \og{}Signer\fg{} pour une facture donnée.
+    \item Le frontend envoie \texttt{POST /api/Invoices/\{id\}/sign}.
+    \item Le backend charge la facture avec \texttt{Include(Lines, Company)}.
+    \item \textbf{Vérification} : si \texttt{IsSigned == true}, retour erreur 400 (\og{}La facture est déjà signée\fg{}).
+    \item \textbf{Vérification} : si \texttt{XmlContent} est vide, appel de \texttt{TeifGenerator.GenerateXml()}.
+    \item \textbf{Vérification} : si \texttt{Company == null}, retour erreur 400 (\og{}Données société manquantes\fg{}).
+    \item Le service de signature exécute les 7 étapes :
+    \begin{enumerate}[nosep, label=\alph*)]
+        \item Chargement du certificat P12 (\texttt{X509KeyStorageFlags.EphemeralKeySet}) ;
+        \item Création d'une instance \texttt{XadesSignedXml} avec la clé privée RSA ;
+        \item Ajout de la référence au document (URI vide, transformations Enveloped + C14N) ;
+        \item Ajout du \texttt{KeyInfo} X.509 ;
+        \item Construction des \texttt{QualifyingProperties} : \texttt{SigningTime} (UTC ISO 8601), \texttt{SigningCertificate} (SHA-256), \texttt{SignaturePolicyIdentifier} (\texttt{teif.tn/signature-policy/v1.0}) ;
+        \item Référence aux \texttt{SignedProperties} (\texttt{Type=etsi.org/.../SignedProperties}) ;
+        \item \texttt{ComputeSignature()} + injection dans le XML avec préfixe \texttt{ds:}.
+    \end{enumerate}
+    \item Le contrôleur met à jour : \texttt{SignedXmlContent}, \texttt{IsSigned = true}, \texttt{SignedAt = UtcNow}, \texttt{Status = "Validée"}.
+    \item \texttt{SaveChangesAsync()} persiste les modifications.
+    \item Journalisation : acteur \og{}Système (Digital Trust)\fg{}, type \texttt{invoice\_signature}.
+    \item La facture signée est prête pour transmission à TTN.
+\end{enumerate}
+
+\subsubsection*{Règles de gestion}
+
+\begin{table}[htbp]
+\centering
+\caption{Règles de gestion — Processus de signature}
+\label{tab:rg_sign}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Règle} & \textbf{Description} \\
+\hline
+\textbf{RG-10} & Seules les factures avec \texttt{IsSigned == false} peuvent être signées. Sinon erreur 400. \\
+\hline
+\textbf{RG-11} & La société émettrice (\texttt{Company}) doit être non nulle pour permettre la génération XML de fallback. \\
+\hline
+\textbf{RG-12} & La signature utilise le profil \textbf{XAdES-EPES} avec 3 propriétés qualifiantes obligatoires : \texttt{SigningTime}, \texttt{SigningCertificate}, \texttt{SignaturePolicyIdentifier}. \\
+\hline
+\textbf{RG-13} & Le certificat est au format P12/PFX, chargé depuis \texttt{appsettings.json} (\texttt{Signature:CertificatePath}). \\
+\hline
+\textbf{RG-14} & Le hash du certificat est calculé en SHA-256 (\texttt{SHA256.HashData(cert.RawData)}). \\
+\hline
+\textbf{RG-15} & La politique de signature référencée est : \texttt{https://www.teif.tn/signature-policy/v1.0}. \\
+\hline
+\textbf{RG-16} & Après signature, le statut passe automatiquement de \og{}Brouillon\fg{} à \og{}Validée\fg{} (irréversible). \\
+\hline
+\textbf{RG-17} & La date de signature (\texttt{SignedAt}) est en UTC, et le XML signé est stocké dans \texttt{SignedXmlContent} (TEXT). \\
+\hline
+\textbf{RG-18} & En cas d'erreur (certificat introuvable, XML malformé), erreur 500 sans modifier la facture. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsubsection*{Diagramme d'activité}
+
+La figure~\ref{fig:act_signature} représente le diagramme d'activité du processus de signature.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    start/.style={circle, fill=black, minimum size=6mm},
+    stop/.style={circle, fill=black, minimum size=6mm, draw, double, double distance=1.5pt},
+    activity/.style={draw, rounded corners=4pt, minimum width=5cm, minimum height=0.7cm, align=center, font=\small},
+    actU/.style={activity, fill=blue!10},
+    actC/.style={activity, fill=green!10},
+    actSig/.style={activity, fill=orange!10},
+    decision/.style={draw, diamond, minimum width=1.8cm, minimum height=1cm, align=center, font=\scriptsize, fill=yellow!15, inner sep=1pt},
+    arrow/.style={-{Stealth[length=2mm]}, thick},
+    err/.style={activity, fill=red!12}
+]
+
+% Légende
+\node[actU, minimum width=2.2cm, minimum height=0.4cm, font=\scriptsize] at (-3.5,0.6) {Resp. facturation};
+\node[actC, minimum width=2.2cm, minimum height=0.4cm, font=\scriptsize] at (-3.5,0) {Controller};
+\node[actSig, minimum width=2.2cm, minimum height=0.4cm, font=\scriptsize] at (-3.5,-0.6) {SignatureService};
+
+\node[start] (s) at (3,1.5) {};
+\node[actU, below=of s] (a1) {Consulter la liste des\\factures (Brouillon)};
+\node[actU, below=of a1] (a2) {Cliquer sur \og{}Signer\fg{}\\pour une facture};
+\node[actC, below=of a2] (a3) {Charger facture +\\Lines + Company};
+\node[decision, below=0.7cm of a3] (d1) {Déjà\\signée ?};
+\node[err, right=2.5cm of d1] (err1) {Erreur 400 :\\\og{}déjà signée\fg{}};
+\node[decision, below=1cm of d1] (d2) {XML\\vide ?};
+\node[actC, right=2.5cm of d2] (gen) {Générer\\XML TEIF};
+\node[actSig, below=1cm of d2] (a4) {Charger certificat P12\\(EphemeralKeySet)};
+\node[actSig, below=of a4] (a5) {Créer XadesSignedXml\\+ référence enveloped};
+\node[actSig, below=of a5] (a6) {Construire QualifyingProperties\\(Time, Cert, Policy)};
+\node[actSig, below=of a6] (a7) {ComputeSignature()\\+ injecter dans XML};
+\node[actC, below=of a7] (a8) {IsSigned=true,\\Status=\og{}Validée\fg{}};
+\node[actC, below=of a8] (a9) {Journaliser :\\invoice\_signature};
+\node[stop, below=of a9] (e) {};
+
+\draw[arrow] (s) -- (a1);
+\draw[arrow] (a1) -- (a2);
+\draw[arrow] (a2) -- (a3);
+\draw[arrow] (a3) -- (d1);
+\draw[arrow] (d1) -- node[above, font=\scriptsize] {Oui} (err1);
+\draw[arrow] (d1) -- node[right, font=\scriptsize] {Non} (d2);
+\draw[arrow] (d2) -- node[above, font=\scriptsize] {Oui} (gen);
+\draw[arrow] (gen.south) |- (a4.east);
+\draw[arrow] (d2) -- node[right, font=\scriptsize] {Non} (a4);
+\draw[arrow] (a4) -- (a5);
+\draw[arrow] (a5) -- (a6);
+\draw[arrow] (a6) -- (a7);
+\draw[arrow] (a7) -- (a8);
+\draw[arrow] (a8) -- (a9);
+\draw[arrow] (a9) -- (e);
+
+\end{tikzpicture}
+\caption{Diagramme d'activité — Processus de signature électronique}
+\label{fig:act_signature}
+\end{figure}
+
+
+\section{Description des supports d'information}
+
+Les supports d'information sont les documents (papier ou électroniques) utilisés dans le cadre des processus métier. Le tableau~\ref{tab:supports} les recense, et la figure~\ref{fig:classes_metier} présente le diagramme de classes métier montrant les objets du domaine et les liens entre eux.
+
+\begin{table}[htbp]
+\centering
+\caption{Supports d'information du domaine}
+\label{tab:supports}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Support} & \textbf{Type} & \textbf{Contenu} \\
+\hline
+Facture TEIF & Électronique (XML) & Numéro (FAC-YYYY-NNNN), date, type document (380/381), émetteur (NAD/SE), destinataire (NAD/BY), lignes (LINSECTION), taxes (TAXSECTION), totaux (MOASECTION), signature numérique (ds:Signature) \\
+\hline
+Matricule Fiscal & Papier / Électronique & 13 caractères : 7 chiffres + lettre clé + catégorie (A/P/B/M) + code TVA + 3 chiffres établissement \\
+\hline
+Certificat numérique & Électronique (P12) & Clé privée RSA, certificat X.509, chaîne de certification, issuer, serial number \\
+\hline
+Catalogue clients & Électronique (BDD) & Nom, Matricule Fiscal (unique global), adresse, ville, téléphone, société propriétaire \\
+\hline
+Catalogue produits & Électronique (BDD) & Nom, description, unité (Pièce/Heure/Jour/KG), taux TVA, prix par défaut, société propriétaire \\
+\hline
+Journal d'activités & Électronique (BDD) & Acteur, action, cible, type d'action, horodatage \\
+\hline
+Bon de commande & Papier & Document reçu du client déclenchant l'émission de la facture \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    class/.style={draw, rectangle split, rectangle split parts=2, minimum width=3cm, font=\small, fill=blue!5, align=center},
+    arrow/.style={-{Stealth[length=2mm]}, thick},
+    comp/.style={-{Diamond[fill=black, length=3mm]}, thick}
+]
+
+\node[class] (user) at (0,0) {
+    \textbf{Utilisateur}
+    \nodepart{second}
+    \scriptsize nom, email, rôle\\
+    \scriptsize MF, statut, OTP
+};
+
+\node[class] (company) at (5,0) {
+    \textbf{Société}
+    \nodepart{second}
+    \scriptsize nom, MF, adresse\\
+    \scriptsize ville, tel, archivée
+};
+
+\node[class] (invoice) at (10,0) {
+    \textbf{Facture}
+    \nodepart{second}
+    \scriptsize numéro, date, type\\
+    \scriptsize totaux, statut, XML
+};
+
+\node[class] (client) at (2.5,-3.5) {
+    \textbf{Client}
+    \nodepart{second}
+    \scriptsize nom, MF, adresse\\
+    \scriptsize ville, téléphone
+};
+
+\node[class] (product) at (7.5,-3.5) {
+    \textbf{Produit}
+    \nodepart{second}
+    \scriptsize nom, unité, TVA\\
+    \scriptsize prix par défaut
+};
+
+\node[class] (line) at (12.5,-3.5) {
+    \textbf{LigneFacture}
+    \nodepart{second}
+    \scriptsize desc, qté, prix\\
+    \scriptsize TVA, totalHT
+};
+
+\draw[thick] (user) -- node[above, font=\scriptsize] {*} node[below, font=\scriptsize] {} (company) node[above left, font=\scriptsize] {*};
+\draw[arrow] (company) -- node[above, font=\scriptsize] {1} (invoice) node[above left, font=\scriptsize] {*};
+\draw[comp] (company.south) -- ++(0,-0.5) -| node[near end, right, font=\scriptsize] {*} (client.north);
+\draw[comp] (company.south) -- ++(0,-0.5) -| node[near end, right, font=\scriptsize] {*} (product.north);
+\draw[arrow] (invoice) -- node[right, font=\scriptsize] {1..*} (line);
+\draw[thick, dashed] (invoice.south west) -- ++(0,-0.8) -| node[near end, right, font=\scriptsize] {0..1} (client.north east);
+
+\end{tikzpicture}
+\caption{Diagramme de classes métier (entités et travailleurs)}
+\label{fig:classes_metier}
+\end{figure}
+
+Des copies des supports d'information (exemple de facture TEIF XML, formulaire de saisie, etc.) sont jointes en annexe.
+
+
+\section{Conclusion}
+
+Ce premier chapitre a permis de comprendre le domaine de la facturation électronique en Tunisie en adoptant deux perspectives complémentaires : une vue \textbf{extérieure} (section~1.3) identifiant les acteurs métier externes (Client destinataire, TTN, DGI, Autorité de certification) et les flux d'informations qu'ils échangent avec le domaine ; et une vue \textbf{intérieure} (section~1.4) décrivant comment les travailleurs internes (Responsable facturation, Administrateur, Système) réalisent les processus métier de facturation et de signature électronique.
+
+Les deux processus métier identifiés — la facturation électronique TEIF et la signature XAdES-EPES — constituent le c\oe{}ur fonctionnel de l'application \elfattoora{}, avec un total de 18 règles de gestion. La modélisation réalisée constitue le socle sur lequel reposera la capture des besoins fonctionnels et non fonctionnels, objet du chapitre suivant.
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%        CHAPITRE 2 — CAPTURE DES BESOINS
+% ════════════════════════════════════════════════════════════════════════════
+\chapter{Capture des besoins}
+
+\section{Introduction}
+
+Ce chapitre présente un recueil exhaustif des besoins fonctionnels et non fonctionnels envers le logiciel \elfattoora{} à développer. Nous identifions les acteurs du futur système informatisé, modélisons son contexte, recensons les cas d'utilisation et les décrivons textuellement.
+
+\section{Identification des acteurs du système informatisé}
+
+Le futur logiciel interagit avec deux catégories d'acteurs (tableau~\ref{tab:acteurs_systeme}).
+
+\begin{table}[htbp]
+\centering
+\caption{Acteurs du système informatisé}
+\label{tab:acteurs_systeme}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Acteur} & \textbf{Rôle} & \textbf{Description} \\
+\hline
+Administrateur & \texttt{admin} & Supervise la plateforme : valide/refuse les inscriptions, crée des utilisateurs, gère les sociétés et certificats, consulte le journal d'activités et le tableau de bord administratif. \\
+\hline
+Utilisateur Client & \texttt{CLIENT} & Responsable facturation utilisant la plateforme pour créer des factures, gérer les clients/produits, signer électroniquement, consulter les statistiques et les déclarations fiscales. Peut gérer plusieurs sociétés. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Contexte du système informatisé}
+
+La figure~\ref{fig:contexte_systeme} modélise le contexte du logiciel pris comme boîte noire, montrant les messages échangés avec ses acteurs.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    system/.style={draw, very thick, fill=blue!8, rounded corners=10pt, minimum width=5cm, minimum height=2.5cm, align=center, font=\large\bfseries},
+    actor/.style={draw, ellipse, minimum width=2.5cm, minimum height=0.9cm, align=center, font=\small},
+    msg/.style={-{Stealth[length=2mm]}, thick, font=\scriptsize}
+]
+
+\node[system] (sys) {El Fatoora};
+
+\node[actor, fill=red!10] (admin) [left=4cm of sys] {Administrateur};
+\node[actor, fill=yellow!15] (user)  [right=4cm of sys] {Utilisateur\\Client};
+
+\draw[msg] (admin) -- node[above, align=center] {1: Gérer utilisateurs\\2: Gérer sociétés\\3: Valider comptes\\4: Consulter activités} (sys);
+
+\draw[msg] (user) -- node[above, align=center] {1: Créer facture\\2: Signer facture\\3: Gérer clients/produits\\4: Consulter stats\\5: Déclaration fiscale} (sys);
+
+\draw[msg, dashed] (sys) -- node[below, align=center] {Notifications\\E-mails OTP} (admin);
+\draw[msg, dashed] (sys) -- node[below, align=center] {Token JWT\\XML TEIF} (user);
+
+\end{tikzpicture}
+\caption{Diagramme de collaboration — Contexte du système informatisé}
+\label{fig:contexte_systeme}
+\end{figure}
+
+\section{Identification des cas d'utilisation}
+
+Les cas d'utilisation sont organisés en \textbf{quatre paquetages} fonctionnels (figure~\ref{fig:uc_global}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    uc/.style={draw, ellipse, minimum width=3cm, minimum height=0.8cm, align=center, font=\scriptsize, fill=blue!5},
+    pkg/.style={draw, dashed, rounded corners=5pt, inner sep=8pt, fill=gray!3},
+    actor/.style={font=\scriptsize, align=center},
+    arrow/.style={thick}
+]
+
+% Paquetage Authentification
+\begin{scope}[local bounding box=pkg1]
+\node[uc] (uc1) at (0,0) {S'inscrire};
+\node[uc] (uc2) at (0,-1.2) {Se connecter};
+\node[uc] (uc3) at (0,-2.4) {Vérifier OTP};
+\end{scope}
+\node[pkg, fit=(pkg1), label={[font=\scriptsize\bfseries]above:Authentification}] {};
+
+% Paquetage Facturation
+\begin{scope}[local bounding box=pkg2]
+\node[uc] (uc4) at (5,0.6) {Créer facture};
+\node[uc] (uc5) at (5,-0.6) {Importer (OCR)};
+\node[uc] (uc6) at (5,-1.8) {Signer facture};
+\node[uc] (uc7) at (5,-3) {Consulter factures};
+\node[uc] (uc8) at (5,-4.2) {Télécharger XML};
+\end{scope}
+\node[pkg, fit=(pkg2), label={[font=\scriptsize\bfseries]above:Facturation}] {};
+
+% Paquetage Administration
+\begin{scope}[local bounding box=pkg3]
+\node[uc] (uc9) at (10,0) {Gérer utilisateurs};
+\node[uc] (uc10) at (10,-1.2) {Gérer sociétés};
+\node[uc] (uc11) at (10,-2.4) {Gérer certificats};
+\node[uc] (uc12) at (10,-3.6) {Consulter activités};
+\end{scope}
+\node[pkg, fit=(pkg3), label={[font=\scriptsize\bfseries]above:Administration}] {};
+
+% Paquetage Référentiel
+\begin{scope}[local bounding box=pkg4]
+\node[uc] (uc13) at (2.5,-5.5) {Gérer clients};
+\node[uc] (uc14) at (5,-5.5) {Gérer produits};
+\node[uc] (uc15) at (7.5,-5.5) {Consulter stats};
+\node[uc] (uc16) at (5,-6.7) {Déclaration fiscale};
+\end{scope}
+\node[pkg, fit=(pkg4), label={[font=\scriptsize\bfseries]below:Référentiel \& Statistiques}] {};
+
+% Acteurs
+\node[actor] (adm) at (-3,-2) {\fbox{Admin}};
+\node[actor] (usr) at (13,-2) {\fbox{Client}};
+
+\draw[arrow] (adm) -- (uc1);
+\draw[arrow] (adm) -- (uc2);
+\draw[arrow] (adm) -- (uc9);
+\draw[arrow] (adm) -- (uc10);
+\draw[arrow] (adm) -- (uc11);
+\draw[arrow] (adm) -- (uc12);
+
+\draw[arrow] (usr) -- (uc2);
+\draw[arrow] (usr) -- (uc3);
+\draw[arrow] (usr) -- (uc4);
+\draw[arrow] (usr) -- (uc5);
+\draw[arrow] (usr) -- (uc6);
+\draw[arrow] (usr) -- (uc7);
+\draw[arrow] (usr) -- (uc8);
+\draw[arrow] (usr) -- (uc13);
+\draw[arrow] (usr) -- (uc14);
+\draw[arrow] (usr) -- (uc15);
+\draw[arrow] (usr) -- (uc16);
+
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation global}
+\label{fig:uc_global}
+\end{figure}
+
+\section{Description textuelle des cas d'utilisation}
+
+\subsection{CU-01 : S'authentifier}
+
+\begin{table}[htbp]
+\centering
+\caption{Description textuelle — CU-01 : S'authentifier}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Cas d'utilisation} & S'authentifier \\
+\hline
+\textbf{Acteurs} & Utilisateur Client, Administrateur \\
+\hline
+\textbf{Préconditions} & L'acteur dispose d'un compte dans le système \\
+\hline
+\textbf{Scénario nominal} &
+\begin{enumerate}[nosep, leftmargin=*]
+    \item L'acteur saisit son e-mail et son mot de passe
+    \item Le système vérifie les identifiants
+    \item Le système vérifie le statut du compte (\texttt{Active})
+    \item Si première connexion : génération d'un OTP à 6 chiffres, envoi par e-mail (valide 5 min), saisie par l'utilisateur
+    \item Le système vérifie le code OTP et met à jour \texttt{IsFirstLogin = false}
+    \item Génération d'un token JWT (HMAC-SHA512, 120 jours)
+    \item Redirection vers le tableau de bord selon le rôle
+\end{enumerate} \\
+\hline
+\textbf{Scénarios alternatifs} &
+\textbf{A1} : Identifiants incorrects $\rightarrow$ \og{}Email ou mot de passe incorrect\fg{} \newline
+\textbf{A2} : Compte \texttt{Pending} $\rightarrow$ \og{}En attente de validation\fg{} \newline
+\textbf{A3} : Compte \texttt{Refused} $\rightarrow$ \og{}Demande d'inscription refusée\fg{} \newline
+\textbf{A4} : OTP expiré/invalide $\rightarrow$ \og{}Code OTP invalide ou expiré\fg{} \\
+\hline
+\textbf{Postconditions} & Token JWT stocké, utilisateur redirigé \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{CU-02 : Créer une facture}
+
+\begin{table}[htbp]
+\centering
+\caption{Description textuelle — CU-02 : Créer une facture}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Cas d'utilisation} & Créer une facture \\
+\hline
+\textbf{Acteur} & Utilisateur Client \\
+\hline
+\textbf{Préconditions} & Authentifié, société active sélectionnée \\
+\hline
+\textbf{Scénario nominal} &
+\begin{enumerate}[nosep, leftmargin=*]
+    \item L'utilisateur accède à Création Manuelle
+    \item Le système affiche le numéro auto-incrémenté
+    \item Sélection du type (380/381), date, période
+    \item Sélection/saisie du client (MF validé)
+    \item Ajout des lignes (produit, qté, prix, TVA)
+    \item Calcul automatique des totaux
+    \item Clic sur Sauvegarder
+    \item Recalcul serveur, enregistrement (Brouillon), journalisation
+\end{enumerate} \\
+\hline
+\textbf{Scénarios alternatifs} &
+\textbf{A1} : MF invalide $\rightarrow$ erreur format \newline
+\textbf{A2} : Aucune ligne $\rightarrow$ erreur \newline
+\textbf{A3} : Société non sélectionnée $\rightarrow$ erreur \\
+\hline
+\textbf{Postconditions} & Facture enregistrée (Brouillon), XML TEIF généré \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{CU-03 : Signer une facture}
+
+\begin{table}[htbp]
+\centering
+\caption{Description textuelle — CU-03 : Signer une facture}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Cas d'utilisation} & Signer une facture \\
+\hline
+\textbf{Acteur} & Utilisateur Client \\
+\hline
+\textbf{Préconditions} & Facture existante, statut Brouillon, non signée \\
+\hline
+\textbf{Scénario nominal} &
+\begin{enumerate}[nosep, leftmargin=*]
+    \item Sélection de la facture, clic sur Signer
+    \item Vérification : non signée
+    \item Chargement du certificat P12
+    \item Génération/récupération du XML TEIF
+    \item Signature XAdES-EPES (7 étapes)
+    \item Mise à jour : IsSigned, Status=Validée, SignedAt
+    \item Journalisation
+\end{enumerate} \\
+\hline
+\textbf{Scénarios d'exception} &
+\textbf{E1} : Déjà signée $\rightarrow$ erreur 400 \newline
+\textbf{E2} : Certificat introuvable $\rightarrow$ erreur 500 \\
+\hline
+\textbf{Postconditions} & Facture signée, XML signé stocké, statut Validée \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{CU-04 : Gérer les utilisateurs}
+
+\begin{table}[htbp]
+\centering
+\caption{Description textuelle — CU-04 : Gérer les utilisateurs}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Cas d'utilisation} & Gérer les utilisateurs \\
+\hline
+\textbf{Acteur} & Administrateur \\
+\hline
+\textbf{Préconditions} & Authentifié avec rôle \texttt{admin} \\
+\hline
+\textbf{Scénario nominal} &
+\begin{enumerate}[nosep, leftmargin=*]
+    \item Consulter la liste des utilisateurs avec sociétés
+    \item Créer un utilisateur (nom, e-mail, mdp, rôle, MF)
+    \item Valider (Pending $\rightarrow$ Active) avec e-mail de confirmation
+    \item Refuser ou archiver un utilisateur (soft delete)
+\end{enumerate} \\
+\hline
+\textbf{Postconditions} & Utilisateur créé/modifié/archivé, activité journalisée \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{CU-05 : Importer une facture par OCR}
+
+\begin{table}[htbp]
+\centering
+\caption{Description textuelle — CU-05 : Importer par OCR}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Cas d'utilisation} & Importer une facture par OCR \\
+\hline
+\textbf{Acteur} & Utilisateur Client \\
+\hline
+\textbf{Préconditions} & Authentifié, société sélectionnée, fichier disponible \\
+\hline
+\textbf{Scénario nominal} &
+\begin{enumerate}[nosep, leftmargin=*]
+    \item Upload du fichier (PDF, JPEG, PNG)
+    \item PDF : extraction via pdfjs-dist ; Image : OCR via Tesseract.js (FR+EN)
+    \item Parsing heuristique : MF (regex), dates, montants
+    \item Préremplissage du formulaire
+    \item Correction par l'utilisateur et validation
+\end{enumerate} \\
+\hline
+\textbf{Postconditions} & Facture créée depuis données extraites \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection*{Besoins non fonctionnels}
+
+\begin{table}[htbp]
+\centering
+\caption{Besoins non fonctionnels}
+\label{tab:bnf}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Exigence} & \textbf{Description} \\
+\hline
+Sécurité & JWT (HMAC-SHA512), OTP, HTTPS, CORS restreint \\
+\hline
+Performance & Temps de réponse API $<$ 500 ms \\
+\hline
+Ergonomie & Interface responsive (Tailwind CSS), feedback visuel \\
+\hline
+Conformité & XML conforme au XSD TEIF v2.0, signature XAdES-EPES \\
+\hline
+Maintenabilité & Architecture en couches, séparation frontend/backend \\
+\hline
+Disponibilité & Application web accessible 24/7 \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Conclusion}
+
+Ce chapitre a permis d'identifier les deux acteurs du système, de modéliser le contexte, de recenser seize cas d'utilisation organisés en quatre paquetages et de décrire textuellement les cas les plus importants. Les besoins non fonctionnels ont été spécifiés. Le chapitre suivant sera consacré à l'analyse et la conception.
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%        CHAPITRE 3 — ANALYSE ET CONCEPTION
+% ════════════════════════════════════════════════════════════════════════════
+\chapter{Analyse et conception}
+
+\section{Introduction}
+
+Ce chapitre présente l'analyse et la conception du système \elfattoora{}. Nous formalisons les scénarios des cas d'utilisation par des diagrammes de séquence, construisons le modèle du domaine, définissons l'architecture logicielle et dérivons le schéma physique de la base de données.
+
+\section{Réalisation conceptuelle des cas d'utilisation}
+
+\subsection{Diagramme de séquence — Authentification avec OTP}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    lifeline/.style={thick, dashed},
+    msg/.style={-{Stealth[length=1.5mm]}, thick},
+    ret/.style={-{Stealth[length=1.5mm]}, thick, dashed},
+    participant/.style={draw, rectangle, minimum width=1.8cm, minimum height=0.6cm, fill=blue!10, align=center, font=\scriptsize\bfseries}
+]
+
+\node[participant] (U) at (0,0) {Utilisateur};
+\node[participant] (F) at (3,0) {Frontend\\(React)};
+\node[participant] (B) at (6.5,0) {Backend\\(API)};
+\node[participant] (E) at (10,0) {Email\\Service};
+\node[participant] (D) at (13,0) {BDD\\(MySQL)};
+
+\foreach \x in {U,F,B,E,D} {
+    \draw[lifeline] (\x.south) -- ++(0,-12);
+}
+
+\draw[msg] (0,-1) -- node[above] {1: email + mdp} (3,-1);
+\draw[msg] (3,-1.5) -- node[above] {2: POST /login} (6.5,-1.5);
+\draw[msg] (6.5,-2) -- node[above] {3: SELECT User} (13,-2);
+\draw[ret] (13,-2.5) -- node[above] {4: User trouvé} (6.5,-2.5);
+
+\draw[msg] (6.5,-3.2) -- node[above, align=center] {5: [IsFirstLogin]\\Générer OTP} (6.5,-3.8);
+\draw[msg] (6.5,-4) -- node[above] {6: UPDATE OTP} (13,-4);
+\draw[msg] (6.5,-4.5) -- node[above] {7: SendEmailAsync} (10,-4.5);
+
+\draw[ret] (6.5,-5.2) -- node[above] {8: \{requireOtp: true\}} (3,-5.2);
+\draw[ret] (3,-5.7) -- node[above] {9: Afficher form OTP} (0,-5.7);
+
+\draw[msg] (0,-6.5) -- node[above] {10: Code OTP} (3,-6.5);
+\draw[msg] (3,-7) -- node[above] {11: POST /verify-otp} (6.5,-7);
+\draw[msg] (6.5,-7.5) -- node[above] {12: Vérifier OTP} (13,-7.5);
+
+\draw[msg] (6.5,-8.2) -- node[above, align=center] {13: IsFirstLogin=false\\Créer JWT} (6.5,-8.8);
+
+\draw[ret] (6.5,-9.3) -- node[above] {14: \{token, user\}} (3,-9.3);
+\draw[msg] (3,-9.8) -- node[above] {15: localStorage.set} (3,-10.3);
+\draw[ret] (3,-10.8) -- node[above] {16: Redirect Dashboard} (0,-10.8);
+
+\end{tikzpicture}
+\caption{Diagramme de séquence — Authentification avec OTP}
+\label{fig:seq_auth}
+\end{figure}
+
+\subsection{Diagramme de séquence — Création et signature d'une facture}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    lifeline/.style={thick, dashed},
+    msg/.style={-{Stealth[length=1.5mm]}, thick},
+    ret/.style={-{Stealth[length=1.5mm]}, thick, dashed},
+    participant/.style={draw, rectangle, minimum width=1.6cm, minimum height=0.6cm, fill=green!10, align=center, font=\scriptsize\bfseries}
+]
+
+\node[participant] (U) at (0,0) {Utilisateur};
+\node[participant] (F) at (2.8,0) {Frontend};
+\node[participant] (B) at (5.8,0) {Backend};
+\node[participant] (S) at (9,0) {Signature\\Service};
+\node[participant] (D) at (12,0) {BDD};
+
+\foreach \x in {U,F,B,S,D} {
+    \draw[lifeline] (\x.south) -- ++(0,-11);
+}
+
+\draw[msg] (0,-0.8) -- node[above] {1: Remplir form} (2.8,-0.8);
+\draw[msg] (2.8,-1.3) -- node[above] {2: POST /Invoices} (5.8,-1.3);
+\draw[msg] (5.8,-1.8) -- node[above, align=center] {3: Valider +\\recalculer} (5.8,-2.3);
+\draw[msg] (5.8,-2.6) -- node[above] {4: INSERT} (12,-2.6);
+\draw[ret] (5.8,-3.1) -- node[above] {5: Invoice créée} (2.8,-3.1);
+\draw[ret] (2.8,-3.5) -- node[above] {6: Succès} (0,-3.5);
+
+\draw[thick, dotted] (-1,-4.2) -- (13,-4.2);
+\node[font=\scriptsize\itshape] at (6,-4.5) {--- Phase de signature ---};
+
+\draw[msg] (0,-5) -- node[above] {7: Clic Signer} (2.8,-5);
+\draw[msg] (2.8,-5.5) -- node[above] {8: POST /sign} (5.8,-5.5);
+\draw[msg] (5.8,-6) -- node[above] {9: Charger facture} (12,-6);
+\draw[msg] (5.8,-6.6) -- node[above, align=center] {10: Générer\\XML TEIF} (5.8,-7.1);
+\draw[msg] (5.8,-7.4) -- node[above] {11: SignTeifXml} (9,-7.4);
+\draw[msg] (9,-7.9) -- node[above, align=center] {12: Load cert\\XAdES sign} (9,-8.4);
+\draw[ret] (9,-8.8) -- node[above] {13: signedXml} (5.8,-8.8);
+\draw[msg] (5.8,-9.3) -- node[above] {14: UPDATE} (12,-9.3);
+\draw[ret] (5.8,-9.8) -- node[above] {15: Signée} (2.8,-9.8);
+\draw[ret] (2.8,-10.3) -- node[above] {16: Statut Validée} (0,-10.3);
+
+\end{tikzpicture}
+\caption{Diagramme de séquence — Création et signature d'une facture}
+\label{fig:seq_invoice}
+\end{figure}
+
+\section{Construction du modèle du domaine}
+
+Le diagramme de classes du domaine (figure~\ref{fig:class_domain}) présente les 7 entités, leurs attributs, types, relations et contraintes.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tikzpicture}[
+    class/.style={draw, rectangle split, rectangle split parts=3, minimum width=4cm, font=\small, fill=blue!5, align=left},
+    arrow/.style={-{Stealth[length=2mm]}, thick},
+    comp/.style={-{Diamond[fill=black, length=3mm]}, thick},
+    assoc/.style={thick}
+]
+
+\node[class] (user) at (0,0) {
+    \textbf{\hspace{1cm}User}
+    \nodepart{second}
+    \scriptsize - Id: int \{PK\}\\
+    \scriptsize - Username: string\\
+    \scriptsize - Email: string \{unique\}\\
+    \scriptsize - Password: string\\
+    \scriptsize - Role: string\\
+    \scriptsize - Name: string\\
+    \scriptsize - Entreprise: string\\
+    \scriptsize - MatriculeFiscal: string\\
+    \scriptsize - Status: string\\
+    \scriptsize - IsFirstLogin: bool\\
+    \scriptsize - OtpCode: string?\\
+    \scriptsize - OtpExpiryTime: DateTime?\\
+    \scriptsize - LastActivity: DateTime?
+    \nodepart{third}
+    \scriptsize + Login()\\
+    \scriptsize + Register()\\
+    \scriptsize + VerifyOtp()
+};
+
+\node[class] (company) at (7,0) {
+    \textbf{\hspace{0.8cm}Company}
+    \nodepart{second}
+    \scriptsize - Id: int \{PK\}\\
+    \scriptsize - Name: string\\
+    \scriptsize - RegistrationNumber: string \{UQ\}\\
+    \scriptsize - Address: string\\
+    \scriptsize - City: string\\
+    \scriptsize - PostalCode: string\\
+    \scriptsize - Phone: string\\
+    \scriptsize - IsArchived: bool
+    \nodepart{third}
+    \scriptsize + SyncFromUsers()\\
+    \scriptsize + Archive()
+};
+
+\node[class] (invoice) at (14,0) {
+    \textbf{\hspace{0.8cm}Invoice}
+    \nodepart{second}
+    \scriptsize - Id: int \{PK\}\\
+    \scriptsize - InvoiceNumber: string\\
+    \scriptsize - DocumentType: string\\
+    \scriptsize - Date: DateTime\\
+    \scriptsize - ClientName: string\\
+    \scriptsize - ClientMatricule: string\\
+    \scriptsize - TotalHT: decimal(18,3)\\
+    \scriptsize - TotalTVA: decimal(18,3)\\
+    \scriptsize - StampDuty: decimal(18,3)\\
+    \scriptsize - TotalTTC: decimal(18,3)\\
+    \scriptsize - Status: string\\
+    \scriptsize - IsSigned: bool\\
+    \scriptsize - SignedXmlContent: text
+    \nodepart{third}
+    \scriptsize + CalculateTotals()\\
+    \scriptsize + Sign()\\
+    \scriptsize + GenerateTeifXml()
+};
+
+\node[class] (client) at (0,-8.5) {
+    \textbf{\hspace{1cm}Client}
+    \nodepart{second}
+    \scriptsize - Id: int \{PK\}\\
+    \scriptsize - Name: string\\
+    \scriptsize - MatriculeFiscal: string \{UQ\}\\
+    \scriptsize - Address: string\\
+    \scriptsize - City: string\\
+    \scriptsize - Phone: string
+    \nodepart{third}
+    \scriptsize + ValidateMF()
+};
+
+\node[class] (product) at (7,-8.5) {
+    \textbf{\hspace{0.8cm}Product}
+    \nodepart{second}
+    \scriptsize - Id: int \{PK\}\\
+    \scriptsize - Name: string\\
+    \scriptsize - Description: string\\
+    \scriptsize - Unit: string\\
+    \scriptsize - TvaRate: int\\
+    \scriptsize - DefaultPrice: decimal(18,3)
+    \nodepart{third}
+    \scriptsize + GetPrice()
+};
+
+\node[class] (line) at (14,-8.5) {
+    \textbf{\hspace{0.5cm}InvoiceLine}
+    \nodepart{second}
+    \scriptsize - Id: int \{PK\}\\
+    \scriptsize - Description: string\\
+    \scriptsize - Unit: string\\
+    \scriptsize - Qty: int\\
+    \scriptsize - TvaRate: int\\
+    \scriptsize - UnitPriceHT: decimal(18,3)\\
+    \scriptsize - TotalHT: decimal(18,3)\\
+    \scriptsize - TotalTVA: decimal(18,3)
+    \nodepart{third}
+    \scriptsize + CalculateLineTotal()
+};
+
+\draw[assoc] (user.east) -- node[above, font=\scriptsize] {*} node[below, font=\scriptsize] {} (company.west) node[above left, font=\scriptsize] {*};
+\draw[comp] (company.south) -- ++(0,-0.5) -| node[near start, left, font=\scriptsize] {1} (client.north) node[near end, right, font=\scriptsize] {*};
+\draw[comp] (company.south) -- ++(0,-0.5) -| node[near start, right, font=\scriptsize] {} (product.north) node[near end, right, font=\scriptsize] {*};
+\draw[arrow] (company.east) -- node[above, font=\scriptsize] {1} (invoice.west) node[above left, font=\scriptsize] {*};
+\draw[comp] (invoice.south) -- ++(0,-0.5) -| node[near start, right, font=\scriptsize] {1} (line.north) node[near end, right, font=\scriptsize] {1..*};
+\draw[assoc, dashed] (line.west) -- node[above, font=\scriptsize] {0..1} (product.east);
+
+\end{tikzpicture}
+}
+\caption{Diagramme de classes du domaine}
+\label{fig:class_domain}
+\end{figure}
+
+\section{Architecture du futur logiciel}
+
+L'application adopte une \textbf{architecture 3-tiers} (figure~\ref{fig:architecture}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    pkg/.style={draw, thick, rounded corners=5pt, minimum width=4cm, minimum height=1.2cm, align=center, font=\small\bfseries},
+    subpkg/.style={draw, rounded corners=3pt, minimum width=2.8cm, minimum height=0.6cm, align=center, font=\scriptsize, fill=white},
+    arrow/.style={-{Stealth[length=2.5mm]}, very thick}
+]
+
+\node[pkg, fill=orange!15, minimum height=3.5cm] (fe) at (0,0) {};
+\node[font=\small\bfseries] at (0,1.3) {Frontend (React 19)};
+\node[subpkg] at (0,0.5) {Pages (13 composants)};
+\node[subpkg] at (0,-0.3) {Utils (TEIF, MF)};
+\node[subpkg] at (0,-1.1) {Assets (CSS, Images)};
+
+\node[pkg, fill=green!15, minimum height=5cm] (be) at (6,0) {};
+\node[font=\small\bfseries] at (6,2) {Backend (ASP.NET Core 8)};
+\node[subpkg] at (6,1.2) {Controllers (8)};
+\node[subpkg] at (6,0.4) {Services (Email, Signature)};
+\node[subpkg] at (6,-0.4) {Models (7 entités)};
+\node[subpkg] at (6,-1.2) {DTOs (3)};
+\node[subpkg] at (6,-2) {Utils (TeifGenerator)};
+
+\node[pkg, fill=blue!15, minimum height=2cm] (db) at (12,0) {};
+\node[font=\small\bfseries] at (12,0.5) {Base de données};
+\node[subpkg] at (12,-0.3) {MySQL 8 (elfatoora\_db)};
+
+\draw[arrow] (fe) -- node[above, font=\scriptsize] {HTTP/REST} node[below, font=\scriptsize] {JSON + JWT} (be);
+\draw[arrow] (be) -- node[above, font=\scriptsize] {EF Core} node[below, font=\scriptsize] {Pomelo MySQL} (db);
+
+\end{tikzpicture}
+\caption{Diagramme de paquetages — Architecture 3-tiers}
+\label{fig:architecture}
+\end{figure}
+
+\section{Schémas physiques des données}
+
+Le schéma physique comprend 7 tables principales et une table de jointure. Les tables principales sont décrites ci-dessous.
+
+\begin{longtable}{|l|l|l|p{5cm}|}
+\caption{Table \texttt{Users}} \\
+\hline \textbf{Colonne} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\ \hline
+\endfirsthead \hline \textbf{Colonne} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\ \hline \endhead
+Id & INT & PK, AUTO\_INCREMENT & Identifiant \\ \hline
+Email & VARCHAR(255) & NOT NULL, UNIQUE & E-mail (login) \\ \hline
+Password & VARCHAR(255) & NOT NULL & Mot de passe \\ \hline
+Role & VARCHAR(50) & DEFAULT 'user' & admin ou CLIENT \\ \hline
+Name & VARCHAR(255) & NOT NULL & Nom complet \\ \hline
+MatriculeFiscal & VARCHAR(13) & & MF (13 car.) \\ \hline
+Status & VARCHAR(50) & DEFAULT 'Pending' & Pending, Active, Refused, Archived \\ \hline
+IsFirstLogin & BIT & DEFAULT 1 & Première connexion \\ \hline
+OtpCode & VARCHAR(6) & NULLABLE & Code OTP \\ \hline
+OtpExpiryTime & DATETIME & NULLABLE & Expiration OTP \\ \hline
+\end{longtable}
+
+\begin{longtable}{|l|l|l|p{5cm}|}
+\caption{Table \texttt{Invoices}} \\
+\hline \textbf{Colonne} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\ \hline
+\endfirsthead \hline \textbf{Colonne} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\ \hline \endhead
+Id & INT & PK, AUTO\_INCREMENT & Identifiant \\ \hline
+InvoiceNumber & VARCHAR(20) & NOT NULL & FAC-YYYY-NNNN \\ \hline
+DocumentType & VARCHAR(5) & DEFAULT '380' & 380 ou 381 \\ \hline
+Date & DATETIME & DEFAULT UTC NOW & Date d'émission \\ \hline
+ClientId & INT & FK, NULLABLE & SET NULL si supprimé \\ \hline
+TotalHT & DECIMAL(18,3) & & Total Hors Taxes \\ \hline
+TotalTVA & DECIMAL(18,3) & & Total TVA \\ \hline
+StampDuty & DECIMAL(18,3) & DEFAULT 0 & Droit de timbre \\ \hline
+TotalTTC & DECIMAL(18,3) & & Total TTC \\ \hline
+Status & VARCHAR(20) & DEFAULT 'Brouillon' & Brouillon, Validée \\ \hline
+IsSigned & BIT & DEFAULT 0 & Indicateur signature \\ \hline
+SignedXmlContent & TEXT & & XML signé \\ \hline
+CompanyId & INT & FK, CASCADE & Société émettrice \\ \hline
+\end{longtable}
+
+\textbf{Relations et comportement de suppression :}
+
+\begin{table}[htbp]
+\centering
+\caption{Contraintes d'intégrité référentielle}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Relation} & \textbf{Type} & \textbf{Suppression} \\
+\hline
+User $\leftrightarrow$ Company & Many-to-Many & Table de jointure \\
+\hline
+Company $\rightarrow$ Clients & One-to-Many & CASCADE \\
+\hline
+Company $\rightarrow$ Products & One-to-Many & CASCADE \\
+\hline
+Company $\rightarrow$ Invoices & One-to-Many & CASCADE \\
+\hline
+Invoice $\rightarrow$ InvoiceLines & One-to-Many & CASCADE \\
+\hline
+Invoice $\rightarrow$ Client & Many-to-One & SET NULL \\
+\hline
+InvoiceLine $\rightarrow$ Product & Many-to-One & SET NULL \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Conclusion}
+
+Ce chapitre a permis de formaliser la conception du système à travers des diagrammes de séquence, un modèle du domaine à 7 entités, une architecture 3-tiers et un schéma physique complet. Le chapitre suivant décrit l'implémentation technique.
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%        CHAPITRE 4 — IMPLÉMENTATION
+% ════════════════════════════════════════════════════════════════════════════
+\chapter{Implémentation}
+
+\section{Introduction}
+
+Ce chapitre présente les détails de l'implémentation du logiciel \elfattoora{} : l'environnement de réalisation, les captures d'écran et les éléments techniques les plus pertinents.
+
+\section{Environnement de réalisation}
+
+\begin{table}[htbp]
+\centering
+\caption{Environnement de développement}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Technologie} & \textbf{Version} & \textbf{Rôle} \\
+\hline
+ASP.NET Core & 8.0 & Backend API REST \\
+\hline
+Entity Framework Core & 8.0 & ORM (Code-First, Migrations) \\
+\hline
+MySQL (Pomelo) & 8.x & SGBD relationnel (port 3307) \\
+\hline
+React & 19.2 & Frontend SPA \\
+\hline
+Tailwind CSS & 3.4 & Framework CSS utilitaire \\
+\hline
+Tesseract.js & 7.0 & Moteur OCR JavaScript \\
+\hline
+pdfjs-dist & 4.10 & Extraction texte PDF \\
+\hline
+Visual Studio Code & Latest & IDE \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Réalisation technique des cas d'utilisation}
+
+\subsection{CU-01 : Module d'authentification}
+
+La page de connexion présente un design bicolore avec un carrousel (3 slides, auto-play 4 s) et le formulaire de connexion. Le processus inclut la vérification OTP à la première connexion.
+
+\begin{lstlisting}[language={[Sharp]C}, caption={Génération du token JWT (AuthController.cs)}]
+private string CreateToken(User user)
+{
+    var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.Name, user.Name),
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(ClaimTypes.Role, user.Role),
+        new Claim("userId", user.Id.ToString())
+    };
+
+    var key = new SymmetricSecurityKey(
+        Encoding.UTF8.GetBytes(jwtKey));
+    var creds = new SigningCredentials(
+        key, SecurityAlgorithms.HmacSha512Signature);
+
+    var tokenDescriptor = new SecurityTokenDescriptor
+    {
+        Subject = new ClaimsIdentity(claims),
+        Expires = DateTime.Now.AddDays(120),
+        SigningCredentials = creds,
+        Issuer = "elfatoora-api",
+        Audience = "elfatoora-app"
+    };
+
+    var tokenHandler = new JwtSecurityTokenHandler();
+    return tokenHandler.WriteToken(
+        tokenHandler.CreateToken(tokenDescriptor));
+}
+\end{lstlisting}
+
+% Décommenter quand les captures d'écran sont disponibles :
+% \begin{figure}[htbp]
+% \centering
+% \includegraphics[width=\textwidth]{screenshots/login.png}
+% \caption{Interface de connexion}
+% \end{figure}
+
+\subsection{CU-02 : Module de création de factures}
+
+Le formulaire de création (721 lignes) offre numéro auto-incrémenté, sélection client/produits depuis catalogues et calcul automatique des totaux.
+
+\begin{lstlisting}[language={[Sharp]C}, caption={Recalcul des totaux (InvoicesController.cs)}]
+decimal totalHT = 0, totalTVA = 0;
+foreach (var line in invoice.Lines)
+{
+    line.TotalHT = Math.Round(
+        line.Qty * line.UnitPriceHT, 3);
+    line.TotalTVA = Math.Round(
+        line.TotalHT * (line.TvaRate / 100m), 3);
+    totalHT += line.TotalHT;
+    totalTVA += line.TotalTVA;
+}
+invoice.TotalHT = Math.Round(totalHT, 3);
+invoice.TotalTVA = Math.Round(totalTVA, 3);
+invoice.TotalTTC = Math.Round(
+    totalHT + totalTVA + invoice.StampDuty, 3);
+\end{lstlisting}
+
+\subsection{CU-03 : Module de signature XAdES-EPES}
+
+Le \texttt{SignatureService} (231 lignes) implémente une classe \texttt{XadesSignedXml} héritant de \texttt{SignedXml} avec surcharge de \texttt{GetIdElement()} pour résoudre les identifiants XAdES dans les \texttt{DataObjects}.
+
+\begin{lstlisting}[language=XML, caption={Structure XML TEIF v2.0}]
+<?xml version="1.0" encoding="UTF-8"?>
+<TEIF xmlns="urn:tn:gov:dgi:teif:2.0"
+      version="2.0" controlingAgency="TTN">
+  <INVOICEHEADER>
+    <MessageSenderIdentifier>
+      1234567APM000
+    </MessageSenderIdentifier>
+  </INVOICEHEADER>
+  <INVOICEBODY>
+    <BGM><Element1001>380</Element1001></BGM>
+    <DTM>20260415</DTM>
+    <PartnerSection>...</PartnerSection>
+    <LINSECTION>...</LINSECTION>
+    <TAXSECTION>...</TAXSECTION>
+    <MOASECTION>...</MOASECTION>
+  </INVOICEBODY>
+  <ds:Signature>...</ds:Signature>
+</TEIF>
+\end{lstlisting}
+
+\subsection{CU-04 : Module d'importation OCR}
+
+Pipeline : upload $\rightarrow$ extraction (pdfjs-dist pour PDF, Tesseract.js FR+EN pour images) $\rightarrow$ parsing heuristique (MF par regex, dates, montants) $\rightarrow$ préremplissage du formulaire.
+
+\subsection{CU-05 : Module de statistiques}
+
+Visualisations en SVG pur : 4 cartes KPI, graphique d'évolution mensuelle (polylines), donut TVA (\texttt{stroke-dasharray}), top 5 clients (barres). Le backend expose 5 endpoints dans \texttt{StatisticsController}.
+
+\subsection{CU-06 : Module d'administration}
+
+Le tableau de bord administrateur (1\,113 lignes) comprend : Dashboard KPI, Gestion utilisateurs (CRUD + validation), Gestion sociétés, Certificats numériques, Journal d'activités.
+
+\section{Conclusion}
+
+Ce chapitre a présenté l'implémentation de la plateforme \elfattoora{} couvrant les 6 modules principaux. L'application totalise 8 contrôleurs (37 endpoints), 7 modèles, 13 composants React et 2 services métier.
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%                     CONCLUSION GÉNÉRALE
+% ════════════════════════════════════════════════════════════════════════════
+\chapter*{Conclusion générale}
+\addcontentsline{toc}{chapter}{Conclusion générale}
+\markboth{Conclusion générale}{Conclusion générale}
+
+\textbf{Rappel de l'objet du projet.} Ce projet de fin d'études portait sur la conception et le développement d'une plateforme web de facturation électronique conforme au standard tunisien TEIF v2.0, dénommée \elfattoora{}.
+
+\textbf{Travaux réalisés :}
+\begin{enumerate}[nosep]
+    \item Une API REST de 8 contrôleurs et 37 endpoints ;
+    \item Une base de données relationnelle à 7 tables avec 12 migrations EF Core ;
+    \item Un système de signature XAdES-EPES avec certificats X.509 ;
+    \item Un générateur XML TEIF en double implémentation (C\# + JavaScript) ;
+    \item Un module d'importation OCR (Tesseract.js, pdfjs-dist) ;
+    \item Une interface moderne avec 13 composants React et graphiques SVG ;
+    \item Un système d'authentification JWT + OTP par e-mail.
+\end{enumerate}
+
+\textbf{Analyse critique :}
+\begin{itemize}
+    \item \textit{Points forts} : conformité TEIF, architecture modulaire, OCR innovant, multi-entreprises ;
+    \item \textit{Limites} : mots de passe en clair (à hacher avec BCrypt), pas de connexion TTN de production, TVA déductible non implémentée.
+\end{itemize}
+
+\textbf{Perspectives :}
+\begin{itemize}[nosep]
+    \item Hachage BCrypt/Argon2, refresh tokens, rate limiting ;
+    \item Intégration TTN réelle, TVA déductible, archivage légal 10 ans ;
+    \item Conteneurisation Docker, CI/CD, tests automatisés ;
+    \item Pagination serveur, cache Redis, optimisation index BDD.
+\end{itemize}
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%                        WEBOGRAPHIE
+% ════════════════════════════════════════════════════════════════════════════
+\chapter*{Webographie}
+\addcontentsline{toc}{chapter}{Webographie}
+\markboth{Webographie}{Webographie}
+
+\begin{enumerate}[nosep]
+    \item Microsoft, \textit{ASP.NET Core Documentation}, \url{https://learn.microsoft.com/aspnet/core/}, consulté en mars 2026.
+    \item Microsoft, \textit{Entity Framework Core Documentation}, \url{https://learn.microsoft.com/ef/core/}, consulté en mars 2026.
+    \item Meta, \textit{React Documentation}, \url{https://react.dev/}, consulté en mars 2026.
+    \item React Router, \textit{Documentation officielle}, \url{https://reactrouter.com/}, consulté en avril 2026.
+    \item Tailwind CSS, \textit{Documentation}, \url{https://tailwindcss.com/docs}, consulté en mars 2026.
+    \item Pomelo Foundation, \textit{Pomelo.EntityFrameworkCore.MySql}, \url{https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql}, consulté en mars 2026.
+    \item Tesseract.js, \textit{Documentation}, \url{https://tesseract.projectnaptha.com/}, consulté en avril 2026.
+    \item Mozilla, \textit{pdf.js}, \url{https://mozilla.github.io/pdf.js/}, consulté en avril 2026.
+    \item W3C, \textit{XML Signature Syntax and Processing}, \url{https://www.w3.org/TR/xmldsig-core1/}, consulté en avril 2026.
+    \item ETSI, \textit{XAdES — XML Advanced Electronic Signatures}, \url{https://www.etsi.org/deliver/etsi_ts/101900_101999/101903/}, consulté en avril 2026.
+    \item JWT.io, \textit{Introduction to JSON Web Tokens}, \url{https://jwt.io/introduction}, consulté en mars 2026.
+\end{enumerate}
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%                        BIBLIOGRAPHIE
+% ════════════════════════════════════════════════════════════════════════════
+\chapter*{Bibliographie}
+\addcontentsline{toc}{chapter}{Bibliographie}
+\markboth{Bibliographie}{Bibliographie}
+
+\begin{enumerate}[nosep]
+    \item P. Rossel et J. Arlow, \textit{UML 2 et les Design Patterns}, Dunod, 3\textsuperscript{e} édition, 2005.
+    \item A. Freeman, \textit{Pro ASP.NET Core 8}, Apress, 2024.
+    \item A. Banks et E. Porcello, \textit{Learning React: Modern Patterns for Developing React Apps}, O'Reilly, 2\textsuperscript{e} édition, 2020.
+    \item J. Smith, \textit{Entity Framework Core in Action}, Manning, 2\textsuperscript{e} édition, 2021.
+    \item Direction Générale des Impôts (Tunisie), \textit{Spécification technique du format TEIF v2.0}, Document interne DGI/TTN.
+\end{enumerate}
+
+
+% ════════════════════════════════════════════════════════════════════════════
+%                           ANNEXE
+% ════════════════════════════════════════════════════════════════════════════
+\chapter*{Annexe}
+\addcontentsline{toc}{chapter}{Annexe}
+\markboth{Annexe}{Annexe}
+
+\section*{A. Structure complète du projet}
+
+\begin{lstlisting}[language={}, caption={Arborescence du projet El Fatoora}]
+pfe/
+  package.json              <- Script racine (concurrently)
+  backend/                  <- API ASP.NET Core 8
+    Program.cs
+    appsettings.json
+    backend.csproj
+    Controllers/ (8 fichiers)
+    Models/ (7 fichiers)
+    Data/ (ApplicationDbContext.cs)
+    DTOs/ (2 fichiers)
+    Services/ (4 fichiers)
+    Utils/ (TeifGenerator.cs)
+    Migrations/ (12 migrations)
+    Certificates/ (TTN_Test.p12)
+  frontend/                 <- SPA React 19
+    package.json
+    tailwind.config.js
+    src/
+      App.js
+      pages/ (13 composants)
+      utils/ (2 utilitaires)
+\end{lstlisting}
+
+\section*{B. Configuration de la base de données}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Paramètre} & \textbf{Valeur} \\
+\hline
+Serveur & 127.0.0.1 \\
+\hline
+Port & 3307 \\
+\hline
+Base & elfatoora\_db \\
+\hline
+Utilisateur & java \\
+\hline
+Mot de passe & java \\
+\hline
+\end{tabular}
+\end{table}
+
+\section*{C. Glossaire}
+
+\begin{longtable}{|l|p{10cm}|}
+\hline
+\textbf{Terme} & \textbf{Définition} \\
+\hline
+\endfirsthead \hline \textbf{Terme} & \textbf{Définition} \\ \hline \endhead
+TEIF & Tunisian Electronic Invoice Format — format XML de facturation électronique tunisien \\ \hline
+TTN & Tunisie TradeNet — opérateur national de la facturation électronique \\ \hline
+DGI & Direction Générale des Impôts (Tunisie) \\ \hline
+XAdES & XML Advanced Electronic Signatures — standard de signature électronique \\ \hline
+EPES & Explicit Policy-based Electronic Signatures — profil XAdES \\ \hline
+MF & Matricule Fiscal — identifiant fiscal tunisien (13 caractères) \\ \hline
+JWT & JSON Web Token — standard d'authentification \\ \hline
+OTP & One-Time Password — mot de passe à usage unique \\ \hline
+OCR & Optical Character Recognition \\ \hline
+TVA & Taxe sur la Valeur Ajoutée \\ \hline
+HT / TTC & Hors Taxes / Toutes Taxes Comprises \\ \hline
+SPA & Single Page Application \\ \hline
+EF Core & Entity Framework Core — ORM pour .NET \\ \hline
+CRUD & Create, Read, Update, Delete \\ \hline
+CORS & Cross-Origin Resource Sharing \\ \hline
+REST & Representational State Transfer \\ \hline
+\end{longtable}
+
+\end{document}

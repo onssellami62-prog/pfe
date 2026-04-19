@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace backend.Models
 {
@@ -11,10 +12,16 @@ namespace backend.Models
         public string City { get; set; } = string.Empty;
         public string PostalCode { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
+        public bool IsArchived { get; set; } = false;
+        public string? LogoPath { get; set; }
 
+        [JsonIgnore]
         public ICollection<User> Users { get; set; } = new List<User>();
+        [JsonIgnore]
         public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+        [JsonIgnore]
         public ICollection<Client> Clients { get; set; } = new List<Client>();
+        [JsonIgnore]
         public ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }

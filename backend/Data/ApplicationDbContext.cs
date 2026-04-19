@@ -16,6 +16,9 @@ namespace backend.Data
         public DbSet<InvoiceLine> InvoiceLines { get; set; }
         public DbSet<Client> Clients { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -69,12 +72,12 @@ namespace backend.Data
                 .HasForeignKey(i => i.ClientId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Invoice -> Company (no cascade — company must not be deleted if invoices exist)
+            // Invoice -> Company (cascade delete pour tout détruire)
             modelBuilder.Entity<Invoice>()
                 .HasOne(i => i.Company)
                 .WithMany(co => co.Invoices)
                 .HasForeignKey(i => i.CompanyId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace backend.Models
 {
@@ -6,6 +7,7 @@ namespace backend.Models
     {
         public int Id { get; set; }
         public int InvoiceId { get; set; }
+        [JsonIgnore]
         public Invoice? Invoice { get; set; }
 
         public int? ProductId { get; set; }

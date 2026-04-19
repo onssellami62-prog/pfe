@@ -1,0 +1,12 @@
+{
+  "name": "el-fatoora-root",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "backend": "cd backend && dotnet run",
+    "dev": "npx concurrently \"npm run backend\" \"npm start\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.Models;
+using backend.Services;
 
 namespace backend.Controllers
 {
@@ -10,10 +11,12 @@ namespace backend.Controllers
     public class InvoicesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly ISignatureService _signatureService;
 
-        public InvoicesController(ApplicationDbContext context)
+        public InvoicesController(ApplicationDbContext context, ISignatureService signatureService)
         {
             _context = context;
+            _signatureService = signatureService;
         }
 
         // GET: api/Invoices?companyId=1
@@ -48,6 +51,8 @@ namespace backend.Controllers
                     i.TotalTTC,
                     i.Status,
                     i.CompanyId,
+                    i.IsSigned,
+                    i.SignedXmlContent,
                     Lines = i.Lines.Select(l => new
                     {
                         l.Id,
@@ -138,11 +143,50 @@ namespace backend.Controllers
             invoice.TotalTTC = Math.Round(totalHT + totalTVA + invoice.StampDuty, 3);
             invoice.Status = "Brouillon";
 
-            _context.Invoices.Add(invoice);
-            await _context.SaveChangesAsync();
+            try 
+            {
+                _context.Invoices.Add(invoice);
+                await _context.SaveChangesAsync();
+                
+                // Log activity
+                string performerName = Request.Query["performerName"].ToString();
+                if (string.IsNullOrEmpty(performerName)) performerName = "Système";
+
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    Actor = performerName,
+                    Action = $"a créé la facture {invoice.InvoiceNumber}",
+                    TargetInfo = invoice.ClientName,
+                    Type = "invoice_creation",
+                    Timestamp = DateTime.UtcNow
+                });
+
+                // Notification
+                int.TryParse(Request.Query["userId"].ToString(), out int nUserId);
+                if (nUserId > 0)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = nUserId,
+                        CompanyId = invoice.CompanyId,
+                        Type = "invoice",
+                        Title = "Facture creee",
+                        Message = $"Facture {invoice.InvoiceNumber} pour {invoice.ClientName} creee avec succes.",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error Invoices] {ex.Message}");
+                if (ex.InnerException != null) Console.WriteLine($"[Inner] {ex.InnerException.Message}");
+            }
 
             return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, invoice);
         }
+
+
 
         // PUT: api/Invoices/5/status  — Mise à jour du statut uniquement
         [HttpPut("{id}/status")]
@@ -151,10 +195,76 @@ namespace backend.Controllers
             var invoice = await _context.Invoices.FindAsync(id);
             if (invoice == null) return NotFound();
 
-            invoice.Status = status;
+        invoice.Status = status;
+        await _context.SaveChangesAsync();
+        return Ok(new { invoice.Id, invoice.InvoiceNumber, invoice.Status });
+    }
+
+    // POST: api/Invoices/5/sign
+    [HttpPost("{id}/sign")]
+    public async Task<IActionResult> SignInvoice(int id)
+    {
+        var invoice = await _context.Invoices
+            .Include(i => i.Lines)
+            .Include(i => i.Company)
+            .FirstOrDefaultAsync(i => i.Id == id);
+
+        if (invoice == null) return NotFound("Facture introuvable.");
+
+        if (invoice.IsSigned)
+            return BadRequest("La facture est déjà signée.");
+
+        try
+        {
+            // 1. Ensure we have XML content to sign
+            string xmlToSign = invoice.XmlContent;
+            if (string.IsNullOrEmpty(xmlToSign))
+            {
+                // Fallback: Generate XML if not present
+                if (invoice.Company == null) 
+                    return BadRequest("Données de la société manquantes pour la génération XML.");
+                
+                xmlToSign = Utils.TeifGenerator.GenerateXml(invoice, invoice.Company);
+                invoice.XmlContent = xmlToSign;
+            }
+
+            // 2. Sign the XML
+            string signedXml = _signatureService.SignTeifXml(xmlToSign);
+
+            // 3. Update invoice record
+            invoice.SignedXmlContent = signedXml;
+            invoice.IsSigned = true;
+            invoice.SignedAt = DateTime.UtcNow;
+            invoice.Status = "Validée";
+
             await _context.SaveChangesAsync();
-            return Ok(new { invoice.Id, invoice.InvoiceNumber, invoice.Status });
+
+            // Log activity
+            _context.ActivityLogs.Add(new ActivityLog
+            {
+                Actor = "Système (Digital Trust)",
+                Action = $"a signé électroniquement la facture {invoice.InvoiceNumber}",
+                TargetInfo = invoice.ClientName,
+                Type = "invoice_signature",
+                Timestamp = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                invoice.Id,
+                invoice.InvoiceNumber,
+                invoice.Status,
+                invoice.IsSigned,
+                invoice.SignedAt,
+                message = "Facture signée avec succès."
+            });
         }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Erreur lors de la signature : {ex.Message}");
+        }
+    }
 
         // DELETE: api/Invoices/5
         [HttpDelete("{id}")]
@@ -167,6 +277,21 @@ namespace backend.Controllers
             if (invoice == null) return NotFound();
 
             _context.Invoices.Remove(invoice);
+
+            // Notification
+            int.TryParse(Request.Query["userId"].ToString(), out int nUserId);
+            if (nUserId > 0)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = nUserId,
+                    CompanyId = invoice.CompanyId,
+                    Type = "invoice",
+                    Title = "Facture supprimee",
+                    Message = $"Facture {invoice.InvoiceNumber} supprimee.",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
             await _context.SaveChangesAsync();
             return NoContent();
         }

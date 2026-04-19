@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace backend.Models
 {
@@ -39,11 +40,17 @@ namespace backend.Models
         public string FilePath { get; set; } = string.Empty;
         public string XmlContent { get; set; } = string.Empty;
 
+        // Signature
+        public bool IsSigned { get; set; } = false;
+        public DateTime? SignedAt { get; set; }
+        public string SignedXmlContent { get; set; } = string.Empty;
+
         // Issuer
         public int CompanyId { get; set; }
         public Company? Company { get; set; }
 
         // Lines
+        [JsonPropertyName("lines")]
         public ICollection<InvoiceLine> Lines { get; set; } = new List<InvoiceLine>();
     }
 }

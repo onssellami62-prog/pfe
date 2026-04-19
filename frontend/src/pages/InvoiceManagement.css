@@ -1,3 +1,4 @@
+/* INVOICE MANAGEMENT -- GLASSMORPHISM EMERALD */
 
 .invoice-management-container {
     display: flex;
@@ -12,11 +13,11 @@
 }
 
 .management-header {
-    background: white;
-    padding: 1.5rem 2rem 0 2rem;
-    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+    padding: 1.5rem 2rem 1.25rem 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     margin-bottom: 1.5rem;
-    border-radius: 12px 12px 0 0;
+    border-radius: 14px 14px 0 0;
 }
 
 .management-header h1 {
@@ -28,61 +29,67 @@
 
 .management-tabs {
     display: flex;
-    gap: 2rem;
+    gap: 4px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 4px;
 }
 
-.tab-btn {
+.management-tabs .tab-btn {
+    flex: 1;
+    justify-content: center;
     background: none;
     border: none;
-    padding: 0.75rem 0.5rem;
-    font-size: 0.95rem;
+    padding: 10px 20px;
+    font-size: 0.875rem;
     font-weight: 500;
     color: #64748b;
     cursor: pointer;
     position: relative;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
-.tab-btn:hover {
-    color: #1a56db;
+.management-tabs .tab-btn:hover {
+    color: #0f4c3a;
+    background: rgba(15, 76, 58, 0.05);
 }
 
-.tab-btn.active {
-    color: #1a56db;
+.management-tabs .tab-btn.active {
+    color: #0f4c3a;
     font-weight: 600;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.tab-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: #1a56db;
-    border-radius: 3px 3px 0 0;
+.tab-icon {
+    font-size: 1rem;
+    line-height: 1;
 }
 
 .management-content {
     flex-grow: 1;
     overflow-y: auto;
     padding: 0 0.5rem;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-/* Custom scrollbar for management content */
-.management-content::-webkit-scrollbar {
-    width: 6px;
+.management-content.tab-enter {
+    opacity: 1;
+    transform: translateY(0);
 }
 
-.management-content::-webkit-scrollbar-track {
-    background: transparent;
+.management-content.tab-exit {
+    opacity: 0;
+    transform: translateY(4px);
 }
 
-.management-content::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-}
-
-.management-content::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
+.management-content::-webkit-scrollbar { width: 5px; }
+.management-content::-webkit-scrollbar-track { background: transparent; }
+.management-content::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+.management-content::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.12); }

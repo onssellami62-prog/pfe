@@ -1,5 +1,5 @@
-using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace backend.Models
 {
@@ -14,6 +14,7 @@ namespace backend.Models
 
         // Relationship: A client belongs to a specific company (the issuer)
         public int CompanyId { get; set; }
+        [JsonIgnore]
         public Company? Company { get; set; }
     }
 }

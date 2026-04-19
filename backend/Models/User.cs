@@ -14,9 +14,11 @@ namespace backend.Models
         public string MatriculeFiscal { get; set; } = string.Empty;
         public string Status { get; set; } = "Pending"; // Pending, Active, Refused
         public bool Actif { get; set; } = true;
+        public bool IsFirstLogin { get; set; } = true;
+        public string? OtpCode { get; set; }
+        public DateTime? OtpExpiryTime { get; set; }
         
-        public int? CompanyId { get; set; }
-        public Company? Company { get; set; }
+        public ICollection<Company> Companies { get; set; } = new List<Company>();
         public DateTime? LastActivity { get; set; }
     }
 }

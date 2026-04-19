@@ -49,6 +49,22 @@ namespace backend.Controllers
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
+            // Notification
+            int.TryParse(Request.Query["userId"].ToString(), out int nUserId);
+            if (nUserId > 0)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = nUserId,
+                    CompanyId = product.CompanyId,
+                    Type = "product",
+                    Title = "Produit ajoute",
+                    Message = $"Produit {product.Name} ajoute au catalogue.",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
 

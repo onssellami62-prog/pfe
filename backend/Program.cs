@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using System.Text;
+using backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,7 +41,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISignatureService, SignatureService>();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -57,6 +64,9 @@ app.UseHttpsRedirection();
 
 // Activer CORS
 app.UseCors("AllowReact");
+
+// Servir les fichiers statiques (logos, etc.)
+app.UseStaticFiles();
 
 // Activer l'authentification et l'autorisation
 app.UseAuthentication();

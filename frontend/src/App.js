@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
-  // Simule l'authentification sans backend
-  const [user, setUser] = useState(null);
+  // Initialize authentication from localStorage
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -14,6 +18,7 @@ function App() {
 
   const handleLogout = () => {
     setUser(null);
+    localStorage.removeItem('user');
   };
 
   return (
@@ -44,6 +49,9 @@ function App() {
             )
           }
         />
+
+        {/* Mot de passe oublié */}
+        <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
 
         {/* Default redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />

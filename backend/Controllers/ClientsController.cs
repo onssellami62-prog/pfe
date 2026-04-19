@@ -71,6 +71,22 @@ namespace backend.Controllers
             _context.Clients.Add(client);
             await _context.SaveChangesAsync();
 
+            // Notification
+            int.TryParse(Request.Query["userId"].ToString(), out int nUserId);
+            if (nUserId > 0)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = nUserId,
+                    CompanyId = client.CompanyId,
+                    Type = "client",
+                    Title = "Client ajoute",
+                    Message = $"Client {client.Name} ajoute avec succes.",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
             return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client);
         }
 

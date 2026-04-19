@@ -7,7 +7,53 @@ const API = 'http://localhost:5170/api';
 const UNITS = ['Pièce', 'Heure', 'Jour', 'KG', 'Litre', 'Forfait'];
 const TVA_RATES = [0, 7, 13, 19];
 
-export default function ClientsProducts() {
+const Icons = {
+  Edit: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  ),
+  Trash: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  ),
+  Plus: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  ),
+  Search: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  Check: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  Alert: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  ),
+  User: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  Box: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+  )
+};
+
+export default function ClientsProducts({ searchTerm }) {
   const [activeTab, setActiveTab] = useState('clients'); // 'clients' | 'products'
   const [companyId, setCompanyId] = useState(null);
   const [clients, setClients] = useState([]);
@@ -72,6 +118,17 @@ export default function ClientsProducts() {
     }
   }, [companyId, fetchClients, fetchProducts]);
 
+  const filteredClients = (clients || []).filter(c => 
+    (c.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+    (c.matriculeFiscal || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+    (c.city || '').toLowerCase().includes((searchTerm || '').toLowerCase())
+  );
+
+  const filteredProducts = (products || []).filter(p => 
+    (p.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+    (p.description || '').toLowerCase().includes((searchTerm || '').toLowerCase())
+  );
+
   const openCreateModal = () => {
     setEditMode(false);
     setCurrentItem(null);
@@ -127,7 +184,7 @@ export default function ClientsProducts() {
     }
 
     const payload = { ...clientForm, matriculeFiscal: mf, companyId };
-    const url = editMode ? `${API}/Clients/${currentItem.id}` : `${API}/Clients`;
+    const url = editMode ? `${API}/Clients/${currentItem.id}` : `${API}/Clients?userId=${JSON.parse(localStorage.getItem('user') || '{}').userId || ''}`;
     const method = editMode ? 'PUT' : 'POST';
 
     try {
@@ -158,7 +215,7 @@ export default function ClientsProducts() {
       defaultPrice: parseFloat(productForm.defaultPrice) || 0,
       companyId,
     };
-    const url = editMode ? `${API}/Products/${currentItem.id}` : `${API}/Products`;
+    const url = editMode ? `${API}/Products/${currentItem.id}` : `${API}/Products?userId=${JSON.parse(localStorage.getItem('user') || '{}').userId || ''}`;
     const method = editMode ? 'PUT' : 'POST';
 
     try {
@@ -217,7 +274,7 @@ export default function ClientsProducts() {
           className={`cp-tab ${activeTab === 'clients' ? 'cp-tab--active' : ''}`}
           onClick={() => setActiveTab('clients')}
         >
-          <span className="cp-tab-icon">👤</span>
+          <span className="cp-tab-icon"><Icons.User /></span>
           Clients
           <span className="cp-badge">{clients.length}</span>
         </button>
@@ -225,7 +282,7 @@ export default function ClientsProducts() {
           className={`cp-tab ${activeTab === 'products' ? 'cp-tab--active' : ''}`}
           onClick={() => setActiveTab('products')}
         >
-          <span className="cp-tab-icon">📦</span>
+          <span className="cp-tab-icon"><Icons.Box /></span>
           Produits & Services
           <span className="cp-badge">{products.length}</span>
         </button>
@@ -238,70 +295,60 @@ export default function ClientsProducts() {
             <div className="cp-spinner"></div>
             <p>Chargement...</p>
           </div>
-        ) : activeTab === 'clients' ? (
-          clients.length === 0 ? (
-            <div className="cp-empty">
-              <div className="cp-empty-icon">👤</div>
-              <h3>Aucun client enregistré</h3>
-              <p>Ajoutez vos clients avec leur matricule fiscal pour les utiliser dans vos factures.</p>
-              <button className="cp-btn-primary" onClick={openCreateModal}>+ Ajouter un client</button>
-            </div>
-          ) : (
-            <div className="cp-table-wrapper">
+        ) : (
+          activeTab === 'clients' ? (
+            <div className="cp-table-container">
               <table className="cp-table">
                 <thead>
                   <tr>
-                    <th>Nom Client</th>
+                    <th>Client</th>
                     <th>Matricule Fiscal</th>
-                    <th>Ville</th>
-                    <th>Téléphone</th>
+                    <th>Localisation</th>
+                    <th>Contact</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map(c => (
-                    <tr key={c.id} className="cp-table-row">
+                  {filteredClients.length > 0 ? filteredClients.map((client) => (
+                    <tr key={client.id} className="cp-table-row">
+                      <td><div className="cp-cell-main">{client.name}</div></td>
+                      <td><span className="cp-mf">{client.matriculeFiscal}</span></td>
                       <td>
-                        <div className="cp-cell-main">{c.name}</div>
-                        <div className="cp-cell-sub">{c.address}</div>
+                        <div className="cp-cell-main">{client.city}</div>
+                        <div className="cp-cell-sub">{client.address}</div>
                       </td>
-                      <td><span className="cp-mono">{c.matriculeFiscal}</span></td>
-                      <td>{c.city || '—'}</td>
-                      <td>{c.phone || '—'}</td>
+                      <td><div className="cp-cell-sub">{client.phone}</div></td>
                       <td>
                         <div className="cp-actions">
-                          <button className="cp-btn-icon cp-btn-edit" onClick={() => openEditModal(c)} title="Modifier">✏️</button>
-                          <button className="cp-btn-icon cp-btn-delete" onClick={() => handleDelete(c.id)} title="Supprimer">🗑️</button>
+                          <button className="cp-btn-icon cp-btn-edit" onClick={() => openEditModal(client)} title="Modifier"><Icons.Edit /></button>
+                          <button className="cp-btn-icon cp-btn-delete" onClick={() => handleDelete(client.id)} title="Supprimer"><Icons.Trash /></button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan="5" className="cp-empty-table">
+                        {searchTerm ? 'Aucun client ne correspond à votre recherche.' : 'Aucun client enregistré.'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-          )
-        ) : (
-          products.length === 0 ? (
-            <div className="cp-empty">
-              <div className="cp-empty-icon">📦</div>
-              <h3>Aucun produit enregistré</h3>
-              <p>Créez votre catalogue de produits et services pour les insérer rapidement dans vos factures.</p>
-              <button className="cp-btn-primary" onClick={openCreateModal}>+ Ajouter un produit</button>
-            </div>
           ) : (
-            <div className="cp-table-wrapper">
+            <div className="cp-table-container">
               <table className="cp-table">
                 <thead>
                   <tr>
                     <th>Produit / Service</th>
                     <th>Unité</th>
                     <th>TVA</th>
-                    <th>Prix HT (DT)</th>
+                    <th>Prix Unit. HT</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map(p => (
+                  {filteredProducts.length > 0 ? filteredProducts.map((p) => (
                     <tr key={p.id} className="cp-table-row">
                       <td>
                         <div className="cp-cell-main">{p.name}</div>
@@ -312,12 +359,18 @@ export default function ClientsProducts() {
                       <td><span className="cp-price">{parseFloat(p.defaultPrice).toFixed(3)}</span></td>
                       <td>
                         <div className="cp-actions">
-                          <button className="cp-btn-icon cp-btn-edit" onClick={() => openEditModal(p)} title="Modifier">✏️</button>
-                          <button className="cp-btn-icon cp-btn-delete" onClick={() => handleDelete(p.id)} title="Supprimer">🗑️</button>
+                          <button className="cp-btn-icon cp-btn-edit" onClick={() => openEditModal(p)} title="Modifier"><Icons.Edit /></button>
+                          <button className="cp-btn-icon cp-btn-delete" onClick={() => handleDelete(p.id)} title="Supprimer"><Icons.Trash /></button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan="5" className="cp-empty-table">
+                        {searchTerm ? 'Aucun produit ne correspond à votre recherche.' : 'Aucun produit enregistré.'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -358,9 +411,9 @@ export default function ClientsProducts() {
                       onChange={e => handleMatriculeChange(e.target.value)}
                       maxLength={15}
                     />
-                    {mfError && <span className="cp-field-error">⚠ {mfError}</span>}
+                    {mfError && <span className="cp-field-error"><Icons.Alert /> {mfError}</span>}
                     {clientForm.matriculeFiscal && validateMatriculeFiscal(clientForm.matriculeFiscal) && (
-                      <span className="cp-field-ok">✓ Format valide</span>
+                      <span className="cp-field-ok"><Icons.Check /> Format valide</span>
                     )}
                   </div>
                   <div className="cp-form-group">

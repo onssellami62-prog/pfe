@@ -1,4 +1,5 @@
-/* Design moved to Tailwind utility classes in CreateInvoice.js */
+/* CREATE INVOICE -- GLASSMORPHISM EMERALD (Tailwind overrides) */
+
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-out forwards;
 }
@@ -8,10 +9,10 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* PREMIIUM MODAL SKIN */
-.fixed.inset-0 { backdrop-filter: blur(8px) !important; background: rgba(15,23,42,0.7) !important; }
-.rounded-3xl { box-shadow: 0 50px 100px -20px rgba(0,0,0,0.4) !important; }
-.bg-gray-50 { background: #fcfcfd !important; }
-.bg-\[\#1e1e1e\] { background: #111827 !important; padding: 40px !important; }
-.bg-\[\#1e1e1e\] pre { color: #60a5fa !important; font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important; }
-button.bg-blue-600 { background: var(--primary) !important; border-radius: 12px !important; transition: all 0.2s !important; }
+/* Premium Modal Skin */
+.fixed.inset-0 { backdrop-filter: blur(8px) !important; background: rgba(0,0,0,0.7) !important; }
+.rounded-3xl { box-shadow: 0 50px 100px rgba(0, 0, 0, 0.1) !important; }
+.bg-gray-50 { background: rgba(255, 255, 255, 0.9) !important; }
+.bg-\[\#1e1e1e\] { background: #edf0f4 !important; padding: 40px !important; }
+.bg-\[\#1e1e1e\] pre { color: #0f4c3a !important; font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important; }
+button.bg-blue-600 { background: linear-gradient(135deg, #0f4c3a, #0d3f30) !important; border-radius: 12px !important; transition: all 0.2s !important; }

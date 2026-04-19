@@ -22,6 +22,53 @@ namespace backend.Data.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("CompanyUser", b =>
+                {
+                    b.Property<int>("CompaniesId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsersId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CompaniesId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("CompanyUser");
+                });
+
+            modelBuilder.Entity("backend.Models.ActivityLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("TargetInfo")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ActivityLogs");
+                });
+
             modelBuilder.Entity("backend.Models.Client", b =>
                 {
                     b.Property<int>("Id")
@@ -77,6 +124,12 @@ namespace backend.Data.Migrations
 
                     b.Property<string>("City")
                         .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LogoPath")
                         .HasColumnType("longtext");
 
                     b.Property<string>("Name")
@@ -144,11 +197,21 @@ namespace backend.Data.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<bool>("IsSigned")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateTime?>("PeriodFrom")
                         .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("PeriodTo")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("SignedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("SignedXmlContent")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<decimal>("StampDuty")
                         .HasColumnType("decimal(18,3)");
@@ -223,6 +286,45 @@ namespace backend.Data.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("InvoiceLines");
+
+                    b.HasAnnotation("Relational:JsonPropertyName", "lines");
+                });
+
+            modelBuilder.Entity("backend.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("backend.Models.Product", b =>
@@ -272,9 +374,6 @@ namespace backend.Data.Migrations
                     b.Property<bool>("Actif")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
@@ -282,6 +381,9 @@ namespace backend.Data.Migrations
                     b.Property<string>("Entreprise")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<bool>("IsFirstLogin")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime?>("LastActivity")
                         .HasColumnType("datetime(6)");
@@ -293,6 +395,12 @@ namespace backend.Data.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<string>("OtpCode")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("OtpExpiryTime")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -312,12 +420,25 @@ namespace backend.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
-
                     b.HasIndex("Email")
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("CompanyUser", b =>
+                {
+                    b.HasOne("backend.Models.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompaniesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("backend.Models.Client", b =>
@@ -341,7 +462,7 @@ namespace backend.Data.Migrations
                     b.HasOne("backend.Models.Company", "Company")
                         .WithMany("Invoices")
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Client");
@@ -378,15 +499,6 @@ namespace backend.Data.Migrations
                     b.Navigation("Company");
                 });
 
-            modelBuilder.Entity("backend.Models.User", b =>
-                {
-                    b.HasOne("backend.Models.Company", "Company")
-                        .WithMany("Users")
-                        .HasForeignKey("CompanyId");
-
-                    b.Navigation("Company");
-                });
-
             modelBuilder.Entity("backend.Models.Company", b =>
                 {
                     b.Navigation("Clients");
@@ -394,8 +506,6 @@ namespace backend.Data.Migrations
                     b.Navigation("Invoices");
 
                     b.Navigation("Products");
-
-                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("backend.Models.Invoice", b =>
