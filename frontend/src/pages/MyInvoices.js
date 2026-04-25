@@ -1,4 +1,5 @@
 import './MyInvoices.css';
+import InvoicePreviewModal from './InvoicePreviewModal';
 
 const Icons = {
     Search: () => (
@@ -78,7 +79,19 @@ const INVOICE_DATA = [
 export default function MyInvoices({ onNewInvoice }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('Tous les statuts');
+    const [companyLogo, setCompanyLogo] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
+ 
+    useEffect(() => {
+        const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+        if (!user.companyId) return;
+        fetch(`http://localhost:5170/api/Companies/${user.companyId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data?.logoPath) setCompanyLogo(`http://localhost:5170/${data.logoPath}`);
+            })
+            .catch(() => {});
+    }, []);
 
     const closeModal = () => setSelectedInvoice(null);
 
@@ -222,80 +235,21 @@ export default function MyInvoices({ onNewInvoice }) {
                 </div>
             </div>
 
-            {/* MODAL INVOICE VIEW */}
-            {selectedInvoice && (
-                <div className="invoice-modal-overlay" onClick={closeModal} style={{ zIndex: 4000 }}>
-                    <div className="invoice-modal-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="close-modal-btn" onClick={closeModal}>✕</button>
-
-                        <div className="invoice-paper">
-                            <header className="paper-header">
-                                <div className="company-branding">
-                                    <div className="logo-placeholder">EF</div>
-                                    <div>
-                                        <h3>El Fatoora Platform</h3>
-                                        <p>Avenue de l'Indépendance, Tunis</p>
-                                    </div>
-                                </div>
-                                <div className="invoice-meta">
-                                    <h2>FACTURE</h2>
-                                    <p><strong>N° :</strong> {selectedInvoice.id}</p>
-                                    <p><strong>Date :</strong> {selectedInvoice.date}</p>
-                                </div>
-                            </header>
-
-                            <div className="bill-to-section">
-                                <div className="bill-col">
-                                    <span>ÉMETTEUR</span>
-                                    <p><strong>Ste. Alpha Dashboard</strong></p>
-                                    <p>Mat: 1234567/A</p>
-                                    <p>Tunis, Tunisie</p>
-                                </div>
-                                <div className="bill-col">
-                                    <span>DESTINATAIRE</span>
-                                    <p><strong>{selectedInvoice.client}</strong></p>
-                                    <p>Identifiant Fiscal: 99887766/B</p>
-                                </div>
-                            </div>
-
-                            <table className="paper-table">
-                                <thead>
-                                    <tr>
-                                        <th>Description</th>
-                                        <th className="text-right">Qté</th>
-                                        <th className="text-right">Prix Unitaire</th>
-                                        <th className="text-right">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Services de Facturation Électronique</td>
-                                        <td className="text-right">1</td>
-                                        <td className="text-right">{selectedInvoice.amount} DT</td>
-                                        <td className="text-right">{selectedInvoice.amount} DT</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <div className="invoice-summary-box">
-                                <div className="summary-row total">
-                                    <span>MONTANT TTC</span>
-                                    <span>{selectedInvoice.amount} DT</span>
-                                </div>
-                            </div>
-
-                            <footer className="paper-footer">
-                                <p>Cette facture est générée électroniquement et conforme aux normes TEIF.</p>
-                            </footer>
-                        </div>
-
-                        <div className="modal-actions-footer">
-                            <button className="btn-secondary" onClick={() => window.print()}><Icons.Print /> Imprimer</button>
-                            <button className="btn-primary"><Icons.Download /> Télécharger PDF</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <InvoicePreviewModal 
+                isOpen={!!selectedInvoice}
+                onClose={closeModal}
+                invoice={selectedInvoice ? {
+                    invoiceNumber: selectedInvoice.id,
+                    date: selectedInvoice.date,
+                    clientName: selectedInvoice.client,
+                    totalTTC: selectedInvoice.amount.replace(',', ''),
+                    totalHT: (parseFloat(selectedInvoice.amount.replace(',', '')) * 0.8).toFixed(3),
+                    totalTVA: (parseFloat(selectedInvoice.amount.replace(',', '')) * 0.19).toFixed(3),
+                    stampDuty: 1.000,
+                    lines: [{ description: 'Services de Facturation', qty: 1, unitPriceHT: (parseFloat(selectedInvoice.amount.replace(',', '')) * 0.8).toFixed(3), totalHT: (parseFloat(selectedInvoice.amount.replace(',', '')) * 0.8).toFixed(3) }]
+                } : null}
+                user={{ ...JSON.parse(sessionStorage.getItem('user') || '{}'), logo: companyLogo }}
+            />
         </div>
     );
 }

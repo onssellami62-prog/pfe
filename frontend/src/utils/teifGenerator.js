@@ -10,53 +10,62 @@ export const STAMP_DUTY = 1.000;
  * Handles formats like "1234567APM000" (13 chars)
  */
 const splitMatricule = (mf) => {
-    const clean = (mf || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    if (clean.length < 13) return { id88: clean, id89: '', id90: '', id91: '' };
-    
-    return {
-        id88: clean.substring(0, 8),      // e.g. 1234567D (8 chars)
-        id89: clean.substring(8, 9),      // e.g. L
-        id90: clean.substring(9, 10),     // e.g. C
-        id91: clean.slice(-3)             // e.g. 000
-    };
+  const clean = (mf || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (clean.length < 13) return { id88: clean, id89: '', id90: '', id91: '' };
+
+  return {
+    id88: clean.substring(0, 8),      // e.g. 1234567D (8 chars)
+    id89: clean.substring(8, 9),      // e.g. L
+    id90: clean.substring(9, 10),     // e.g. C
+    id91: clean.slice(-3)             // e.g. 000
+  };
 };
 
 export const generateTeifXml = (issuer, invoice) => {
-  const dateCCYYMMDD = (invoice.date || new Date().toISOString().split('T')[0]).replace(/-/g, '');
-  const senderMF = splitMatricule(issuer.matricule);
+  const rawDate = invoice.date || new Date().toISOString().split('T')[0];
+  const dateCCYYMMDD = rawDate.split('T')[0].replace(/-/g, ''); // Strips time, keep only CCYYMMDD
+  const senderMF = splitMatricule(issuer?.matriculeFiscal || issuer?.matricule || '');
   const receiverMF = splitMatricule(invoice.clientMatricule);
 
   const tvaGroups = {};
   const rawItems = invoice.lines || invoice.items || [];
   const items = rawItems.length > 0 ? rawItems : [{ description: 'Ligne de test', qty: 1, puht: 0, tvaRate: 0, unitPriceHT: 0 }];
-  
+
   items.forEach(item => {
-    const rate = parseFloat(item.tvaRate || 0);
+    const rate = parseFloat(item.tvaRate || item.tva || 19);
     const pu = parseFloat(item.puht || item.unitPriceHT || 0);
     const qty = parseFloat(item.qty || 0);
     const ht = qty * pu;
-    
+
     if (!tvaGroups[rate]) tvaGroups[rate] = { ht: 0, tva: 0 };
     tvaGroups[rate].ht += ht;
     tvaGroups[rate].tva += ht * (rate / 100);
   });
 
-  const totalHT = parseFloat(invoice.totalHT || invoice.totals?.ht || 0).toFixed(3);
+  const totalHT  = parseFloat(invoice.totalHT  || invoice.totals?.ht  || 0).toFixed(3);
   const totalTVA = parseFloat(invoice.totalTVA || invoice.totals?.tva || 0).toFixed(3);
   const totalTTC = parseFloat(invoice.totalTTC || invoice.totals?.ttc || 0).toFixed(3);
+  const stampDuty = parseFloat(invoice.stampDuty || 1).toFixed(3);
+
+  // Build sender/receiver full identifiers
+  const senderFull   = `${senderMF.id88}${senderMF.id89}${senderMF.id90}${senderMF.id91}`;
+  const receiverFull = `${receiverMF.id88}${receiverMF.id89}${receiverMF.id90}${receiverMF.id91}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<TEIF xmlns="urn:tn:gov:dgi:teif:2.0" version="2.0" controlingAgency="TTN">
+<TEIF xmlns="urn:tn:gov:dgi:teif:2.0"
+      xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+      xmlns:xades="http://uri.etsi.org/01903/v1.3.2#"
+      version="2.0" controlingAgency="TTN">
   <INVOICEHEADER>
-    <MessageSenderIdentifier>${senderMF.id88}${senderMF.id89}${senderMF.id90}${senderMF.id91}</MessageSenderIdentifier>
-    <MessageRecieverIdentifier>${receiverMF.id88}${receiverMF.id89}${receiverMF.id90}${receiverMF.id91}</MessageRecieverIdentifier>
+    <MessageSenderIdentifier type="I-01">${senderFull}</MessageSenderIdentifier>
+    <MessageRecieverIdentifier type="I-01">${receiverFull}</MessageRecieverIdentifier>
   </INVOICEHEADER>
   <INVOICEBODY>
     <BGM>
       <Element1001>${invoice.documentType || '380'}</Element1001>
     </BGM>
-    <DTM>${dateCCYYMMDD}</DTM>
-    
+    <DTM format="102">${dateCCYYMMDD}</DTM>
+
     <PartnerSection>
       <NAD>
         <PartyType>SE</PartyType>
@@ -64,9 +73,9 @@ export const generateTeifXml = (issuer, invoice) => {
         <ID_0089>${senderMF.id89}</ID_0089>
         <ID_0090>${senderMF.id90}</ID_0090>
         <ID_0091>${senderMF.id91}</ID_0091>
-        <Name>${issuer.name}</Name>
-        <Address>${issuer.address}</Address>
-        <City>Tunis</City>
+        <Name>${issuer?.entreprise || issuer?.name || 'Émetteur'}</Name>
+        <Address>${issuer?.address || 'Tunis, Tunisie'}</Address>
+        <City>${(issuer?.address || 'Tunis').split(',').pop().trim()}</City>
       </NAD>
       <NAD>
         <PartyType>BY</PartyType>
@@ -76,7 +85,7 @@ export const generateTeifXml = (issuer, invoice) => {
         <ID_0091>${receiverMF.id91}</ID_0091>
         <Name>${invoice.clientName || 'Client'}</Name>
         <Address>${invoice.clientAddress || 'Adresse Client'}</Address>
-        <City>Tunis</City>
+        <City>${(invoice.clientAddress || 'Tunis').split(',').pop().trim()}</City>
       </NAD>
     </PartnerSection>
 
@@ -99,11 +108,7 @@ ${Object.entries(tvaGroups).map(([rate, vals]) => `      <TaxGroup>
       </TaxGroup>`).join('\n')}
       <TaxGroup>
         <TaxCategoryCode>I-1601</TaxCategoryCode>
-        <TaxAmount>1.000</TaxAmount>
-      </TaxGroup>
-      <TaxGroup>
-        <TaxCategoryCode>I-176</TaxCategoryCode>
-        <TaxBaseAmount>${totalHT}</TaxBaseAmount>
+        <TaxAmount>${stampDuty}</TaxAmount>
       </TaxGroup>
     </TAXSECTION>
 
@@ -122,7 +127,7 @@ ${Object.entries(tvaGroups).map(([rate, vals]) => `      <TaxGroup>
       </MOA>
     </MOASECTION>
   </INVOICEBODY>
-  <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#"></ds:Signature>
+  <ds:Signature></ds:Signature>
 </TEIF>`;
 };
 

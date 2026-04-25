@@ -162,6 +162,8 @@ namespace backend.Controllers
             company.City = updatedCompany.City;
             company.PostalCode = updatedCompany.PostalCode;
             company.Phone = updatedCompany.Phone;
+            company.Email = updatedCompany.Email;
+            company.RNE = updatedCompany.RNE;
 
             await _context.SaveChangesAsync();
 
@@ -176,7 +178,7 @@ namespace backend.Controllers
                     Type = "company",
                     Title = "Profil mis a jour",
                     Message = $"Les informations de {company.Name} ont ete mises a jour.",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 });
                 await _context.SaveChangesAsync();
             }

@@ -18,6 +18,8 @@ namespace backend.DTOs
         public string MatriculeFiscal { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public string Rne { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
         public int? CompanyId { get; set; }
         public List<CompanySummaryDto> Companies { get; set; } = new List<CompanySummaryDto>();
         public DateTime? LastActivity { get; set; }

@@ -60,7 +60,7 @@ namespace backend.Controllers
                     Type = "product",
                     Title = "Produit ajoute",
                     Message = $"Produit {product.Name} ajoute au catalogue.",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 });
                 await _context.SaveChangesAsync();
             }

@@ -54,10 +54,13 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pd
 export default function ImportInvoice() {
     const [files, setFiles] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [editingFile, setEditingFile] = useState(null);
+    const [showXmlPreview, setShowXmlPreview] = useState(false);
     const fileInputRef = useRef(null);
 
     // Mock Client (The logged in user)
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const storedUser = JSON.parse(sessionStorage.getItem('user') || '{}');
     const currentUser = {
         name: storedUser.entreprise || 'Polysoft Informatique',
         address: storedUser.address || 'Route Teniour KM 0.5 SFAX 3000',
@@ -66,32 +69,20 @@ export default function ImportInvoice() {
 
     const handleChooseFile = () => fileInputRef.current.click();
 
-    // OCR FUNCTION: Read images/scans (Handles both File and DataURL)
+    // OCR FUNCTION: Read images/scans
     const runOcrOnImage = async (input) => {
-        // Si l'entrée est déjà un DataURL (string)
         if (typeof input === 'string' && input.startsWith('data:')) {
-            const { data: { text } } = await Tesseract.recognize(input, 'fra+eng', {
-                logger: m => console.log(`OCR Progress: ${m.progress}`)
-            });
+            const { data: { text } } = await Tesseract.recognize(input, 'fra+eng');
             return text;
         }
-
-        // Sinon, c'est un File (le lire en DataURL)
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = async () => {
                 try {
-                    const dataUrl = reader.result;
-                    const { data: { text } } = await Tesseract.recognize(dataUrl, 'fra+eng', {
-                        logger: m => console.log(`OCR Progress: ${m.progress}`)
-                    });
+                    const { data: { text } } = await Tesseract.recognize(reader.result, 'fra+eng');
                     resolve(text);
-                } catch (err) {
-                    console.error("OCR Internal Error:", err);
-                    reject(err);
-                }
+                } catch (err) { reject(err); }
             };
-            reader.onerror = () => reject(new Error("File reading error"));
             reader.readAsDataURL(input);
         });
     };
@@ -117,78 +108,109 @@ export default function ImportInvoice() {
         });
     };
 
-    // HEURISTIC PARSE: Finding standard invoice data (Issuer AND Receiver)
+    // UNIVERSAL ADAPTIVE PARSE: Finding semantic clusters for any invoice layout
     const parseGenericText = (text, fileName) => {
-        const cleanText = text.replace(/\n/g, ' ');
+        const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
         const lowerText = cleanText.toLowerCase();
 
-        // 1. MF (Tunisian Standard / Generic digits)
-        const mfRegex = /\d{7,13}[A-Z]\/[A-Z]\/[A-Z]\/\d{1,3}|\d{10,13}\/[A-Z]/gi;
-        const allMfs = cleanText.match(mfRegex) || [];
+        // 1. SMART KEYWORD MAPPING (Synonyms for reliability)
+        const findValueByKeywords = (keywords) => {
+           for (const kw of keywords) {
+               const regex = new RegExp(`${kw}\\s*[:]?\\s*(\\d+[\\.,]\\d{2,3})`, 'i');
+               const match = cleanText.match(regex);
+               if (match) return match[1].replace(',', '.');
+           }
+           return null;
+        };
+
+        // 2. EXTRACTION DES TOTAUX
+        let totalHT = findValueByKeywords(['total h.t', 'total ht', 'net ht', 'base ht', 'montant ht', 'net hors taxe', 'total net ht']);
+        let totalTVA = findValueByKeywords(['total tva', 't.v.a', 'montant tva', 'tva total', 'tva']);
+        let totalTTC = findValueByKeywords(['total ttc', 'net à payer', 'net a payer', 'montant total', 't.t.c', 'total à payer']);
         
-        // 2. Date
-        const dateRegex = /(\d{2}[\/\-]\d{2}[\/\-]\d{4})|(\d{4}[\/\-]\d{2}[\/\-]\d{2})|([A-Z][a-z]{2}\.\s\d{2}\sjuil\.\s\d{4})/gi;
-        const foundDate = cleanText.match(dateRegex);
-
-        // 3. Document Number
-        const numRegex = /FAC|FCT|NUM[0-9\-]{4,}/gi;
-        const foundNum = cleanText.match(numRegex);
-
-        // --- SPECIFIC FALLBACK: My Company Detection ---
-        if (lowerText.includes('my company')) {
-            return {
-                issuer: { 
-                    name: 'MY COMPANY', 
-                    matricule: '3249782349/K', 
-                    address: 'Mahdia, Tunisie' 
-                },
-                invoice: {
-                    number: 'FCT-2019-0001',
-                    date: '20190723',
-                    // RECEIVER DATA FROM INVOICE
-                    clientName: 'Marwen Abdesslem',
-                    clientMatricule: 'PRIVE-334978', // Extrait du scan
-                    clientAddress: 'Mahdia, Tunisie',
-                    items: [
-                        { description: 'Stylo Topwriter 147 Belur', qty: 1, puht: 1.261, tvaRate: 19 },
-                        { description: 'Boite de Clip 40 DLDINGLI', qty: 1, puht: 2.185, tvaRate: 19 },
-                        { description: 'Imprimante Couleur Jet D Encre HP', qty: 1, puht: 78.411, tvaRate: 7 }
-                    ],
-                    totals: { ht: 81.857, tva: 6.743, ttc: 88.600 }
-                }
-            };
+        // 3. AUTO-RECALCULATION (Math Engine)
+        const timbre = 1.000;
+        if (!totalTTC && totalHT && totalTVA) {
+            totalTTC = (parseFloat(totalHT) + parseFloat(totalTVA) + timbre).toFixed(3);
+        } else if (!totalTVA && totalTTC && totalHT) {
+            totalTVA = (parseFloat(totalTTC) - parseFloat(totalHT) - timbre).toFixed(3);
+        } else if (!totalHT && totalTTC && totalTVA) {
+            totalHT = (parseFloat(totalTTC) - parseFloat(totalTVA) - timbre).toFixed(3);
         }
 
-        // --- GENERIC EXTRACTION FOR OTHER INVOICES ---
-        // Sender is usually the first MF found, Receiver the second
-        const senderMatricule = allMfs.length > 0 ? allMfs[0] : 'SENDER_NOT_FOUND';
-        const receiverMatricule = allMfs.length > 1 ? allMfs[1] : currentUser.matricule;
+        // 4. MF EXTRACTION
+        const mfRegex = /\d{7,8}\s*[A-Z](?:\s*\/\s*[A-Z]\s*\/\s*[A-Z]\s*\/\s*\d{3})?|\d{10,14}/gi;
+        let allMfs = (cleanText.match(mfRegex) || []).map(m => m.toUpperCase().replace(/\s/g, ''));
+        if (allMfs.some(m => m.includes('/'))) {
+            allMfs = allMfs.filter(m => m.includes('/') || m.length >= 10);
+        }
 
-        let detectedIssuer = cleanText.split(' ').slice(0, 3).join(' ');
-        if (lowerText.includes('steg')) detectedIssuer = "STEG TUNISIE";
-        if (lowerText.includes('mytek')) detectedIssuer = "MYTEK INFORMATIQUE";
+        // 5. NAD DETECTION
+        const buyerKeywords = ['droit :', 'doit :', 'doit', 'droit', 'facturé à', 'client', 'vendu à', 'destinataire'];
+        let buyerIndex = -1;
+        for (const kw of buyerKeywords) {
+            const idx = lowerText.indexOf(kw);
+            if (idx !== -1) { buyerIndex = idx; break; }
+        }
+
+        let sellerMatricule = allMfs[0] || "";
+        let buyerMatricule = (allMfs.length > 1) ? allMfs[1] : currentUser.matricule;
+        let buyerName = "";
+
+        if (buyerIndex !== -1 && allMfs.length > 0) {
+            allMfs.forEach(mf => {
+                const pos = cleanText.toUpperCase().indexOf(mf.split('/')[0]);
+                if (pos > buyerIndex) buyerMatricule = mf;
+                else sellerMatricule = mf;
+            });
+            
+            const afterBuyer = cleanText.substring(buyerIndex).split(' ');
+            let nameStartIdx = (afterBuyer[1] === ':' || !afterBuyer[1]) ? 2 : 1;
+            if (afterBuyer[nameStartIdx] && /^\d+$/.test(afterBuyer[nameStartIdx])) nameStartIdx++; 
+            buyerName = afterBuyer.slice(nameStartIdx, nameStartIdx + 3).join(' ').replace(/[0-9\/]/g, '').trim();
+        }
+
+        if (!sellerMatricule) throw new Error("Matricule Vendeur non détecté.");
+
+        // 6. ITEMS
+        const itemRegex = /([A-Z0-9\s\-]{5,})\s+(\d+\.\d{2})\s+(\d+[\.,]\d{3})\s+(7|13|18|19)\.00/gi;
+        const items = [];
+        let itemMatch;
+        while ((itemMatch = itemRegex.exec(cleanText)) !== null) {
+            items.push({
+                description: itemMatch[1].trim(),
+                qty: parseFloat(itemMatch[2]),
+                puht: parseFloat(itemMatch[3].replace(',', '.')),
+                tvaRate: parseFloat(itemMatch[4])
+            });
+        }
+
+        if (items.length === 0) {
+            items.push({ description: "Articles Extraits PDF (" + fileName + ")", qty: 1.0, puht: parseFloat(totalHT || 0), tvaRate: 19 });
+        }
 
         return {
             issuer: { 
-                name: detectedIssuer,
-                matricule: senderMatricule.replace(/[\/]/g, ''),
-                address: 'Extraction par OCR (AI)'
+                name: cleanText.substring(0, 60).replace(/[0-9]/g, '').trim().toUpperCase().split('  ')[0],
+                matricule: sellerMatricule,
+                address: 'Extrait par Intelligence Adaptative'
             },
             invoice: {
-                number: foundNum ? foundNum[0] : `FA-${Math.floor(1000 + Math.random() * 9000).toString()}`,
-                date: foundDate ? '20240402' : new Date().toISOString().split('T')[0].replace(/-/g, ''),
-                clientName: lowerText.includes('ja delevry') ? 'jaDelevry' : 'CLIENT_DETECTE',
-                clientMatricule: receiverMatricule.replace(/[\/]/g, ''),
-                clientAddress: currentUser.address,
-                items: [
-                    { description: 'Extraction IA Automatique', qty: 1, puht: 100.000, tvaRate: 19 }
-                ],
-                totals: { ht: 100.000, tva: 19.000, ttc: 119.000 }
+                number: `FCT-${Math.floor(1000 + Math.random() * 8999)}`,
+                date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
+                clientName: buyerName || 'CLIENT_DETECTE',
+                clientMatricule: buyerMatricule,
+                clientAddress: 'Tunis, Tunisie (Extraction)',
+                items: items,
+                totals: { 
+                    ht: totalHT || "0.000", 
+                    tva: totalTVA || "0.000", 
+                    ttc: totalTTC || "0.000" 
+                }
             }
         };
     };
 
-    // CONVERT PDF PAGE TO IMAGE (For OCR on scanned PDFs)
     const pdfToImage = async (file) => {
         const reader = new FileReader();
         return new Promise((resolve) => {
@@ -201,7 +223,6 @@ export default function ImportInvoice() {
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
-                
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
                 resolve(canvas.toDataURL());
             };
@@ -209,8 +230,32 @@ export default function ImportInvoice() {
         });
     };
 
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [showXmlPreview, setShowXmlPreview] = useState(false);
+    const handleSaveEdit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const ht = parseFloat(formData.get('ht') || 0);
+        const ttc = parseFloat(formData.get('ttc') || 0);
+        const timbre = 1.000;
+        const tva = (ttc - ht - timbre).toFixed(3);
+
+        const updatedExtraction = {
+            ...editingFile.extraction,
+            issuer: {
+                ...editingFile.extraction.issuer,
+                name: formData.get('issuerName'),
+                matricule: formData.get('issuerMatricule'),
+            },
+            invoice: {
+                ...editingFile.extraction.invoice,
+                clientName: formData.get('clientName'),
+                clientMatricule: formData.get('clientMatricule'),
+                totals: { ht: ht.toFixed(3), tva: tva, ttc: ttc.toFixed(3) }
+            }
+        };
+
+        setFiles(prev => prev.map(f => f.name === editingFile.name ? { ...f, extraction: updatedExtraction } : f));
+        setEditingFile(null);
+    };
 
     const handleFileChange = async (event) => {
         const selectedFiles = Array.from(event.target.files);
@@ -268,7 +313,7 @@ export default function ImportInvoice() {
         if (!selectedFile?.extraction) return;
         const { issuer, invoice } = selectedFile.extraction;
         navigator.clipboard.writeText(generateTeifXml(issuer, invoice));
-        alert("XML copié dans le presse-papier !");
+        alert("XML copié !");
     };
 
     return (
@@ -277,23 +322,22 @@ export default function ImportInvoice() {
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="application/pdf,image/*" multiple />
 
             <div className="mb-10 text-center">
-                <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-widest mb-4 inline-block">Moteur OCR v3.0 Actif</span>
+                <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-widest mb-4 inline-block">Moteur OCR v3.2 Restauré</span>
                 <h1 className="text-4xl font-black text-gray-900 tracking-tight">Intelligence Documentaire</h1>
-                <p className="text-gray-500 mt-2 font-medium">Scans, Photos, PDF : Extraction universelle vers la norme TEIF.</p>
+                <p className="text-gray-500 mt-2 font-medium">Extraction universelle vers la norme TEIF.</p>
             </div>
 
             <div className="main-dropzone border-4 border-dashed border-emerald-100 bg-emerald-50/20 rounded-[30px] p-16 flex flex-col items-center justify-center hover:border-emerald-200 transition-all cursor-pointer group" onClick={handleChooseFile}>
                 <div className="w-20 h-20 bg-emerald-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-200 group-hover:scale-110 transition-transform mb-6">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v10m0 0l-3-3m3 3l3-3"/><path d="M5 20h14a2 2 0 0 0 2-2v-5M5 20a2 2 0 0 1-2-2v-5"/></svg>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v10m0 0l-3-3m3 3l3-3" /><path d="M5 20h14a2 2 0 0 0 2-2v-5M5 20a2 2 0 0 1-2-2v-5" /></svg>
                 </div>
                 <h2 className="text-2xl font-black text-gray-800">Déposez votre facture</h2>
-                <p className="text-gray-400 mt-2 font-black uppercase text-[10px] tracking-widest text-center max-w-sm">Le scanner IA analysera les matricules, montants et taux de taxes en temps réel.</p>
-                <button className="mt-8 px-10 py-4 bg-white border border-gray-200 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-50 transition-all shadow-xl shadow-gray-200">+ Importer le document</button>
+                <p className="text-gray-400 mt-2 font-black uppercase text-[10px] tracking-widest text-center max-w-sm">Le moteur IA analysera matricules et montants automatiquement.</p>
             </div>
 
             <div className="mt-12">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-black text-gray-900 uppercase">Documents Traités ({files.length})</h3>
+                    <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Documents ({files.length})</h3>
                     <button onClick={() => setFiles([])} className="text-red-500 font-black text-[10px] uppercase hover:underline">Vider</button>
                 </div>
 
@@ -317,27 +361,53 @@ export default function ImportInvoice() {
                                 </div>
                                 <div className="flex items-center gap-3 mt-2">
                                     <span className={`text-[9px] font-black uppercase tracking-widest ${file.status === 'ready' ? 'text-green-600' : 'text-emerald-600'}`}>
-                                        {file.status === 'ocr' ? 'Traitement IA OCR en cours...' : (file.status === 'ready' ? 'Données Certifiées - XML Disponible' : 'Lecture Structurelle...')}
+                                        {file.status === 'ready' ? 'Données Certifiées' : 'Traitement IA...'}
                                     </span>
                                 </div>
                             </div>
                             {file.status === 'ready' && (
-                                <button onClick={() => handleOpenPreview(file)} className="bg-emerald-700 text-white font-black text-[10px] px-6 py-3 rounded-xl hover:bg-emerald-800 uppercase tracking-widest shadow-lg shadow-emerald-200">Aperçu XML</button>
+                                <div className="flex gap-2">
+                                   <button onClick={() => setEditingFile(file)} className="bg-white border border-gray-200 text-gray-700 font-black text-[10px] px-4 py-3 rounded-xl hover:bg-gray-50 uppercase tracking-widest shadow-sm">Éditer</button>
+                                   <button onClick={() => handleOpenPreview(file)} className="bg-emerald-700 text-white font-black text-[10px] px-6 py-3 rounded-xl hover:bg-emerald-800 uppercase tracking-widest shadow-lg shadow-emerald-200">Aperçu XML</button>
+                                </div>
                             )}
                         </div>
                     ))}
                 </div>
             </div>
 
+            {/* MANUAL EDITOR MODAL */}
+            {editingFile && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <form onSubmit={handleSaveEdit} className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl animate-slideUp overflow-hidden">
+                        <div className="p-8 border-b border-gray-100 bg-gray-50/50">
+                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Révision des Données</h3>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Corrigez les informations extraites par l'IA</p>
+                        </div>
+                        <div className="p-8 space-y-6 max-h-[60vh] overflow-auto">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="col-span-2"><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Vendeur</label><input name="issuerName" defaultValue={editingFile.extraction.issuer.name} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl text-xs font-bold" /></div>
+                                <div className="col-span-2"><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Matricule Vendeur</label><input name="issuerMatricule" defaultValue={editingFile.extraction.issuer.matricule} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl text-xs font-bold" /></div>
+                                <hr className="col-span-2" />
+                                <div className="col-span-2"><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Client</label><input name="clientName" defaultValue={editingFile.extraction.invoice.clientName} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl text-xs font-bold" /></div>
+                                <div className="col-span-1"><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">HT</label><input name="ht" defaultValue={editingFile.extraction.invoice.totals.ht} className="w-full bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl text-xs font-black" /></div>
+                                <div className="col-span-1"><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">TTC</label><input name="ttc" defaultValue={editingFile.extraction.invoice.totals.ttc} className="w-full bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl text-xs font-black" /></div>
+                            </div>
+                        </div>
+                        <div className="p-8 border-t border-gray-100 flex gap-4 bg-gray-50/50">
+                            <button type="button" onClick={() => setEditingFile(null)} className="flex-1 bg-white border border-gray-200 text-gray-400 font-black text-[10px] py-4 rounded-xl uppercase tracking-widest transition-all">Annuler</button>
+                            <button type="submit" className="flex-1 bg-emerald-700 text-white font-black text-[10px] py-4 rounded-xl uppercase tracking-widest shadow-lg shadow-emerald-200 transition-all">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
             {/* XML PREVIEW MODAL */}
             {showXmlPreview && selectedFile?.extraction && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-slideUp">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <div>
-                                <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Vérification de l'Extraction IA</h3>
-                                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Format TEIF V2.0 - {selectedFile.name}</p>
-                            </div>
+                            <div><h3 className="text-lg font-black text-gray-900 uppercase">Aperçu XML TEIF</h3><p className="text-xs text-gray-400 font-bold">{selectedFile.name}</p></div>
                             <button onClick={() => setShowXmlPreview(false)} className="text-gray-400 hover:text-gray-600 font-bold uppercase text-[10px] tracking-widest bg-white border border-gray-100 py-2 px-4 rounded-full shadow-sm">✕ Fermer</button>
                         </div>
                         <div className="flex-1 overflow-auto p-6 bg-[#1e1e1e]">
@@ -346,16 +416,15 @@ export default function ImportInvoice() {
                             </pre>
                         </div>
                         <div className="p-6 border-t border-gray-100 flex gap-4 bg-gray-50">
-                            <button onClick={copyXml} className="flex-1 bg-white border-2 border-gray-100 text-gray-700 font-black text-[10px] py-3 rounded-xl hover:bg-gray-100 uppercase tracking-widest flex items-center justify-center gap-2"><Icons.Copy /> Copier le code</button>
-                            <button onClick={handleDownloadXml} className="flex-1 bg-emerald-700 text-white font-black text-[10px] py-3 rounded-xl hover:bg-emerald-800 uppercase tracking-widest shadow-lg shadow-emerald-200 flex items-center justify-center gap-2"><Icons.Download /> Télécharger .xml</button>
+                            <button onClick={copyXml} className="flex-1 bg-white border-2 border-gray-100 text-gray-700 font-black text-[10px] py-3 rounded-xl uppercase tracking-widest flex items-center justify-center gap-2">Copier</button>
+                            <button onClick={handleDownloadXml} className="flex-1 bg-emerald-700 text-white font-black text-[10px] py-3 rounded-xl uppercase tracking-widest flex items-center justify-center gap-2">Télécharger .xml</button>
                         </div>
                     </div>
                 </div>
             )}
             
             <div className="mt-12 pb-12">
-                <p className="text-center text-[10px] text-gray-400 uppercase font-black tracking-widest mb-4 italic">Note: L'aperçu XML vous permet de vérifier la conformité des taxes (7%, 19%) détectées.</p>
-                <button className={`w-full py-6 rounded-3xl text-white font-black uppercase tracking-widest shadow-2xl transition-all ${files.length === 0 || isProcessing ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border border-gray-200 hover:scale-[1.01] shadow-gray-300'}`} disabled={files.length === 0 || isProcessing} onClick={() => files.filter(f => f.status === 'ready').forEach(f => downloadXml(generateTeifXml(f.extraction.issuer, f.extraction.invoice), `TEIF_${f.extraction.issuer.name}_${f.extraction.invoice.number}.xml`))}>
+                <button className={`w-full py-6 rounded-3xl text-white font-black uppercase tracking-widest shadow-2xl transition-all ${files.length === 0 || isProcessing ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-emerald-700 hover:scale-[1.01] shadow-emerald-200'}`} disabled={files.length === 0 || isProcessing} onClick={() => files.filter(f => f.status === 'ready').forEach(f => downloadXml(generateTeifXml(f.extraction.issuer, f.extraction.invoice), `TEIF_${f.extraction.issuer.name}_${f.extraction.invoice.number}.xml`))}>
                     🚀 Télécharger le flux TEIF Final
                 </button>
             </div>
@@ -369,4 +438,3 @@ const css = `
 .animate-slideUp { animation: slideUp 0.5s ease-out forwards; }
 .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
 `;
-

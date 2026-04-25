@@ -67,7 +67,7 @@ export default function ClientsProducts({ searchTerm }) {
   const [currentItem, setCurrentItem] = useState(null);
 
   // Form state
-  const [clientForm, setClientForm] = useState({ name: '', matriculeFiscal: '', address: '', city: '', phone: '' });
+  const [clientForm, setClientForm] = useState({ name: '', matriculeFiscal: '', rne: '', address: '', city: '', phone: '' });
   const [productForm, setProductForm] = useState({ name: '', description: '', unit: 'Pièce', tvaRate: 19, defaultPrice: '' });
   const [mfError, setMfError] = useState(null); // validation error for matricule fiscal
 
@@ -77,7 +77,7 @@ export default function ClientsProducts({ searchTerm }) {
   };
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     if (user?.companyId) {
       setCompanyId(user.companyId);
     }
@@ -146,6 +146,7 @@ export default function ClientsProducts({ searchTerm }) {
       setClientForm({
         name: item.name || '',
         matriculeFiscal: item.matriculeFiscal || '',
+        rne: item.rne || '',
         address: item.address || '',
         city: item.city || '',
         phone: item.phone || '',
@@ -183,8 +184,10 @@ export default function ClientsProducts({ searchTerm }) {
       return showToast(mfErr, 'error');
     }
 
+    if (!clientForm.rne.trim()) return showToast('Le numéro RNE est obligatoire', 'error');
+
     const payload = { ...clientForm, matriculeFiscal: mf, companyId };
-    const url = editMode ? `${API}/Clients/${currentItem.id}` : `${API}/Clients?userId=${JSON.parse(localStorage.getItem('user') || '{}').userId || ''}`;
+    const url = editMode ? `${API}/Clients/${currentItem.id}` : `${API}/Clients?userId=${JSON.parse(sessionStorage.getItem('user') || '{}').userId || ''}`;
     const method = editMode ? 'PUT' : 'POST';
 
     try {
@@ -215,7 +218,7 @@ export default function ClientsProducts({ searchTerm }) {
       defaultPrice: parseFloat(productForm.defaultPrice) || 0,
       companyId,
     };
-    const url = editMode ? `${API}/Products/${currentItem.id}` : `${API}/Products?userId=${JSON.parse(localStorage.getItem('user') || '{}').userId || ''}`;
+    const url = editMode ? `${API}/Products/${currentItem.id}` : `${API}/Products?userId=${JSON.parse(sessionStorage.getItem('user') || '{}').userId || ''}`;
     const method = editMode ? 'PUT' : 'POST';
 
     try {
@@ -415,6 +418,16 @@ export default function ClientsProducts({ searchTerm }) {
                     {clientForm.matriculeFiscal && validateMatriculeFiscal(clientForm.matriculeFiscal) && (
                       <span className="cp-field-ok"><Icons.Check /> Format valide</span>
                     )}
+                  </div>
+                  <div className="cp-form-group">
+                    <label>Numéro RNE *</label>
+                    <input
+                      type="text"
+                      placeholder="Identifiant RNE"
+                      value={clientForm.rne}
+                      className={!clientForm.rne && editMode ? 'cp-input-error' : ''}
+                      onChange={e => setClientForm({ ...clientForm, rne: e.target.value })}
+                    />
                   </div>
                   <div className="cp-form-group">
                     <label>Adresse</label>

@@ -17,7 +17,16 @@ namespace backend.Models
         public Client? Client { get; set; }
         public string ClientName { get; set; } = string.Empty;
         public string ClientMatricule { get; set; } = string.Empty;
+        public string ClientRNE { get; set; } = string.Empty;
         public string ClientAddress { get; set; } = string.Empty;
+        public DateTime? DueDate { get; set; }
+        public string PaymentMode { get; set; } = "Virement"; // Virement, Chèque, Comptant
+        public string? Notes { get; set; }
+
+        // Issuer Snapshots (to preserve data even if company changes)
+        public string RNEIssuer { get; set; } = string.Empty;
+        public string IssuerEmail { get; set; } = string.Empty;
+        public string IssuerPhone { get; set; } = string.Empty;
 
         // Period
         public DateTime? PeriodFrom { get; set; }

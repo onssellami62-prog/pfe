@@ -89,6 +89,7 @@ namespace backend.Controllers
                     {
                         Name = newUser.Entreprise,
                         RegistrationNumber = newUser.MatriculeFiscal,
+                        RNE = newUser.RNE,
                         Address = "À compléter par l'admin"
                     };
                     _context.Companies.Add(newCompany);
@@ -180,6 +181,9 @@ namespace backend.Controllers
             if (body.TryGetProperty("matriculeFiscal", out var mfVal) && !string.IsNullOrWhiteSpace(mfVal.GetString()))
                 user.MatriculeFiscal = mfVal.GetString()!;
 
+            if (body.TryGetProperty("rne", out var rneVal) && !string.IsNullOrWhiteSpace(rneVal.GetString()))
+                user.RNE = rneVal.GetString()!;
+
             await _context.SaveChangesAsync();
             return Ok(user);
         }
@@ -252,7 +256,7 @@ namespace backend.Controllers
                     Type = "account",
                     Title = "Compte active",
                     Message = "Votre compte a ete valide par l'administrateur. Bienvenue sur El Fatoora !",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 });
                 await _context.SaveChangesAsync();
             }
@@ -264,7 +268,7 @@ namespace backend.Controllers
                     Type = "account",
                     Title = "Demande refusee",
                     Message = "Votre demande d'inscription a ete refusee par l'administrateur.",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 });
                 await _context.SaveChangesAsync();
             }

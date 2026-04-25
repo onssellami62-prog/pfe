@@ -78,7 +78,7 @@ const Icons = {
 
 export default function CompanyProfile() {
     // Récupérer l'utilisateur pour extraire le matricule fiscal
-    const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const savedUser = JSON.parse(sessionStorage.getItem('user') || '{}');
     const mf = savedUser.matriculeFiscal || '';
     const companyName = savedUser.entreprise || 'Votre Entreprise';
 
@@ -93,7 +93,9 @@ export default function CompanyProfile() {
         address: '',
         city: '',
         postalCode: '',
-        phone: ''
+        phone: '',
+        email: '',
+        rne: ''
     });
     const [logoUrl, setLogoUrl] = React.useState(null);
     const [logoUploading, setLogoUploading] = React.useState(false);
@@ -109,7 +111,9 @@ export default function CompanyProfile() {
                             address: data.address || '',
                             city: data.city || '',
                             postalCode: data.postalCode || '',
-                            phone: data.phone || ''
+                            phone: data.phone || '',
+                            email: data.email || '',
+                            rne: data.rne || ''
                         });
                         if (data.logoPath) {
                             setLogoUrl(`http://localhost:5170/${data.logoPath}`);
@@ -174,7 +178,9 @@ export default function CompanyProfile() {
                 address: companyInfo.address,
                 city: companyInfo.city,
                 postalCode: companyInfo.postalCode,
-                phone: companyInfo.phone
+                phone: companyInfo.phone,
+                email: companyInfo.email,
+                rne: companyInfo.rne
             };
 
             const response = await fetch(`http://localhost:5170/api/Companies/${savedUser.companyId}?userId=${savedUser.userId || ''}`, {
@@ -184,8 +190,14 @@ export default function CompanyProfile() {
             });
 
             if (response.ok) {
-                const updated = { ...savedUser, entreprise: editableCompanyName };
-                localStorage.setItem('user', JSON.stringify(updated));
+                const updated = { 
+                    ...savedUser, 
+                    entreprise: editableCompanyName,
+                    address: companyInfo.address + (companyInfo.city ? `, ${companyInfo.postalCode} ${companyInfo.city}` : ''),
+                    phone: companyInfo.phone,
+                    rne: companyInfo.rne
+                };
+                sessionStorage.setItem('user', JSON.stringify(updated));
                 alert("Modifications enregistrées avec succès !");
             }
         } catch (err) {
@@ -308,6 +320,21 @@ export default function CompanyProfile() {
                                 </div>
                             </div>
                             <p className="helper-text">Le format doit correspondre au document d'immatriculation fiscale officiel.</p>
+                            
+                            <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #eee' }} />
+                            
+                            <div className="input-group">
+                                <label>Numéro RNE (Registre National des Entreprises) *</label>
+                                <input 
+                                    name="rne"
+                                    type="text" 
+                                    placeholder="Identifiant RNE"
+                                    value={companyInfo.rne} 
+                                    onChange={handleChange}
+                                    style={{ border: !companyInfo.rne ? '1px solid #ff4d4f' : '' }}
+                                />
+                                {!companyInfo.rne && <p className="helper-text error" style={{ color: '#ff4d4f', fontSize: '11px' }}>Ce champ est désormais obligatoire.</p>}
+                            </div>
                         </div>
                     </section>
 
@@ -351,6 +378,16 @@ export default function CompanyProfile() {
                                     name="phone"
                                     type="text" 
                                     value={companyInfo.phone} 
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="input-group">
+                                <label>Email professionnel</label>
+                                <input 
+                                    name="email"
+                                    type="email" 
+                                    placeholder="contact@entreprise.tn"
+                                    value={companyInfo.email} 
                                     onChange={handleChange}
                                 />
                             </div>

@@ -138,6 +138,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [allActivitiesModal, setAllActivitiesModal] = useState({ isOpen: false });
   const [regionalData, setRegionalData] = useState([]);
   const [viewArchived, setViewArchived] = useState(false);
+  const [userTab, setUserTab] = useState('active');
   const [chartReady, setChartReady] = useState(false);
 
 
@@ -291,6 +292,7 @@ const AdminDashboard = ({ user, onLogout }) => {
       role: formData.get('role'),
       entreprise: formData.get('entreprise'),
       matriculeFiscal: formData.get('matriculeFiscal'),
+      rne: formData.get('rne'),
       username: formData.get('email'),
     };
 
@@ -416,9 +418,10 @@ const AdminDashboard = ({ user, onLogout }) => {
       name: formData.get('name'),
       registrationNumber: formData.get('registrationNumber'),
       address: formData.get('address') || '',
-      city: formData.get('city') || '',
-      postalCode: formData.get('postalCode') || '',
-      phone: formData.get('phone') || ''
+      city: formData.get('city'),
+      postalCode: formData.get('postalCode'),
+      phone: formData.get('phone'),
+      rne: formData.get('rne'),
     };
 
     try {
@@ -790,6 +793,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                             <option value="Valide">Valide</option>
                           </select>
                         </div>
+                        <div className="form-row">
+                          <label>Numéro RNE</label>
+                          <input name="rne" type="text" value={companyModal.data.rne || ''} onChange={(e) => setCompanyModal({ ...companyModal, data: { ...companyModal.data, rne: e.target.value } })} />
+                        </div>
                       </div>
                     </div>
                     <div className="modal-footer">
@@ -814,6 +821,11 @@ const AdminDashboard = ({ user, onLogout }) => {
           <div className="admin-content-view">
             <div className="view-header">
               <h3>Gestion des Utilisateurs</h3>
+              <div className="table-tabs" style={{ marginBottom: 0 }}>
+                <button className={`tab-btn ${userTab === 'active' ? 'active' : ''}`} onClick={() => setUserTab('active')}>Actifs / En attente</button>
+                <button className={`tab-btn ${userTab === 'refused' ? 'active' : ''}`} onClick={() => setUserTab('refused')}>Refusés</button>
+                <button className={`tab-btn ${userTab === 'archived' ? 'active' : ''}`} onClick={() => setUserTab('archived')}>Archivés</button>
+              </div>
               <button className="btn-action" onClick={() => openUserModal('add')}><Icons.Plus /> Nouvel Utilisateur</button>
             </div>
             <div className="table-panel">
@@ -829,7 +841,12 @@ const AdminDashboard = ({ user, onLogout }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {usersList.map((u, i) => (
+                  {usersList.filter(u => {
+                    if (userTab === 'archived') return u.status === 'Archived';
+                    if (userTab === 'refused') return u.status === 'Refused';
+                    // Par défaut on montre les actifs et ceux en attente
+                    return u.status !== 'Archived' && u.status !== 'Refused';
+                  }).map((u, i) => (
                     <tr key={i}>
                       <td className="company-name">{u.name}</td>
                       <td className="fiscal-id">{u.email}</td>
@@ -838,6 +855,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                         <span className={`status-badge-admin ${
                           (u.status === 'Active' || u.status === 'Actif' || (!u.status && u.actif)) ? 'status-valid' : 
                           (u.status === 'Pending' || (!u.status && !u.actif)) ? 'status-warning' : 
+                          (u.status === 'Refused') ? 'status-refused' :
                           (u.status === 'Archived') ? 'status-archived' : 'status-revoked'
                         }`}>
                           {(u.status === 'Pending' || (!u.status && !u.actif)) && <><Icons.Clock /> En attente</>}
@@ -849,7 +867,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                       <td>{formatDate(u.lastActivity)}</td>
                       <td>
                         <div className="flex-actions-table">
-                          {u.status === 'Pending' && (
+                          {(u.status === 'Pending' || (!u.status && !u.actif)) && (
                             <>
                               <button className="btn-table-action btn-success-action" onClick={() => handleStatusUpdate(u.id, 'Active')}>✅ Accepter</button>
                               <button className="btn-table-action btn-danger-action" onClick={() => handleStatusUpdate(u.id, 'Refused')}>❌ Refuser</button>
@@ -859,7 +877,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                             className="btn-table-action"
                             onClick={() => openUserModal('edit', u)}
                           >
-                            <Icons.Gear /> Gérer
+                            <Icons.Gear /> {(u.status === 'Archived' || u.status === 'Refused') ? 'Consulter' : 'Gérer'}
                           </button>
                         </div>
                       </td>
@@ -874,7 +892,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               <div className="admin-modal-overlay" onClick={() => setUserModal({ isOpen: false })}>
                 <div className="admin-modal-content" onClick={(e) => e.stopPropagation()}>
                   <div className="modal-header">
-                    <h3>{userModal.mode === 'add' ? 'Créer un Utilisateur' : 'Gérer l\'utilisateur'}</h3>
+                    <h3>{userModal.mode === 'add' ? 'Créer un Utilisateur' : (userModal.data.status === 'Archived' || userModal.data.status === 'Refused' ? 'Détails de l\'utilisateur' : 'Gérer l\'utilisateur')}</h3>
                     <button className="close-btn" onClick={() => setUserModal({ isOpen: false })}>✕</button>
                   </div>
                   <form onSubmit={handleSaveUser}>
@@ -890,21 +908,25 @@ const AdminDashboard = ({ user, onLogout }) => {
                       <div className="edit-form">
                         <div className="form-row">
                           <label>Nom complet</label>
-                          <input name="name" type="text" defaultValue={userModal.data.name} required />
+                          <input name="name" type="text" defaultValue={userModal.data.name} required disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'} />
                         </div>
                         <div className="form-row">
                           <label>Email</label>
-                          <input name="email" type="email" defaultValue={userModal.data.email} required />
+                          <input name="email" type="email" defaultValue={userModal.data.email} required disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'} />
                         </div>
                         {userModal.data.role?.toLowerCase() !== 'admin' && (
                         <>
                         <div className="form-row">
                           <label>Nom de la Société</label>
-                          <input name="entreprise" type="text" defaultValue={userModal.data.entreprise} required />
+                          <input name="entreprise" type="text" defaultValue={userModal.data.entreprise} required disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'} />
                         </div>
                         <div className="form-row">
                           <label>Matricule Fiscal (13 car.)</label>
-                          <input name="matriculeFiscal" type="text" defaultValue={userModal.data.matriculeFiscal} maxLength="13" minLength="13" placeholder="1234567XAM000" required />
+                          <input name="matriculeFiscal" type="text" defaultValue={userModal.data.matriculeFiscal} maxLength="13" minLength="13" placeholder="1234567XAM000" required disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'} />
+                        </div>
+                        <div className="form-row">
+                          <label>Numéro RNE</label>
+                          <input name="rne" type="text" defaultValue={userModal.data.rne} placeholder="Identifiant RNE" disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'} />
                         </div>
                         </>
                         )}
@@ -937,7 +959,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                         )}
                         <div className="form-row">
                           <label>Rôle Système</label>
-                          <select name="role" defaultValue={userModal.data.role?.toLowerCase()}>
+                          <select name="role" defaultValue={userModal.data.role?.toLowerCase()} disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'}>
                             <option value="admin">Super Admin</option>
                             <option value="auditeur">Auditeur</option>
                             <option value="support">Support</option>
@@ -946,9 +968,11 @@ const AdminDashboard = ({ user, onLogout }) => {
                         </div>
                         <div className="form-row">
                           <label>Statut du compte</label>
-                          <select name="status" defaultValue={userModal.data.status} className="status-select-custom">
+                          <select name="status" defaultValue={userModal.data.status} className="status-select-custom" disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'}>
                             <option value="Actif">Actif</option>
                             <option value="Inactif">Suspendu</option>
+                            {userModal.data.status === 'Archived' && <option value="Archived">Archivé</option>}
+                            {userModal.data.status === 'Refused' && <option value="Refused">Refusé</option>}
                           </select>
                         </div>
                       </div>
@@ -961,8 +985,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                         </button>
                       )}
                       <div className="footer-right">
-                        <button type="button" className="btn-cancel" onClick={() => setUserModal({ isOpen: false })}>Annuler</button>
-                        <button type="submit" className="btn-save">Enregistrer</button>
+                        <button type="button" className="btn-cancel" onClick={() => setUserModal({ isOpen: false })}>{userModal.data.status === 'Archived' || userModal.data.status === 'Refused' ? 'Fermer' : 'Annuler'}</button>
+                        {(userModal.data.status !== 'Archived' && userModal.data.status !== 'Refused') && (
+                          <button type="submit" className="btn-save">Enregistrer</button>
+                        )}
                       </div>
                     </div>
                   </form>

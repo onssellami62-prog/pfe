@@ -7,11 +7,13 @@ namespace backend.Models
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string RegistrationNumber { get; set; } = string.Empty;
+        public string RegistrationNumber { get; set; } = string.Empty; // Matricule Fiscal
+        public string RNE { get; set; } = string.Empty; // Registre National des Entreprises
         public string Address { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public string PostalCode { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public bool IsArchived { get; set; } = false;
         public string? LogoPath { get; set; }
 

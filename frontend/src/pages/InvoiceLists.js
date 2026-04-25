@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { formatMatriculeDisplay, validateMatriculeFiscal } from '../utils/invoiceFormatters';
+import { amountToWords } from '../utils/invoiceFormatters';
 import './InvoiceLists.js.css';
 import { generateTeifXml, downloadXml } from '../utils/teifGenerator';
+import InvoicePreviewModal from './InvoicePreviewModal';
 
 const API = 'http://localhost:5170/api';
 
@@ -69,7 +72,7 @@ const Icons = {
     )
 };
 
-export default function InvoiceLists({ initialFilter = 'validated', onErrorClick, searchTerm: globalTerm }) {
+export default function InvoiceLists({ initialFilter = 'validated', onErrorClick, searchTerm: globalTerm, logo }) {
     const [filter, setFilter] = useState(initialFilter); // 'validated', 'pending', 'rejected'
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -82,7 +85,7 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
 
     // Charger les factures depuis l'API
     const fetchInvoices = React.useCallback(async () => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const user = JSON.parse(sessionStorage.getItem('user') || '{}');
         if (!user.companyId) return;
 
         setLoading(true);
@@ -111,6 +114,7 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
 
     const handleViewInvoice = (invoice) => {
         setSelectedInvoice(invoice);
+        setShowXml(false);
     };
 
     const handleSignInvoice = async (id) => {
@@ -206,7 +210,7 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                 <div className={`status-card-mini ${filter === 'pending' ? 'active' : ''}`} onClick={() => setFilter('pending')}>
                     <div className="card-icon"><Icons.Bell /></div>
                     <div className="card-info">
-                        <span className="label">Brouillons / Attente</span>
+                        <span className="label">Factures en Attente</span>
                         <span className="value">{stats.pending}</span>
                     </div>
                 </div>
@@ -289,8 +293,8 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                                 <td>{new Date(row.date).toLocaleDateString('fr-TN')}</td>
                                 <td className="font-bold">{parseFloat(row.totalTTC).toFixed(3)} DT</td>
                                 <td>
-                                    <span className={`pill ${row.status.toLowerCase().replace(' ', '-')}`}>
-                                        {row.status}
+                                    <span className={`pill ${row.status.toLowerCase().replace(' ', '-').normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`}>
+                                        {row.status === 'Brouillon' ? 'EN ATTENTE' : row.status.toUpperCase()}
                                     </span>
                                 </td>
                                 <td>
@@ -325,125 +329,14 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                     </tbody>
                 </table>
 
-                {/* MODAL INVOICE VIEW */}
-                {selectedInvoice && (
-                    <div className="invoice-modal-overlay" onClick={closeModal}>
-                        <div className="invoice-modal-content" onClick={(e) => e.stopPropagation()}>
-                            <button className="close-modal-btn" onClick={closeModal}>✕</button>
-
-                            <div className="invoice-paper">
-                                <header className="paper-header">
-                                    <div className="company-branding">
-                                        <div className="logo-placeholder">EF</div>
-                                        <div>
-                                            <h3>El Fatoora Platform</h3>
-                                            <p>Avenue de l'Indépendance, Tunis</p>
-                                        </div>
-                                    </div>
-                                    <div className="invoice-meta">
-                                        <h2>FACTURE</h2>
-                                        <p><strong>N° :</strong> {selectedInvoice.invoiceNumber}</p>
-                                        <p><strong>Date :</strong> {new Date(selectedInvoice.date).toLocaleDateString('fr-TN')}</p>
-                                    </div>
-                                </header>
-
-                                <div className="bill-to-section">
-                                    <div className="bill-col">
-                                        <span>ÉMETTEUR</span>
-                                        <p><strong>{JSON.parse(localStorage.getItem('user') || '{}').entreprise}</strong></p>
-                                        <p>Mat: {JSON.parse(localStorage.getItem('user') || '{}').matriculeFiscal}</p>
-                                    </div>
-                                    <div className="bill-col">
-                                        <span>DESTINATAIRE</span>
-                                        <p><strong>{selectedInvoice.clientName}</strong></p>
-                                        <p>Matricule: {selectedInvoice.clientMatricule}</p>
-                                        <p>{selectedInvoice.clientAddress}</p>
-                                    </div>
-                                </div>
-
-                                <table className="paper-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Description</th>
-                                            <th className="text-right">Qté</th>
-                                            <th className="text-right">P.U HT</th>
-                                            <th className="text-right">Total HT</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {selectedInvoice.lines && selectedInvoice.lines.map((line, idx) => (
-                                            <tr key={idx}>
-                                                <td>{line.description}</td>
-                                                <td className="text-right">{line.qty}</td>
-                                                <td className="text-right">{parseFloat(line.unitPriceHT).toFixed(3)}</td>
-                                                <td className="text-right">{parseFloat(line.totalHT).toFixed(3)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-
-                                <div className="invoice-summary-box">
-                                    <div className="summary-row">
-                                        <span>Total HT</span>
-                                        <span>{parseFloat(selectedInvoice.totalHT).toFixed(3)} DT</span>
-                                    </div>
-                                    <div className="summary-row">
-                                        <span>Total TVA</span>
-                                        <span>{parseFloat(selectedInvoice.totalTVA).toFixed(3)} DT</span>
-                                    </div>
-                                    <div className="summary-row">
-                                        <span>Timbre Fiscal</span>
-                                        <span>{parseFloat(selectedInvoice.stampDuty).toFixed(3)} DT</span>
-                                    </div>
-                                    <div className="summary-row total">
-                                        <span>MONTANT TTC</span>
-                                        <span>{parseFloat(selectedInvoice.totalTTC).toFixed(3)} DT</span>
-                                    </div>
-                                </div>
-
-                                {showXml && (
-                                    <div className="xml-overlay-container">
-                                        <div className="xml-header">
-                                            <h4>Structure XML TEIF V2.0 (Généré)</h4>
-                                            <button onClick={() => downloadXml(
-                                                selectedInvoice.isSigned ? selectedInvoice.signedXmlContent : generateTeifXml(
-                                                {
-                                                    name: JSON.parse(localStorage.getItem('user') || '{}').entreprise,
-                                                    address: JSON.parse(localStorage.getItem('user') || '{}').address,
-                                                    matricule: JSON.parse(localStorage.getItem('user') || '{}').matriculeFiscal
-                                                },
-                                                selectedInvoice
-                                            ), `${selectedInvoice.invoiceNumber}${selectedInvoice.isSigned ? '_signee' : ''}.xml`)}>📥 Télécharger .xml {selectedInvoice.isSigned && "(Signé)"}</button>
-                                        </div>
-                                        <pre className="xml-preview-code">
-                                            {selectedInvoice.isSigned ? selectedInvoice.signedXmlContent : generateTeifXml(
-                                                {
-                                                    name: JSON.parse(localStorage.getItem('user') || '{}').entreprise,
-                                                    address: JSON.parse(localStorage.getItem('user') || '{}').address,
-                                                    matricule: JSON.parse(localStorage.getItem('user') || '{}').matriculeFiscal
-                                                },
-                                                selectedInvoice
-                                            )}
-                                        </pre>
-                                    </div>
-                                )}
-
-                                <footer className="paper-footer">
-                                    <p>Cette facture est générée électroniquement et conforme aux normes TEIF.</p>
-                                    <p>Merci de votre confiance.</p>
-                                </footer>
-                            </div>
-
-                            <div className="modal-actions-footer">
-                                <button className="btn-secondary" onClick={() => setShowXml(!showXml)}>
-                                    {showXml ? "📄 Voir Facture" : "📄 Aperçu TEIF (XML)"}
-                                </button>
-                                <button className="btn-secondary" onClick={() => window.print()}>🖨️ Imprimer</button>
-                                <button className="btn-primary">📥 Télécharger PDF</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* SHARED UNIFIED MODAL */}
+                <InvoicePreviewModal 
+                    isOpen={!!selectedInvoice}
+                    onClose={closeModal}
+                    invoice={selectedInvoice}
+                    user={{ ...JSON.parse(sessionStorage.getItem('user') || '{}'), logo }}
+                    initialView={showXml ? 'xml' : 'invoice'}
+                />
 
                 <div className="table-footer-pagination">
                     <span>Affichage de 1-5 sur {filter === 'rejected' ? '3' : getData().length} factures</span>

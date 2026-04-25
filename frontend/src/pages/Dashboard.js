@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './Dashboard.css';
+import { formatMatriculeDisplay, validateMatriculeFiscal } from '../utils/matriculeValidator';
+import { amountToWords } from '../utils/amountToWords';
 import CompanyProfile from './CompanyProfile';
 import TaxDeclaration from './TaxDeclaration';
 import Statistics from './Statistics';
@@ -7,6 +9,7 @@ import InvoiceLists from './InvoiceLists';
 import ErrorDiagnostic from './ErrorDiagnostic';
 import InvoiceManagement from './InvoiceManagement';
 import ClientsProducts from './ClientsProducts';
+import InvoicePreviewModal from './InvoicePreviewModal';
 
 const API = 'http://localhost:5170/api';
 
@@ -53,6 +56,13 @@ const Icons = {
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+    ),
+    Info: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
     )
 };
@@ -114,9 +124,16 @@ const NAV_ITEMS = [
 
 function StatusBadge({ statut }) {
     const s = (statut || '').toLowerCase();
-    const cls = s === 'validée' || s === 'validé' ? 'valide' : (s === 'rejetée' || s === 'rejeté' ? 'rejete' : 'en-cours');
-    const label = s === 'brouillon' ? 'EN ATTENTE' : statut.toUpperCase();
-    return <span className={`status-badge ${cls}`}>{label}</span>;
+    let cls = 'en-cours';
+    if (s.includes('valid')) cls = 'validee';
+    else if (s.includes('rejet')) cls = 'rejetee';
+    else if (s.includes('brouillon') || s.includes('attente')) cls = 'en-attente';
+
+    const label = s === 'brouillon' ? 'EN ATTENTE' : (statut || 'EN COURS').toUpperCase();
+    const normalizedCls = label.toLowerCase().replace(/\s+/g, '-').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    // We keep using cls for mapping logic but can also use normalizedCls if we want to be very generic
+    return <span className={`pill ${cls}`}>{label}</span>;
 }
 
 export default function Dashboard({ onLogout }) {
@@ -125,7 +142,7 @@ export default function Dashboard({ onLogout }) {
     const [diagnosticInvoice, setDiagnosticInvoice] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || '{}'));
+    const [user, setUser] = useState(() => JSON.parse(sessionStorage.getItem('user') || '{}'));
     const [showCompanyMenu, setShowCompanyMenu] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
     const [contentVisible, setContentVisible] = useState(true);
@@ -172,11 +189,28 @@ export default function Dashboard({ onLogout }) {
     };
 
     const timeAgo = (dateStr) => {
-        const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+        // Convertir la date ISO en objet Date
+        const date = new Date(dateStr);
+        
+        // Obtenir l'heure actuelle en UTC
+        const now = new Date();
+        
+        // Calculer la différence en secondes
+        const diff = (now.getTime() - date.getTime()) / 1000;
+        
         if (diff < 60) return 'A l\'instant';
         if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
         if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
-        return `Il y a ${Math.floor(diff / 86400)}j`;
+        if (diff < 604800) return `Il y a ${Math.floor(diff / 86400)}j`;
+        
+        // Pour les dates plus anciennes, afficher la date réelle
+        return date.toLocaleDateString('fr-FR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     const notifIcon = (type) => {
@@ -210,6 +244,18 @@ export default function Dashboard({ onLogout }) {
             .then(data => {
                 if (data?.logoPath) setCompanyLogo(`http://localhost:5170/${data.logoPath}`);
                 else setCompanyLogo(null);
+                // Sync rne and phone to user state and sessionStorage
+                if (data?.rne || data?.phone) {
+                    setUser(prev => {
+                        const updated = { 
+                            ...prev, 
+                            rne: data.rne || prev.rne || '',
+                            phone: data.phone || prev.phone || ''
+                        };
+                        sessionStorage.setItem('user', JSON.stringify(updated));
+                        return updated;
+                    });
+                }
             })
             .catch(() => setCompanyLogo(null));
     }, [user.companyId]);
@@ -222,7 +268,7 @@ export default function Dashboard({ onLogout }) {
             matriculeFiscal: newCo.registrationNumber 
         };
         setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser)); // Persistent update
+        sessionStorage.setItem('user', JSON.stringify(updatedUser)); // Persistent update
         setShowCompanyMenu(false);
         // fetchInvoices will be triggered by effect below
     };
@@ -256,9 +302,9 @@ export default function Dashboard({ onLogout }) {
     const renderContent = () => {
         if (activeNav === 'list-validated' || activeNav === 'list-pending' || activeNav === 'list-rejected') {
             const initialFilter = activeNav === 'list-validated' ? 'validated' : (activeNav === 'list-pending' ? 'pending' : 'rejected');
-            return <InvoiceLists key={user.companyId} initialFilter={initialFilter} searchTerm={searchTerm} onErrorClick={(inv) => { setDiagnosticInvoice(inv); navigateTo('diagnostic'); }} />;
+            return <InvoiceLists key={user.companyId} initialFilter={initialFilter} searchTerm={searchTerm} logo={companyLogo} onErrorClick={(inv) => { setDiagnosticInvoice(inv); navigateTo('diagnostic'); }} />;
         }
-        if (activeNav === 'gestion-facture') return <InvoiceManagement key={user.companyId} searchTerm={searchTerm} onBack={() => navigateTo('accueil')} />;
+        if (activeNav === 'gestion-facture') return <InvoiceManagement key={user.companyId} searchTerm={searchTerm} logo={companyLogo} onBack={() => navigateTo('accueil')} />;
         if (activeNav === 'referentiel') return <ClientsProducts key={user.companyId} searchTerm={searchTerm} onBack={() => navigateTo('accueil')} />;
         if (activeNav === 'profile') return <CompanyProfile onLogout={onLogout} />;
         if (activeNav === 'fiscal') return <TaxDeclaration searchTerm={searchTerm} />;
@@ -502,71 +548,12 @@ export default function Dashboard({ onLogout }) {
 
                 <main className={`page-content ${contentVisible ? 'content-enter' : 'content-exit'}`}>{renderContent()}</main>
 
-                {selectedInvoice && (
-                    <div className="invoice-modal-overlay" onClick={closeModal} style={{ zIndex: 3000 }}>
-                        <div className="invoice-modal-content" onClick={(e) => e.stopPropagation()}>
-                            <button className="close-modal-btn" onClick={closeModal}>✕</button>
-                            <div className="invoice-paper">
-                                <header className="paper-header">
-                                    <div className="company-branding">
-                                        {companyLogo ? (
-                                            <img src={companyLogo} alt="Logo" className="invoice-company-logo" />
-                                        ) : (
-                                            <div className="logo-placeholder">EF</div>
-                                        )}
-                                        <div>
-                                            <h3>{user.entreprise}</h3>
-                                            <p>{user.address || 'Tunis, Tunisie'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="invoice-meta">
-                                        <h2>FACTURE</h2>
-                                        <p><strong>N° :</strong> {selectedInvoice.invoiceNumber}</p>
-                                        <p><strong>Date :</strong> {new Date(selectedInvoice.date).toLocaleDateString('fr-TN')}</p>
-                                    </div>
-                                </header>
-                                <div className="bill-to-section">
-                                    <div className="bill-col">
-                                        <span>ÉMETTEUR</span>
-                                        <p><strong>{user.entreprise}</strong></p>
-                                        <p>Mat: {user.matriculeFiscal}</p>
-                                    </div>
-                                    <div className="bill-col">
-                                        <span>DESTINATAIRE</span>
-                                        <p><strong>{selectedInvoice.clientName}</strong></p>
-                                        <p>Mat: {selectedInvoice.clientMatricule}</p>
-                                    </div>
-                                </div>
-                                <table className="paper-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Description</th>
-                                            <th className="text-right">Qté</th>
-                                            <th className="text-right">Total HT</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {selectedInvoice.lines?.map((line, idx) => (
-                                            <tr key={idx}>
-                                                <td>{line.description}</td>
-                                                <td className="text-right">{line.qty}</td>
-                                                <td className="text-right">{parseFloat(line.totalHT).toFixed(3)} DT</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                                <div className="invoice-summary-box">
-                                    <div className="summary-row"><span>Total HT</span><span>{parseFloat(selectedInvoice.totalHT).toFixed(3)} DT</span></div>
-                                    <div className="summary-row"><span>TVA</span><span>{parseFloat(selectedInvoice.totalTVA).toFixed(3)} DT</span></div>
-                                    <div className="summary-row total"><span>MONTANT TTC</span><span>{parseFloat(selectedInvoice.totalTTC).toFixed(3)} DT</span></div>
-                                </div>
-                            </div>
-                            <div className="modal-actions-footer">
-                                <button className="btn-secondary" onClick={() => window.print()}>🖨️ Imprimer</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <InvoicePreviewModal 
+                    isOpen={!!selectedInvoice}
+                    onClose={closeModal}
+                    invoice={selectedInvoice}
+                    user={{ ...user, logo: companyLogo }}
+                />
             </div>
         </div>
     );

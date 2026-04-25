@@ -12,6 +12,7 @@ namespace backend.Models
         public string Name { get; set; } = string.Empty;
         public string Entreprise { get; set; } = string.Empty;
         public string MatriculeFiscal { get; set; } = string.Empty;
+        public string RNE { get; set; } = string.Empty;
         public string Status { get; set; } = "Pending"; // Pending, Active, Refused
         public bool Actif { get; set; } = true;
         public bool IsFirstLogin { get; set; } = true;

@@ -53,10 +53,25 @@ export function normalizeMatricule(value) {
 }
 
 /**
+ * Formate le matricule pour l'affichage avec des slashs (ex: 1234567/A/B/M/000)
+ * Si le matricule ne fait pas 13 caractères, on le retourne tel quel.
+ * @param {string} value 
+ * @returns {string}
+ */
+export function formatMatriculeDisplay(value) {
+  if (!value) return '';
+  const clean = normalizeMatricule(value);
+  if (clean.length === 13) {
+    return `${clean.substring(0, 7)}/${clean.substring(7, 8)}/${clean.substring(8, 9)}/${clean.substring(9, 10)}/${clean.substring(10, 13)}`;
+  }
+  return value; // Retourne tel quel si format incomplet pour ne pas masquer l'erreur
+}
+
+/**
  * CSS classes pour le champ matricule fiscal selon l'état
  */
 export function getMatriculeInputClass(value, baseClass = '') {
   if (!value) return baseClass;
-  if (validateMatriculeFiscal(value)) return `${baseClass} mf-valid`;
+  if (validateMatriculeFiscal(normalizeMatricule(value))) return `${baseClass} mf-valid`;
   return `${baseClass} mf-invalid`;
 }

@@ -82,7 +82,7 @@ namespace backend.Controllers
                     Type = "client",
                     Title = "Client ajoute",
                     Message = $"Client {client.Name} ajoute avec succes.",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 });
                 await _context.SaveChangesAsync();
             }
@@ -114,6 +114,7 @@ namespace backend.Controllers
             client.Address = updatedClient.Address;
             client.City = updatedClient.City;
             client.Phone = updatedClient.Phone;
+            client.RNE = updatedClient.RNE;
 
             await _context.SaveChangesAsync();
             return Ok(client);

@@ -85,7 +85,7 @@ export default function Statistics() {
     const [tvaDistribution, setTvaDistribution] = useState([]);
     const [topClients, setTopClients] = useState([]);
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     const companyId = user.companyId;
 
     const getDateRange = (filter) => {

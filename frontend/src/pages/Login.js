@@ -31,8 +31,8 @@ function Login({ onLoginSuccess }) {
             if (response.ok) {
                 const data = await response.json();
                 if (data.requireOtp) { setRequireOtp(true); return; }
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify({
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('user', JSON.stringify({
                     userId: data.userId || data.UserId,
                     email: data.email, name: data.name,
                     entreprise: data.entreprise || data.Entreprise,
@@ -40,7 +40,9 @@ function Login({ onLoginSuccess }) {
                     role: data.role,
                     companyId: data.companyId || data.CompanyId,
                     companies: data.companies || [],
-                    address: data.address
+                    address: data.address,
+                    rne: data.rne || data.Rne || '',
+                    phone: data.phone || data.Phone || ''
                 }));
                 if (onLoginSuccess) onLoginSuccess(data);
             } else {
@@ -63,8 +65,8 @@ function Login({ onLoginSuccess }) {
             });
             if (response.ok) {
                 const data = await response.json();
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify({
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('user', JSON.stringify({
                     userId: data.userId || data.UserId,
                     email: data.email, name: data.name,
                     entreprise: data.entreprise || data.Entreprise,
@@ -72,7 +74,9 @@ function Login({ onLoginSuccess }) {
                     role: data.role,
                     companyId: data.companyId || data.CompanyId,
                     companies: data.companies || [],
-                    address: data.address
+                    address: data.address,
+                    rne: data.rne || data.Rne || '',
+                    phone: data.phone || data.Phone || ''
                 }));
                 if (onLoginSuccess) onLoginSuccess(data);
             } else {
@@ -135,10 +139,13 @@ function Login({ onLoginSuccess }) {
                         <p className="form-subtitle">Veuillez renseigner le code envoye a votre e-mail.</p>
                     </div>
                     <div className="field">
-                        <label>CODE OTP (6 CHIFFRES)</label>
+                        <label>Code OTP (6 chiffres)</label>
                         <div className="input-box">
                             <span className="input-icon">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
                             </span>
                             <input type="text" placeholder="000000" maxLength="6" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} required />
                         </div>
@@ -211,7 +218,7 @@ function Login({ onLoginSuccess }) {
             <form className="login-form" onSubmit={handleSubmit}>
                 <div className="form-title">
                     <h2>Bienvenue</h2>
-                    <p className="form-subtitle">Connectez-vous à votre espace El Fatoora.</p>
+                    <p className="form-subtitle">Connectez-vous a votre espace El Fatoora.</p>
                 </div>
                 <div className="field">
                     <label>IDENTIFIANT / EMAIL</label>
@@ -265,11 +272,11 @@ function Login({ onLoginSuccess }) {
                 </div>
             </div>
             <footer className="login-bottom-footer">
-                <span>&#169; 2024 El Fatoora — Tous droits réservés</span>
+                <span>© 2024 El Fatoora - Tous droits reserves</span>
                 <div className="bottom-links">
                     <a href="/aide">CONFIDENTIALITE</a>
                     <a href="/aide">CONDITIONS</a>
-                    <a href="/aide">PROTOCOLE DE SECURITE</a>
+                    <a href="/aide">SECURITE</a>
                 </div>
             </footer>
         </div>
@@ -277,3 +284,4 @@ function Login({ onLoginSuccess }) {
 }
 
 export default Login;
+

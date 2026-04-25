@@ -904,7 +904,8 @@
     color: #fbbf24;
 }
 
-.status-badge-admin.status-revoked {
+.status-badge-admin.status-revoked,
+.status-badge-admin.status-refused {
     background: rgba(239, 68, 68, 0.12);
     color: #fca5a5;
 }

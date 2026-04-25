@@ -1,0 +1,548 @@
+
+/* INVOICE PREVIEW MODAL - PROFESSIONAL REDESIGN */
+
+.invoice-modal-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.invoice-modal-content {
+    background: white;
+    width: 100%;
+    max-width: 900px;
+    height: 94vh;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.95) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Close Button */
+.close-modal-circle {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(241, 245, 249, 0.8);
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 50;
+}
+
+.close-modal-circle:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    transform: rotate(90deg);
+}
+
+/* Scroll Area */
+.invoice-paper-scroll-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f1f5f9; /* Subtle contrast for the paper */
+}
+
+/* THE PAPER */
+.invoice-paper {
+    background: white;
+    margin: 0 auto;
+    width: 100%;
+    min-height: 100%;
+    padding: 60px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    border-radius: 4px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #1e293b;
+}
+
+/* HEADER GRID */
+.paper-header-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 20px;
+    margin-bottom: 50px;
+}
+
+.header-left-branding {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.company-logo-red {
+    width: 80px;
+    height: 80px;
+    background: #C61C23; /* Matching the screenshot logo red */
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.logo-text {
+    color: white;
+    font-size: 36px;
+    font-weight: 900;
+}
+
+.company-details h1 {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+}
+
+.company-address-small {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 12px 0;
+}
+
+.contact-small-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.contact-item {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.header-right-meta {
+    text-align: right;
+}
+
+.document-type-pill {
+    display: inline-block;
+    background: #ecfdf5;
+    color: #065f46;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.invoice-number-giant {
+    font-size: 32px;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0 0 4px 0;
+    letter-spacing: -1px;
+}
+
+.invoice-date-bold {
+    font-size: 14px;
+    font-weight: 700;
+    color: #64748b;
+}
+
+/* PARTICIPANT CARDS */
+.participant-cards-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.participant-card {
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+.issuer-card {
+    background: #f8fafc;
+}
+
+.beneficiary-card {
+    background: #effaf3; /* Light Green Tint from screenshot */
+    border-color: #dcfce7;
+}
+
+.card-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    color: #059669; /* Emerald */
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+}
+
+.card-content .content-item {
+    margin-bottom: 12px;
+}
+
+.card-content label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 4px;
+}
+
+.val-bold { font-size: 16px; font-weight: 800; color: #0f172a; }
+.val-mono { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: #334155; }
+.val-semi { font-size: 13px; font-weight: 600; color: #475569; }
+.val-address { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+/* TABLE */
+.table-container-rounded {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 40px;
+}
+
+.paper-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.paper-table-modern th {
+    background: #f8fafc;
+    padding: 16px 20px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.paper-table-modern td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13px;
+}
+
+.qty-badge {
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 800;
+    color: #475569;
+}
+
+/* TOTALS */
+.totals-section-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+.words-box {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.words-box label { font-size: 9px; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 8px; }
+.words-box p { font-size: 12px; font-weight: 800; color: #065f46; font-style: italic; }
+
+.payment-mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.payment-mini-grid label { font-size: 9px; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 4px; }
+.payment-mini-grid p { font-size: 12px; font-weight: 700; color: #1e293b; }
+
+.summary-right-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 700;
+    color: #64748b;
+    padding: 0 10px;
+}
+
+.grand-total-box {
+    background: #0f172a;
+    color: white;
+    padding: 24px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.grand-total-box .label { font-size: 10px; font-weight: 800; color: #10b981; }
+.grand-total-box .val { font-size: 24px; font-weight: 900; }
+
+.document-footer-tag {
+    margin-top: 60px;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 800;
+    color: #cbd5e1;
+    letter-spacing: 2px;
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* FOOTER BAR */
+.modal-actions-footer-professional {
+    background: white;
+    padding: 20px 40px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-hint {
+    font-size: 13px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-cancel {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-xml-toggle {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+}
+
+.btn-print-pill {
+    background: #064e3b; /* Dark Green from screenshot */
+    color: white;
+    border: none;
+    padding: 10px 30px;
+    border-radius: 50px; /* Pill shape */
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(6, 78, 59, 0.3);
+    transition: all 0.2s;
+}
+
+.btn-print-pill:hover {
+    background: #0a7056;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(6, 78, 59, 0.4);
+}
+
+/* XML VIEWER */
+.xml-mode { background: #1e1e1e !important; overflow: hidden; }
+
+.xml-viewer-container { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    background: #1e1e1e;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.xml-viewer-header { 
+    padding: 24px 32px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    background: #252525;
+    flex-shrink: 0;
+}
+
+.xml-viewer-header h3 { color: white; margin: 0; font-size: 16px; font-weight: 800; }
+.xml-viewer-header p { color: #888; font-size: 11px; margin: 4px 0 0 0; }
+
+.xml-code-box { 
+    flex: 1; 
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding: 24px 32px; 
+    background: #1e1e1e;
+    min-height: 0;
+}
+
+.xml-code-box pre { 
+    color: #10b981; 
+    font-family: 'JetBrains Mono', 'Courier New', monospace; 
+    font-size: 12px; 
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.7;
+}
+
+.xml-actions { display: flex; gap: 12px; }
+.xml-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #444; background: transparent; color: white; cursor: pointer; font-size: 11px; font-weight: 700; }
+.xml-btn.primary { background: #059669; border: none; }
+
+/* PRINT RULES - SURGICAL EXCLUSION */
+@media print {
+    /* Hide all dashboard-specific UI elements */
+    .sidebar, 
+    .topbar, 
+    .stat-cards, 
+    .page-header, 
+    .bottom-panels, 
+    .history-panel, 
+    .table-box, 
+    .status-cards-row, 
+    .invoices-page header, 
+    .summary-cards-grid, 
+    .invoice-summary-grid,
+    .page-top-header,
+    .invoices-table, 
+    .management-header, 
+    .management-content,
+    .close-modal-circle, 
+    .modal-actions-footer-professional, 
+    .btn-xml-toggle,
+    .xml-viewer-header,
+    .footer-hint,
+    .btn-print-pill {
+        display: none !important;
+    }
+
+    /* Reset core layout containers to be transparent and fluid */
+    html, body, #root, 
+    .dashboard-layout, 
+    .main-area, 
+    .page-content, 
+    .invoice-management-container,
+    .invoices-page,
+    .table-container {
+        display: block !important;
+        background: white !important;
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        backdrop-filter: none !important;
+    }
+
+    /* Modal Overlay - make it invisible but keep its content */
+    .invoice-modal-overlay {
+        position: static !important;
+        display: block !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        backdrop-filter: none !important;
+        z-index: auto !important;
+    }
+
+    /* Modal Content - make it a simple container */
+    .invoice-modal-content {
+        position: static !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: auto !important;
+        background: white !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        animation: none !important;
+        overflow: visible !important;
+    }
+
+    /* Scroll View - disable scrolling and background */
+    .invoice-paper-scroll-view {
+        background: transparent !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        height: auto !important;
+        display: block !important;
+    }
+
+    /* The Invoice Document */
+    .invoice-paper {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        margin: 0 !important;
+        padding: 1.5cm !important;
+        width: 100% !important;
+        max-width: 210mm !important;
+        min-height: 297mm !important;
+        box-shadow: none !important;
+        border: none !important;
+        visibility: visible !important;
+        display: block !important;
+        page-break-after: always;
+    }
+
+    @page {
+        margin: 0;
+        size: A4 portrait;
+    }
+
+    /* Force background colors and colors to print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+}

@@ -12,11 +12,13 @@ namespace backend.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ISignatureService _signatureService;
+        private readonly InvoiceValidatorService _validatorService;
 
-        public InvoicesController(ApplicationDbContext context, ISignatureService signatureService)
+        public InvoicesController(ApplicationDbContext context, ISignatureService signatureService, InvoiceValidatorService validatorService)
         {
             _context = context;
             _signatureService = signatureService;
+            _validatorService = validatorService;
         }
 
         // GET: api/Invoices?companyId=1
@@ -39,10 +41,17 @@ namespace backend.Controllers
                     i.InvoiceNumber,
                     i.DocumentType,
                     i.Date,
+                    i.DueDate,
+                    i.PaymentMode,
+                    i.Notes,
                     i.ClientId,
                     i.ClientName,
                     i.ClientMatricule,
+                    i.ClientRNE,
                     i.ClientAddress,
+                    i.RNEIssuer,
+                    i.IssuerEmail,
+                    i.IssuerPhone,
                     i.PeriodFrom,
                     i.PeriodTo,
                     i.TotalHT,
@@ -53,7 +62,7 @@ namespace backend.Controllers
                     i.CompanyId,
                     i.IsSigned,
                     i.SignedXmlContent,
-                    Lines = i.Lines.Select(l => new
+                    lines = i.Lines.Select(l => new
                     {
                         l.Id,
                         l.ProductId,
@@ -126,6 +135,19 @@ namespace backend.Controllers
             if (invoice.Date == default)
                 invoice.Date = DateTime.UtcNow;
 
+            // Set default Stamp Duty if 0
+            if (invoice.StampDuty == 0)
+                invoice.StampDuty = 1.000m;
+
+            // Capture Issuer Snapshots from Company
+            var company = await _context.Companies.FindAsync(invoice.CompanyId);
+            if (company != null)
+            {
+                invoice.RNEIssuer = company.RNE;
+                invoice.IssuerEmail = company.Email;
+                invoice.IssuerPhone = company.Phone;
+            }
+
             // Recalculate totals server-side for integrity
             decimal totalHT = 0;
             decimal totalTVA = 0;
@@ -172,7 +194,7 @@ namespace backend.Controllers
                         Type = "invoice",
                         Title = "Facture creee",
                         Message = $"Facture {invoice.InvoiceNumber} pour {invoice.ClientName} creee avec succes.",
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.Now
                     });
                 }
                 await _context.SaveChangesAsync();
@@ -265,6 +287,58 @@ namespace backend.Controllers
             return StatusCode(500, $"Erreur lors de la signature : {ex.Message}");
         }
     }
+
+        // GET: api/Invoices/5/xml
+        [HttpGet("{id}/xml")]
+        public async Task<IActionResult> GetInvoiceXml(int id)
+        {
+            var invoice = await _context.Invoices
+                .Include(i => i.Company)
+                .FirstOrDefaultAsync(i => i.Id == id);
+
+            if (invoice == null) return NotFound("Facture introuvable.");
+
+            // Si signée, on renvoie le XML signé, sinon le XML brut
+            string xml = invoice.IsSigned ? invoice.SignedXmlContent : invoice.XmlContent;
+            
+            if (string.IsNullOrEmpty(xml))
+            {
+                // Si le XML n'est pas en base, on le génère à la volée
+                if (invoice.Company == null) invoice.Company = await _context.Companies.FindAsync(invoice.CompanyId);
+                if (invoice.Company == null) return BadRequest("Données de la société manquantes.");
+                xml = Utils.TeifGenerator.GenerateXml(invoice, invoice.Company);
+            }
+
+            return Content(xml, "application/xml");
+        }
+
+        // POST: api/Invoices/validate-draft
+        [HttpPost("validate-draft")]
+        public ActionResult<Models.ValidationResult> ValidateDraftInvoice([FromBody] Invoice invoice)
+        {
+            if (invoice == null)
+                return BadRequest("Facture invalide");
+
+            // Debug: Log complet des données reçues
+            Console.WriteLine("========== VALIDATION DEBUG ==========");
+            Console.WriteLine($"ClientMatricule: '{invoice.ClientMatricule}' (Length: {invoice.ClientMatricule?.Length ?? 0})");
+            Console.WriteLine($"ClientName: '{invoice.ClientName}'");
+            Console.WriteLine($"ClientAddress: '{invoice.ClientAddress}'");
+            Console.WriteLine($"ClientRNE: '{invoice.ClientRNE}'");
+            Console.WriteLine($"TotalHT: {invoice.TotalHT}");
+            Console.WriteLine($"TotalTVA: {invoice.TotalTVA}");
+            Console.WriteLine($"TotalTTC: {invoice.TotalTTC}");
+            Console.WriteLine($"Lines Count: {invoice.Lines?.Count ?? 0}");
+            Console.WriteLine("======================================");
+
+            var validationResult = _validatorService.ValidateInvoice(invoice);
+            
+            Console.WriteLine($"✅ Score final: {validationResult.ConformityScore}%");
+            Console.WriteLine($"✅ Erreurs totales: {validationResult.TotalErrors}");
+            Console.WriteLine($"✅ Score Client: {validationResult.CategoryScores["DonneesClient"]}/20");
+            
+            return Ok(validationResult);
+        }
 
         // DELETE: api/Invoices/5
         [HttpDelete("{id}")]

@@ -8,7 +8,7 @@ import './InvoiceManagement.css';
  * InvoiceManagement - Unified view for all invoice operations
  * It combines Landing, Creation, and Listing of invoices as requested.
  */
-export default function InvoiceManagement({ onDiagnostic }) {
+export default function InvoiceManagement({ onDiagnostic, logo }) {
     // We default to 'list' as requested by the description
     const [activeTab, setActiveTab] = useState('list');
     const [tabVisible, setTabVisible] = useState(true);
@@ -35,6 +35,7 @@ export default function InvoiceManagement({ onDiagnostic }) {
                     <InvoiceLists
                         initialFilter="validated"
                         onErrorClick={onDiagnostic}
+                        logo={logo}
                     />
                 );
         }

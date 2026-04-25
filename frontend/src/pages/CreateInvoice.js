@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './CreateInvoice.css';
 import { STAMP_DUTY, generateTeifXml, downloadXml } from '../utils/teifGenerator';
-import { validateMatriculeFiscal, normalizeMatricule } from '../utils/matriculeValidator';
+import { validateMatriculeFiscal, normalizeMatricule, formatMatriculeDisplay } from '../utils/matriculeValidator';
+import InvoiceValidator from '../components/InvoiceValidator';
 
 const API = 'http://localhost:5170/api';
 
@@ -63,12 +64,16 @@ export default function CreateInvoice() {
     number: `FAC-${new Date().getFullYear()}-0001`,
     documentType: '380',
     date: today,
+    dueDate: '',
+    paymentMode: 'Virement', // Virement, Chèque, Comptant
     periodFrom: '',
     periodTo: '',
     clientId: null,
     clientName: '',
     clientMatricule: '',
+    clientRNE: '',
     clientAddress: '',
+    notes: '',
     items: [],
     totals: { ht: 0, tva: 0, stamp: STAMP_DUTY, ttc: 0 },
     dbId: null // Added to store database ID
@@ -78,7 +83,7 @@ export default function CreateInvoice() {
     name: 'EL FATOORA',
     address: 'Charguia 1, Tunis',
     matricule: '0000000/A/P/M/000',
-    rc: 'B01234562024'
+    rne: '--- --- ---'
   });
 
   const [companyId, setCompanyId] = useState(null);
@@ -86,31 +91,36 @@ export default function CreateInvoice() {
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
   const [showXmlPreview, setShowXmlPreview] = useState(false);
+  const [showValidator, setShowValidator] = useState(false);
   const [status, setStatus] = useState('draft');
   const [ttnResponse, setTtnResponse] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveQrCode, setSaveQrCode] = useState(null);
 
   // Load user context + fetch clients/products/next invoice number
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const storedUser = JSON.parse(sessionStorage.getItem('user') || '{}');
     const cid = storedUser?.companyId;
 
     setIssuer({
       name: storedUser.entreprise || 'EL FATOORA',
       address: storedUser.address || 'Avenue Habib Bourguiba, 1001 Tunis',
       matricule: storedUser.matriculeFiscal || '0000000/A/P/M/000',
-      rc: 'B01234562024'
+      rne: storedUser.rne || '--- --- ---'
     });
 
     if (cid) {
       setCompanyId(cid);
 
-      // Fetch company logo
+      // Fetch company details (logo + legal fields)
       fetch(`${API}/Companies/${cid}`)
         .then(r => r.json())
         .then(data => {
           if (data?.logoPath) setCompanyLogo(`http://localhost:5170/${data.logoPath}`);
+          if (data?.rne) {
+            setIssuer(prev => ({ ...prev, rne: data.rne }));
+          }
         })
         .catch(() => {});
 
@@ -159,6 +169,7 @@ export default function CreateInvoice() {
         clientId: selected.id,
         clientName: selected.name,
         clientMatricule: selected.matriculeFiscal,
+        clientRNE: selected.rne || '',
         clientAddress: selected.address + (selected.city ? `, ${selected.city}` : '')
       }));
     } else {
@@ -231,6 +242,10 @@ export default function CreateInvoice() {
       clientName: invoice.clientName,
       clientMatricule: invoice.clientMatricule,
       clientAddress: invoice.clientAddress,
+      clientRNE: invoice.clientRNE || '',
+      dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString() : null,
+      paymentMode: invoice.paymentMode,
+      notes: invoice.notes,
       periodFrom: invoice.periodFrom ? new Date(invoice.periodFrom).toISOString() : null,
       periodTo: invoice.periodTo ? new Date(invoice.periodTo).toISOString() : null,
       stampDuty: STAMP_DUTY,
@@ -248,7 +263,7 @@ export default function CreateInvoice() {
     };
 
     try {
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const storedUser = JSON.parse(sessionStorage.getItem('user') || '{}');
       const performerName = storedUser.name || 'Utilisateur';
 
       const res = await fetch(`${API}/Invoices?performerName=${performerName}&userId=${storedUser.userId || ''}`, {
@@ -275,6 +290,12 @@ export default function CreateInvoice() {
       setSaveSuccess(true);
       if (saved && saved.id) {
         setInvoice(prev => ({ ...prev, number: saved.invoiceNumber, dbId: saved.id }));
+        
+        // Generate QR code as a LINK to the full XML (to ensure 100% data preservation)
+        const xmlLink = `${API}/Invoices/${saved.id}/xml`;
+        const encodedLink = encodeURIComponent(xmlLink);
+        setSaveQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=L&data=${encodedLink}`);
+        
         return saved.id;
       }
       
@@ -374,7 +395,7 @@ export default function CreateInvoice() {
               <p className="font-bold text-gray-800">{issuer.name}</p>
               <p>{issuer.address}</p>
               <p>Mat. Fiscal: <span className="font-mono text-emerald-700">{issuer.matricule}</span></p>
-              <p>Registre Commerce: {issuer.rc}</p>
+              <p>Numéro RNE: {issuer.rne}</p>
             </div>
           </div>
           <div className="text-right space-y-4">
@@ -436,12 +457,27 @@ export default function CreateInvoice() {
                   {clients.map(c => <option key={c.id} value={c.name} />)}
                 </datalist>
               </div>
+              <div className="relative">
+                <input
+                  placeholder="Matricule Fiscal (1234567ABM000) *"
+                  className={`w-full bg-white border rounded-lg px-4 py-2 text-sm focus:ring-4 font-mono transition-all outline-none ${invoice.clientMatricule && !validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) ? 'border-red-500 focus:ring-red-100' : 'border-gray-200 focus:ring-emerald-100'}`}
+                  value={invoice.clientMatricule}
+                  onChange={(e) => setInvoice({ ...invoice, clientMatricule: normalizeMatricule(e.target.value) })}
+                  maxLength={13}
+                />
+                {invoice.clientMatricule && (
+                  <div className={`mt-1 text-[10px] font-bold ${validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) 
+                      ? `✓ Format valide : ${formatMatriculeDisplay(invoice.clientMatricule)}` 
+                      : `⚠ Format invalide (7 chiffres + 3 lettres + 3 chiffres)`}
+                  </div>
+                )}
+              </div>
               <input
-                placeholder="Matricule Fiscal (1234567ABM000) *"
-                className={`w-full bg-white border rounded-lg px-4 py-2 text-sm focus:ring-4 font-mono transition-all outline-none ${invoice.clientMatricule && !validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) ? 'border-red-500 focus:ring-red-100' : 'border-gray-200 focus:ring-emerald-100'}`}
-                value={invoice.clientMatricule}
-                onChange={(e) => setInvoice({ ...invoice, clientMatricule: normalizeMatricule(e.target.value) })}
-                maxLength={13}
+                placeholder="Numéro RNE (Facultatif)"
+                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:ring-4 focus:ring-emerald-100 transition-all outline-none"
+                value={invoice.clientRNE}
+                onChange={(e) => setInvoice({ ...invoice, clientRNE: e.target.value })}
               />
               <textarea
                 placeholder="Adresse du Client"
@@ -453,30 +489,53 @@ export default function CreateInvoice() {
             </div>
           </div>
 
-          {/* Period */}
-          <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
-            <h3 className="text-xs font-extrabold text-emerald-700 uppercase tracking-widest mb-4">Période d'activité</h3>
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase w-8">Du</label>
-                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-1.5 text-xs outline-none focus:border-emerald-500"
-                  value={invoice.periodFrom}
-                  max={invoice.date}
-                  onChange={e => {
-                      const from = e.target.value;
-                      setInvoice(prev => ({ 
-                          ...prev, 
-                          periodFrom: from,
-                          periodTo: (prev.periodTo && prev.periodTo < from) ? from : prev.periodTo 
-                      }));
-                  }} />
+          {/* Period & Payment */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-5">
+            {/* PÉRIODE DE FACTURATION */}
+            <div>
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Période de Facturation</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-semibold text-slate-600 uppercase">Du</label>
+                  <input type="date" className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                    value={invoice.periodFrom}
+                    onChange={e => setInvoice({ ...invoice, periodFrom: e.target.value })} />
+                </div>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-semibold text-slate-600 uppercase">Au</label>
+                  <input type="date" className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                    value={invoice.periodTo}
+                    onChange={e => setInvoice({ ...invoice, periodTo: e.target.value })} />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase w-8">Au</label>
-                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-1.5 text-xs outline-none focus:border-emerald-500"
-                  value={invoice.periodTo}
-                  min={invoice.periodFrom}
-                  onChange={e => setInvoice({ ...invoice, periodTo: e.target.value })} />
+            </div>
+
+            {/* DIVIDER */}
+            <div className="h-px bg-slate-200"></div>
+
+            {/* CONDITIONS DE PAIEMENT */}
+            <div>
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Conditions de Paiement</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-semibold text-slate-600 uppercase">Échéance</label>
+                  <input type="date" className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    value={invoice.dueDate}
+                    onChange={e => setInvoice({ ...invoice, dueDate: e.target.value })} />
+                </div>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-semibold text-slate-600 uppercase">Paiement</label>
+                  <select className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                    value={invoice.paymentMode}
+                    onChange={e => setInvoice({ ...invoice, paymentMode: e.target.value })}>
+                    <option value="Virement">Virement Bancaire</option>
+                    <option value="Chèque">Chèque</option>
+                    <option value="Comptant">Comptant</option>
+                    <option value="Traite">Traite</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -622,6 +681,18 @@ export default function CreateInvoice() {
                 </div>
               </div>
             </div>
+            {saveQrCode && !ttnResponse && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 flex items-center gap-6">
+                <img src={saveQrCode} alt="QR Code Facture" className="w-32 h-32 bg-white p-1 rounded-lg shadow-inner" />
+                <div>
+                  <h4 className="text-xs font-black text-emerald-700 uppercase mb-1">Facture Enregistrée</h4>
+                  <p className="text-[10px] font-bold text-emerald-600 mb-2 font-mono">{invoice.number}</p>
+                  <p className="text-[11px] text-emerald-800/80 leading-relaxed italic">
+                    "Ce QR Code contient la structure XML conforme TEIF v2.0."
+                  </p>
+                </div>
+              </div>
+            )}
             {ttnResponse && (
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 flex items-center gap-6">
                 <img src={ttnResponse.qrCode} alt="QR Code" className="w-24 h-24 bg-white p-1 rounded-lg shadow-inner" />
@@ -668,26 +739,34 @@ export default function CreateInvoice() {
             Service WS v5 Opérationnel
           </div>
 
-          <div className="flex gap-3 w-full md:w-auto flex-wrap">
+          <div className="flex gap-2 w-full flex-nowrap overflow-x-auto pb-4 md:pb-0 items-center justify-end">
+            <button
+              onClick={() => {
+                setShowValidator(true);
+              }}
+              className="flex-none border-2 border-blue-500 text-blue-600 font-black text-[10px] py-3 px-5 rounded-xl hover:bg-blue-50 transition-all uppercase tracking-widest flex items-center justify-center gap-2 shadow-md hover:-translate-y-1"
+            >
+              🔍 Analyser la Facture
+            </button>
             <button
               onClick={() => setShowXmlPreview(true)}
-              className="flex-1 md:flex-none border border-gray-200 text-gray-600 font-black text-xs py-4 px-8 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+              className="flex-none border border-gray-200 text-gray-600 font-black text-[10px] py-3 px-5 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
             >
               <Icons.Document /> Aperçu TEIF
             </button>
             <button
               onClick={handleSaveInvoice}
               disabled={saving}
-              className={`flex-1 md:flex-none font-black text-xs py-4 px-8 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-2 ${saving ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:-translate-y-1'}`}
+              className={`flex-none font-black text-[10px] py-3 px-5 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-2 ${saving ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:-translate-y-1'}`}
             >
-              {saving ? <><Icons.Clock /> Enregistrement...</> : <><Icons.Save /> Enregistrer la facture</>}
+              {saving ? <><Icons.Clock /> ...</> : <><Icons.Save /> Enregistrer</>}
             </button>
             <button
               onClick={handleSubmissionFlow}
               disabled={status !== 'draft' && status !== 'success'}
-              className={`flex-1 md:flex-none bg-emerald-700 text-white font-black text-xs py-4 px-8 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-3 ${status !== 'draft' && status !== 'success' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-800 hover:-translate-y-1'}`}
+              className={`flex-none bg-emerald-700 text-white font-black text-[10px] py-3 px-5 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-3 ${status !== 'draft' && status !== 'success' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-800 hover:-translate-y-1'}`}
             >
-              {status === 'sending' ? <><Icons.Clock /> Envoi TTN...</> : status === 'validating' ? <><Icons.Clock /> Validation...</> : status === 'signing' ? <><Icons.Clock /> Signature XML-DSIG...</> : <><Icons.Send /> Signer et Envoyer vers TTN</>}
+              {status === 'sending' ? <><Icons.Clock /> Envoi...</> : status === 'validating' ? <><Icons.Clock /> Validation...</> : status === 'signing' ? <><Icons.Clock /> Signature...</> : <><Icons.Send /> Signer & Envoyer</>}
             </button>
           </div>
         </div>
@@ -719,6 +798,40 @@ export default function CreateInvoice() {
               <button onClick={handleDownloadXml} className="flex-1 bg-emerald-700 text-white font-black text-[10px] py-3 rounded-xl hover:bg-emerald-800 uppercase tracking-widest shadow-lg shadow-emerald-200 flex items-center justify-center">
                 <Icons.Download /> Télécharger .xml
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INVOICE VALIDATOR MODAL */}
+      {showValidator && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div>
+                <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Analyse de Conformité</h3>
+                <p className="text-xs text-gray-500 font-bold">Détection intelligente des erreurs avant envoi</p>
+              </div>
+              <button
+                onClick={() => setShowValidator(false)}
+                className="text-gray-400 hover:text-gray-600 font-bold uppercase text-[10px] tracking-widest bg-white border border-gray-100 py-2 px-4 rounded-full shadow-sm hover:shadow-md transition-all"
+              >✕ FERMER</button>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <InvoiceValidator 
+                key={Date.now()}
+                invoice={{
+                  ...invoice,
+                  lines: invoice.items.map(item => ({
+                    description: item.description,
+                    unit: item.unit,
+                    qty: parseInt(item.qty) || 1,
+                    unitPriceHT: parseFloat(item.puht) || 0,
+                    tvaRate: parseInt(item.tvaRate) || 19
+                  }))
+                }}
+                onClose={() => setShowValidator(false)}
+              />
             </div>
           </div>
         </div>

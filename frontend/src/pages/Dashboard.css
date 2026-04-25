@@ -119,7 +119,7 @@
 
 .nav-item.active {
     background: linear-gradient(135deg, rgba(15, 76, 58, 0.1), rgba(15, 76, 58, 0.06));
-    color: #0f4c3a;
+    color: #15803d;
     border: 1px solid rgba(15, 76, 58, 0.15);
 }
 
@@ -363,7 +363,7 @@
 .mark-all-btn {
     background: none;
     border: none;
-    color: #0f4c3a;
+    color: #15803d;
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
@@ -402,7 +402,7 @@
 }
 .notif-item.unread {
     background: rgba(15,76,58,0.04);
-    border-left-color: #0f4c3a;
+    border-left-color: #15803d;
 }
 
 .notif-item-icon {
@@ -527,7 +527,7 @@
 
 .dropdown-item.active {
     background: rgba(15, 76, 58, 0.08);
-    border-left-color: #0f4c3a;
+    border-left-color: #15803d;
 }
 
 .item-name {
@@ -569,7 +569,7 @@
 
 .page-content.content-enter {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
 }
 
 .page-content.content-exit {
@@ -621,7 +621,7 @@
 }
 
 .stat-card.active {
-    border-color: #0f4c3a;
+    border-color: #15803d;
     background: rgba(15, 76, 58, 0.03);
     box-shadow: 0 2px 12px rgba(15, 76, 58, 0.1);
 }
@@ -647,7 +647,7 @@
     font-size: 20px;
     flex-shrink: 0;
     background: rgba(15, 76, 58, 0.08);
-    color: #0f4c3a;
+    color: #15803d;
 }
 
 .stat-info {
@@ -726,7 +726,7 @@
 
 .filter-btn:hover {
     background: #f1f5f9;
-    color: #0f4c3a;
+    color: #15803d;
     border-color: rgba(15, 76, 58, 0.2);
 }
 
@@ -754,7 +754,7 @@
 }
 
 .flux-table thead th:hover {
-    color: #0f4c3a;
+    color: #15803d;
 }
 
 .sort-icon {
@@ -796,7 +796,7 @@
     height: 32px;
     border-radius: 8px;
     background: rgba(15, 76, 58, 0.08);
-    color: #0f4c3a;
+    color: #15803d;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -830,7 +830,7 @@
 
 .status-badge.valide {
     background: rgba(15, 76, 58, 0.08);
-    color: #0f4c3a;
+    color: #15803d;
 }
 
 .status-badge.en-cours {
@@ -866,7 +866,7 @@
 
 .action-btn:hover {
     background: rgba(15, 76, 58, 0.06);
-    color: #0f4c3a;
+    color: #15803d;
 }
 
 /* UPLOAD PANEL */
@@ -904,12 +904,12 @@
 }
 
 .dropzone.active {
-    border-color: #0f4c3a;
+    border-color: #15803d;
     background: rgba(15, 76, 58, 0.05);
 }
 
 .dropzone-icon {
-    color: #0f4c3a;
+    color: #15803d;
     margin-bottom: 10px;
 }
 
@@ -1012,16 +1012,16 @@ table tbody td {
 
 .pill.valid,
 .pill.validee,
-.pill.valid�e {
-    background: rgba(15, 76, 58, 0.1);
-    color: #0f4c3a;
+.pill.validee {
+    background: rgba(34, 197, 94, 0.1);
+    color: #15803d;
 }
 
 .pill.en-attente,
 .pill.en-cours,
 .pill.brouillon {
-    background: rgba(245, 158, 11, 0.12);
-    color: #fbbf24;
+    background: rgba(234, 179, 8, 0.1);
+    color: #a16207;
 }
 
 .pill.rejetee,
@@ -1078,7 +1078,7 @@ table tbody td {
 }
 
 .sortable-header:hover {
-    color: #0f4c3a;
+    color: #15803d;
 }
 
 /* Generic glass card */
@@ -1117,8 +1117,8 @@ table tbody td {
 }
 
 .pagination button:hover {
-    background: rgba(15, 76, 58, 0.1);
-    color: #0f4c3a;
+    background: rgba(34, 197, 94, 0.1);
+    color: #15803d;
     border-color: rgba(15, 76, 58, 0.2);
 }
 

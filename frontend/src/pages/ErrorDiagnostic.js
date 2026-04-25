@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './ErrorDiagnostic.css';
+import { formatMatriculeDisplay } from '../utils/matriculeValidator';
 
 export default function ErrorDiagnostic({ invoice, onBack }) {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -69,7 +70,7 @@ export default function ErrorDiagnostic({ invoice, onBack }) {
                                     <button className="view-code-link">Voir le code ↓</button>
                                 </div>
                                 <h4>Format du Matricule Fiscal invalide</h4>
-                                <p>Le Matricule Fiscal de l'acheteur (1234567/A/P/000) ne respecte pas le format réglementaire tunisien actuel.</p>
+                                <p>Le Matricule Fiscal de l'acheteur ({formatMatriculeDisplay('1234567AP')}) ne respecte pas le format réglementaire tunisien actuel (13 caractères).</p>
                                 <div className="location">
                                     📍 <strong>Localisation:</strong> Header / BuyerDetails  |  {'<>'} <strong>Node:</strong> {'<TaxID>'}
                                 </div>
@@ -180,8 +181,9 @@ export default function ErrorDiagnostic({ invoice, onBack }) {
                                     className="error-input"
                                     value={editedData.taxId}
                                     onChange={(e) => setEditedData({ ...editedData, taxId: e.target.value })}
+                                    maxLength={15}
                                 />
-                                <span className="error-msg">Le format doit être : 0000000/A/P/000</span>
+                                <span className="error-msg">Le format doit être : 1234567ABM000 (13 caractères)</span>
                             </div>
 
                             <div className="edit-form-group">

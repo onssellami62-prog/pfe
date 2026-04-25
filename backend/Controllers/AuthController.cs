@@ -44,7 +44,7 @@ namespace backend.Controllers
                 return Unauthorized("Email ou mot de passe incorrect.");
             }
 
-            // Vérifier le statut d'approbation (Seulement pour les clients)
+            // VÃ©rifier le statut d'approbation (Seulement pour les clients)
             // On ignore la casse (Upper/Lower) pour ADMIN et Status
             bool isAdmin = user.Role != null && user.Role.Equals("admin", StringComparison.OrdinalIgnoreCase);
             bool isActive = (user.Status != null && (user.Status.Equals("Active", StringComparison.OrdinalIgnoreCase) || user.Status.Equals("Actif", StringComparison.OrdinalIgnoreCase))) 
@@ -53,7 +53,7 @@ namespace backend.Controllers
             if (!isAdmin && !isActive)
             {
                 if (user.Status != null && user.Status.Equals("Refused", StringComparison.OrdinalIgnoreCase))
-                    return BadRequest("Votre demande d'inscription a été refusée.");
+                    return BadRequest("Votre demande d'inscription a Ã©tÃ© refusÃ©e.");
                 
                 return BadRequest("Votre compte est en attente de validation par l'administrateur.");
             }
@@ -69,20 +69,20 @@ namespace backend.Controllers
 
                 await _emailService.SendEmailAsync(
                     user.Email,
-                    "Code de vérification - Première connexion",
-                    $"Bonjour {user.Name},\n\nVotre code de vérification OTP est : {otp}\nCe code est valable pendant 5 minutes."
+                    "Code de vÃ©rification - PremiÃ¨re connexion",
+                    $"Bonjour {user.Name},\n\nVotre code de vÃ©rification OTP est : {otp}\nCe code est valable pendant 5 minutes."
                 );
 
-                return Ok(new { requireOtp = true, email = user.Email, message = "Un code OTP a été envoyé à votre email." });
+                return Ok(new { requireOtp = true, email = user.Email, message = "Un code OTP a Ã©tÃ© envoyÃ© Ã  votre email." });
             }
 
-            // Mettre à jour la dernière activité
+            // Mettre Ã  jour la derniÃ¨re activitÃ©
             user.LastActivity = DateTime.Now;
             await _context.SaveChangesAsync();
 
             var token = CreateToken(user);
 
-            // Obtenir l'adresse de la première société ou une valeur par défaut
+            // Obtenir l'adresse de la premiÃ¨re sociÃ©tÃ© ou une valeur par dÃ©faut
             var firstCompany = user.Companies?.FirstOrDefault();
             string companyAddress = firstCompany?.Address ?? "Avenue Habib Bourguiba, 1001 Tunis";
             if (firstCompany != null && !string.IsNullOrEmpty(firstCompany.City))
@@ -98,6 +98,8 @@ namespace backend.Controllers
                 MatriculeFiscal = user.MatriculeFiscal,
                 Role = user.Role,
                 CompanyId = firstCompany?.Id,
+                Rne = firstCompany != null ? (firstCompany.RNE ?? string.Empty) : string.Empty,
+                Phone = firstCompany != null ? (firstCompany.Phone ?? string.Empty) : string.Empty,
                 Companies = user.Companies.Select(c => new CompanySummaryDto 
                 { 
                     Id = c.Id, 
@@ -118,7 +120,7 @@ namespace backend.Controllers
 
             if (user == null || user.OtpCode != dto.OtpCode || user.OtpExpiryTime < DateTime.Now)
             {
-                return BadRequest("Code OTP invalide ou expiré.");
+                return BadRequest("Code OTP invalide ou expirÃ©.");
             }
 
             user.IsFirstLogin = false;
@@ -144,6 +146,8 @@ namespace backend.Controllers
                 MatriculeFiscal = user.MatriculeFiscal,
                 Role = user.Role,
                 CompanyId = firstCompany?.Id,
+                Rne = firstCompany != null ? (firstCompany.RNE ?? string.Empty) : string.Empty,
+                Phone = firstCompany != null ? (firstCompany.Phone ?? string.Empty) : string.Empty,
                 Companies = user.Companies.Select(c => new CompanySummaryDto 
                 { 
                     Id = c.Id, 
@@ -165,7 +169,7 @@ namespace backend.Controllers
                 existingAdmin.Status = "Active";
                 existingAdmin.Role = "admin";
                 await _context.SaveChangesAsync();
-                return Ok("L'admin existait déjà, son statut a été mis à jour à 'Active'.");
+                return Ok("L'admin existait dÃ©jÃ , son statut a Ã©tÃ© mis Ã  jour Ã  'Active'.");
             }
 
             var admin = new UserModel
@@ -181,11 +185,11 @@ namespace backend.Controllers
             _context.Users.Add(admin);
             await _context.SaveChangesAsync();
 
-            return Ok("Admin créé avec succès ! Login: ja7479845@gmail.com / Pass: Admin@2026");
+            return Ok("Admin crÃ©Ã© avec succÃ¨s ! Login: ja7479845@gmail.com / Pass: Admin@2026");
         }
 
         /// <summary>
-        /// Met à jour tous les mots de passe existants avec des mots de passe aléatoires conformes aux règles de complexité.
+        /// Met Ã  jour tous les mots de passe existants avec des mots de passe alÃ©atoires conformes aux rÃ¨gles de complexitÃ©.
         /// </summary>
         [HttpGet("upgrade-passwords")]
         public async Task<IActionResult> UpgradePasswords()
@@ -201,7 +205,7 @@ namespace backend.Controllers
 
             foreach (var user in users)
             {
-                // Générer un mot de passe aléatoire de 10 caractères
+                // GÃ©nÃ©rer un mot de passe alÃ©atoire de 10 caractÃ¨res
                 var passwordChars = new List<char>
                 {
                     upperChars[random.Next(upperChars.Length)],
@@ -212,11 +216,11 @@ namespace backend.Controllers
                     digits[random.Next(digits.Length)],
                     specials[random.Next(specials.Length)],
                 };
-                // Compléter à 10 caractères
+                // ComplÃ©ter Ã  10 caractÃ¨res
                 for (int i = passwordChars.Count; i < 10; i++)
                     passwordChars.Add(allChars[random.Next(allChars.Length)]);
 
-                // Mélanger les caractères
+                // MÃ©langer les caractÃ¨res
                 for (int i = passwordChars.Count - 1; i > 0; i--)
                 {
                     int j = random.Next(i + 1);
@@ -241,35 +245,35 @@ namespace backend.Controllers
             if (string.IsNullOrWhiteSpace(newUser.Email) || 
                 !System.Text.RegularExpressions.Regex.IsMatch(newUser.Email.Trim(), @"^[a-zA-Z0-9._%+-]+@gmail\.com$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             {
-                return BadRequest("L'email doit être une adresse Gmail valide (exemple@gmail.com).");
+                return BadRequest("L'email doit Ãªtre une adresse Gmail valide (exemple@gmail.com).");
             }
 
-            // Vérifier l'unicité de l'email (insensible à la casse)
+            // VÃ©rifier l'unicitÃ© de l'email (insensible Ã  la casse)
             if (await _context.Users.AnyAsync(u => u.Email.ToLower() == newUser.Email.Trim().ToLower()))
             {
-                return BadRequest("Cet email est déjà utilisé.");
+                return BadRequest("Cet email est dÃ©jÃ  utilisÃ©.");
             }
 
-            // Validation de la complexité du mot de passe
+            // Validation de la complexitÃ© du mot de passe
             if (string.IsNullOrEmpty(newUser.Password) || newUser.Password.Length < 8 ||
                 !System.Text.RegularExpressions.Regex.IsMatch(newUser.Password, @"[A-Z]") ||
                 !System.Text.RegularExpressions.Regex.IsMatch(newUser.Password, @"[a-z]") ||
                 !System.Text.RegularExpressions.Regex.IsMatch(newUser.Password, @"\d") ||
                 !System.Text.RegularExpressions.Regex.IsMatch(newUser.Password, @"[@#$*!]"))
             {
-                return BadRequest("Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial (@#$*!).");
+                return BadRequest("Le mot de passe doit contenir au moins 8 caractÃ¨res, une majuscule, une minuscule, un chiffre et un caractÃ¨re spÃ©cial (@#$*!).");
             }
 
             // Normes MF El Fatoora (13 car.)
             if (string.IsNullOrEmpty(newUser.MatriculeFiscal) || newUser.MatriculeFiscal.Length != 13)
             {
-                return BadRequest("Le MF doit contenir 13 caractères (ex: 1234567XAM000).");
+                return BadRequest("Le MF doit contenir 13 caractÃ¨res (ex: 1234567XAM000).");
             }
 
             newUser.Role = "CLIENT";
-            newUser.Status = "Pending"; // Toujours en attente à l'inscription
+            newUser.Status = "Pending"; // Toujours en attente Ã  l'inscription
 
-            // Créer ou lier la société automatiquement
+            // CrÃ©er ou lier la sociÃ©tÃ© automatiquement
             if (!string.IsNullOrEmpty(newUser.Entreprise) && !string.IsNullOrEmpty(newUser.MatriculeFiscal))
             {
                 var existingCompany = await _context.Companies.FirstOrDefaultAsync(c => c.RegistrationNumber == newUser.MatriculeFiscal);
@@ -293,7 +297,7 @@ namespace backend.Controllers
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Demande d'inscription envoyée. En attente de validation." });
+            return Ok(new { message = "Demande d'inscription envoyÃ©e. En attente de validation." });
         }
 
         // POST: api/auth/forgot-password
@@ -302,7 +306,7 @@ namespace backend.Controllers
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.Trim().ToLower());
             if (user == null)
-                return BadRequest("Aucun compte associé à cet email.");
+                return BadRequest("Aucun compte associÃ© Ã  cet email.");
 
             var random = new Random();
             string otp = random.Next(100000, 999999).ToString();
@@ -313,11 +317,11 @@ namespace backend.Controllers
 
             await _emailService.SendEmailAsync(
                 user.Email,
-                "Réinitialisation de mot de passe - El Fatoora",
-                $"Bonjour {user.Name},\n\nVotre code de réinitialisation est : {otp}\nCe code est valable pendant 5 minutes.\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email."
+                "RÃ©initialisation de mot de passe - El Fatoora",
+                $"Bonjour {user.Name},\n\nVotre code de rÃ©initialisation est : {otp}\nCe code est valable pendant 5 minutes.\n\nSi vous n'avez pas demandÃ© cette rÃ©initialisation, ignorez cet email."
             );
 
-            return Ok(new { message = "Un code de vérification a été envoyé à votre email." });
+            return Ok(new { message = "Un code de vÃ©rification a Ã©tÃ© envoyÃ© Ã  votre email." });
         }
 
         // POST: api/auth/verify-reset-code
@@ -326,12 +330,12 @@ namespace backend.Controllers
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.Trim().ToLower());
             if (user == null)
-                return BadRequest("Aucun compte associé à cet email.");
+                return BadRequest("Aucun compte associÃ© Ã  cet email.");
 
             if (user.OtpCode != dto.OtpCode || user.OtpExpiryTime < DateTime.Now)
-                return BadRequest("Code invalide ou expiré.");
+                return BadRequest("Code invalide ou expirÃ©.");
 
-            return Ok(new { message = "Code vérifié avec succès." });
+            return Ok(new { message = "Code vÃ©rifiÃ© avec succÃ¨s." });
         }
 
         // POST: api/auth/reset-password
@@ -340,20 +344,20 @@ namespace backend.Controllers
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.Trim().ToLower());
             if (user == null)
-                return BadRequest("Aucun compte associé à cet email.");
+                return BadRequest("Aucun compte associÃ© Ã  cet email.");
 
-            // Re-vérifier le OTP (sécurité)
+            // Re-vÃ©rifier le OTP (sÃ©curitÃ©)
             if (user.OtpCode != dto.OtpCode || user.OtpExpiryTime < DateTime.Now)
-                return BadRequest("Code invalide ou expiré. Veuillez recommencer.");
+                return BadRequest("Code invalide ou expirÃ©. Veuillez recommencer.");
 
-            // Validation de la complexité du mot de passe
+            // Validation de la complexitÃ© du mot de passe
             if (string.IsNullOrEmpty(dto.NewPassword) || dto.NewPassword.Length < 8 ||
                 !System.Text.RegularExpressions.Regex.IsMatch(dto.NewPassword, @"[A-Z]") ||
                 !System.Text.RegularExpressions.Regex.IsMatch(dto.NewPassword, @"[a-z]") ||
                 !System.Text.RegularExpressions.Regex.IsMatch(dto.NewPassword, @"\d") ||
                 !System.Text.RegularExpressions.Regex.IsMatch(dto.NewPassword, @"[@#$*!]"))
             {
-                return BadRequest("Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial (@#$*!).");
+                return BadRequest("Le mot de passe doit contenir au moins 8 caractÃ¨res, une majuscule, une minuscule, un chiffre et un caractÃ¨re spÃ©cial (@#$*!).");
             }
 
             user.Password = dto.NewPassword;
@@ -361,7 +365,7 @@ namespace backend.Controllers
             user.OtpExpiryTime = null;
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Mot de passe modifié avec succès." });
+            return Ok(new { message = "Mot de passe modifiÃ© avec succÃ¨s." });
         }
 
         private string CreateToken(UserModel user)
@@ -394,3 +398,5 @@ namespace backend.Controllers
         }
     }
 }
+
+
