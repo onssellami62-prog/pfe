@@ -161,3 +161,101 @@
 .btn-save:hover { background: #b91c1c; }
 
 .diags-footer { text-align: center; padding: 2rem 0; color: #475569; font-size: 0.8rem; }
+
+
+/* ========================================
+   RESPONSIVE DESIGN - ERROR DIAGNOSTIC
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .diagnostic-container {
+        padding: 20px !important;
+    }
+    
+    .error-cards-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .diagnostic-container {
+        padding: 16px !important;
+    }
+    
+    .error-cards-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .diagnostic-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .error-filters {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .error-filter-item {
+        width: 100% !important;
+    }
+    
+    .error-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .error-table {
+        min-width: 600px;
+    }
+    
+    .error-card {
+        padding: 16px !important;
+    }
+    
+    .error-actions {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .error-actions button {
+        width: 100% !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .diagnostic-container {
+        padding: 12px !important;
+    }
+    
+    .diagnostic-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .error-card {
+        padding: 14px !important;
+    }
+    
+    .error-code {
+        font-size: 0.9rem !important;
+    }
+    
+    .error-message {
+        font-size: 0.85rem !important;
+    }
+    
+    .error-severity-badge {
+        font-size: 0.7rem !important;
+        padding: 4px 10px !important;
+    }
+    
+    table th,
+    table td {
+        padding: 10px 8px !important;
+        font-size: 0.8rem !important;
+    }
+}

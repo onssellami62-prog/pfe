@@ -224,20 +224,45 @@ namespace backend.Services
         {
             int categoryScore = 15;
             DateTime now = DateTime.UtcNow;
+            
+            // Comparer uniquement les dates (sans l'heure) pour éviter les problèmes de fuseau horaire
+            DateTime invoiceDateOnly = invoice.Date.Date;
+            DateTime todayDateOnly = now.Date;
 
-            // Validation date future
-            if (invoice.Date > now)
+            // Validation date future - CRITIQUE
+            if (invoiceDateOnly > todayDateOnly)
             {
                 result.Errors.Add(new ValidationError
                 {
                     Code = "ERR_DATE_001",
                     Field = "Date",
-                    Message = "La date de facture ne peut pas être dans le futur",
+                    Message = $"La date de facture ne peut pas être dans le futur (Date facture: {invoice.Date:dd/MM/yyyy}, Aujourd'hui: {now:dd/MM/yyyy})",
                     Severity = "Critique",
                     SuggestedSolution = $"Utilisez une date antérieure ou égale à aujourd'hui ({now:dd/MM/yyyy})",
-                    Points = 10
+                    Points = 15
                 });
-                categoryScore -= 10;
+                categoryScore -= 15;
+            }
+            
+            // Validation antidatation (modification vers le passé) - CRITIQUE
+            // Si la facture existe déjà (Id > 0) et que la date d'émission est antérieure à la date de création
+            if (invoice.Id > 0 && invoice.CreatedAt != default)
+            {
+                DateTime createdAtDateOnly = invoice.CreatedAt.Date;
+                
+                if (invoiceDateOnly < createdAtDateOnly)
+                {
+                    result.Errors.Add(new ValidationError
+                    {
+                        Code = "ERR_DATE_004",
+                        Field = "Date",
+                        Message = $"Antidatation détectée : la date d'émission ({invoice.Date:dd/MM/yyyy}) ne peut pas être antérieure à la date de création de la facture ({invoice.CreatedAt:dd/MM/yyyy})",
+                        Severity = "Critique",
+                        SuggestedSolution = $"La date d'émission doit être égale ou postérieure au {invoice.CreatedAt:dd/MM/yyyy}",
+                        Points = 15
+                    });
+                    categoryScore -= 15;
+                }
             }
 
             // Validation date d'échéance

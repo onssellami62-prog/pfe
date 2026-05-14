@@ -7,49 +7,49 @@ import InvoiceValidator from '../components/InvoiceValidator';
 const API = 'http://localhost:5170/api';
 
 const Icons = {
-    Check: () => (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-        </svg>
-    ),
-    Document: () => (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-        </svg>
-    ),
-    Save: () => (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <polyline points="17 21 17 13 7 13 7 21" />
-            <polyline points="7 3 7 8 15 8" />
-        </svg>
-    ),
-    Send: () => (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-        </svg>
-    ),
-    Copy: () => (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </svg>
-    ),
-    Download: () => (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-    ),
-    Clock: () => (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-        </svg>
-    )
+  Check: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  Document: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  ),
+  Save: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <polyline points="17 21 17 13 7 13 7 21" />
+      <polyline points="7 3 7 8 15 8" />
+    </svg>
+  ),
+  Send: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  ),
+  Copy: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  ),
+  Download: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  ),
+  Clock: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  )
 };
 
 const formatCurrency = (num) => {
@@ -58,7 +58,8 @@ const formatCurrency = (num) => {
 };
 
 export default function CreateInvoice() {
-  const today = new Date().toLocaleDateString('en-CA');
+  // Default to today's date for compliance and demo safety (Soutenance PFE)
+  const today = new Date().toISOString().split('T')[0];
 
   const [invoice, setInvoice] = useState({
     number: `FAC-${new Date().getFullYear()}-0001`,
@@ -83,7 +84,8 @@ export default function CreateInvoice() {
     name: 'EL FATOORA',
     address: 'Charguia 1, Tunis',
     matricule: '0000000/A/P/M/000',
-    rne: '--- --- ---'
+    rne: '--- --- ---',
+    activity: ''
   });
 
   const [companyId, setCompanyId] = useState(null);
@@ -97,6 +99,8 @@ export default function CreateInvoice() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveQrCode, setSaveQrCode] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPeriod, setShowPeriod] = useState(false);
 
   // Load user context + fetch clients/products/next invoice number
   useEffect(() => {
@@ -107,7 +111,8 @@ export default function CreateInvoice() {
       name: storedUser.entreprise || 'EL FATOORA',
       address: storedUser.address || 'Avenue Habib Bourguiba, 1001 Tunis',
       matricule: storedUser.matriculeFiscal || '0000000/A/P/M/000',
-      rne: storedUser.rne || '--- --- ---'
+      rne: storedUser.rne || '--- --- ---',
+      activity: storedUser.activity || ''
     });
 
     if (cid) {
@@ -119,10 +124,10 @@ export default function CreateInvoice() {
         .then(data => {
           if (data?.logoPath) setCompanyLogo(`http://localhost:5170/${data.logoPath}`);
           if (data?.rne) {
-            setIssuer(prev => ({ ...prev, rne: data.rne }));
+            setIssuer(prev => ({ ...prev, rne: data.rne, activity: data.activity || prev.activity }));
           }
         })
-        .catch(() => {});
+        .catch(() => { });
 
       // Fetch clients
       fetch(`${API}/Clients?companyId=${cid}`)
@@ -140,7 +145,7 @@ export default function CreateInvoice() {
       fetch(`${API}/Invoices/next-number?companyId=${cid}&year=${new Date().getFullYear()}`)
         .then(r => r.json())
         .then(data => setInvoice(prev => ({ ...prev, number: data.nextNumber })))
-        .catch(() => {});
+        .catch(() => { });
     }
   }, []);
 
@@ -161,8 +166,19 @@ export default function CreateInvoice() {
     }));
   }, [invoice.items]);
 
-  const handleClientSelection = (clientName) => {
-    const selected = clients.find(c => c.name === clientName);
+  const handleClientSelection = (clientId) => {
+    if (!clientId) {
+      setInvoice(prev => ({
+        ...prev,
+        clientId: null,
+        clientName: '',
+        clientMatricule: '',
+        clientRNE: '',
+        clientAddress: ''
+      }));
+      return;
+    }
+    const selected = clients.find(c => c.id === parseInt(clientId));
     if (selected) {
       setInvoice(prev => ({
         ...prev,
@@ -172,8 +188,6 @@ export default function CreateInvoice() {
         clientRNE: selected.rne || '',
         clientAddress: selected.address + (selected.city ? `, ${selected.city}` : '')
       }));
-    } else {
-      setInvoice(prev => ({ ...prev, clientName, clientId: null }));
     }
   };
 
@@ -184,6 +198,7 @@ export default function CreateInvoice() {
     }));
   };
 
+  /* 
   const addProductFromCatalogue = (product) => {
     setInvoice(prev => ({
       ...prev,
@@ -197,6 +212,7 @@ export default function CreateInvoice() {
       }]
     }));
   };
+  */
 
   const updateItem = (index, field, value) => {
     const newItems = [...invoice.items];
@@ -208,29 +224,23 @@ export default function CreateInvoice() {
     setInvoice(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== index) }));
   };
 
-  const handleProductSelection = (index, productName) => {
-    const selected = products.find(p => p.name === productName);
+  const handleProductSelection = (index, product) => {
     const newItems = [...invoice.items];
-    if (selected) {
-      newItems[index] = {
-        ...newItems[index],
-        productId: selected.id,
-        description: selected.name,
-        unit: selected.unit,
-        puht: parseFloat(selected.defaultPrice) || 0,
-        tvaRate: selected.tvaRate
-      };
-    } else {
-      newItems[index].description = productName;
-      newItems[index].productId = null;
-    }
+    newItems[index] = {
+      ...newItems[index],
+      productId: product.id,
+      description: product.name,
+      unit: product.unit,
+      puht: parseFloat(product.defaultPrice) || 0,
+      tvaRate: product.tvaRate
+    };
     setInvoice(prev => ({ ...prev, items: newItems }));
   };
 
   // Save invoice to database
-  const handleSaveInvoice = async () => {
+  const handleSaveInvoice = async (isSubmitting = false) => {
     if (!companyId) return alert('Erreur: Société non identifiée.');
-    if (!invoice.clientName) return alert('Veuillez sélectionner ou saisir un client.');
+    if (!invoice.clientId) return alert('Veuillez sélectionner un client enregistré dans votre référentiel.');
     if (invoice.items.length === 0) return alert('Ajoutez au moins une ligne produit/service.');
 
     setSaving(true);
@@ -272,7 +282,7 @@ export default function CreateInvoice() {
         body: JSON.stringify(payload)
       });
 
-      
+
       const responseData = await res.text();
 
       if (!res.ok) {
@@ -290,15 +300,20 @@ export default function CreateInvoice() {
       setSaveSuccess(true);
       if (saved && saved.id) {
         setInvoice(prev => ({ ...prev, number: saved.invoiceNumber, dbId: saved.id }));
-        
+
         // Generate QR code as a LINK to the full XML (to ensure 100% data preservation)
         const xmlLink = `${API}/Invoices/${saved.id}/xml`;
         const encodedLink = encodeURIComponent(xmlLink);
         setSaveQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=L&data=${encodedLink}`);
-        
+
+        // Show success modal with options
+        if (!isSubmitting) {
+          setShowSuccessModal(true);
+        }
+
         return saved.id;
       }
-      
+
       setTimeout(() => setSaveSuccess(false), 5000);
     } catch (err) {
       console.error('Save error:', err);
@@ -309,32 +324,36 @@ export default function CreateInvoice() {
   };
 
   const handleSubmissionFlow = async () => {
-    if (!invoice.clientName || !validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule))) {
-      alert('Erreur: Le matricule fiscal client est invalide ou absent. Format attendu : 1234567ABM000');
+    if (!invoice.clientId) {
+      alert('Erreur: Veuillez sélectionner un client enregistré dans votre référentiel.');
+      return;
+    }
+    if (!validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule))) {
+      alert('Erreur: Le matricule fiscal client est invalide. Format attendu : 1234567ABM000');
       return;
     }
 
     setStatus('validating');
-    
+
     try {
       // 1. Save if not already saved
       let currentDbId = invoice.dbId;
       if (!currentDbId) {
-        currentDbId = await handleSaveInvoice();
+        currentDbId = await handleSaveInvoice(true);
       }
-      
+
       if (!currentDbId) throw new Error("Impossible d'obtenir l'ID de la facture.");
 
       // 2. Real Signing Process
       setStatus('signing');
       const signRes = await fetch(`${API}/Invoices/${currentDbId}/sign`, { method: 'POST' });
-      
+
       if (!signRes.ok) {
         const errText = await signRes.text();
         throw new Error(errText || "Erreur lors de la signature.");
       }
-      
-      const signData = await signRes.json();
+
+      await signRes.json();
 
       // 3. Mock the Sending to TTN (since we don't have their real WS endpoint yet)
       setStatus('sending');
@@ -345,6 +364,7 @@ export default function CreateInvoice() {
           status: 'Validée & Signée',
           qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://fatoora.tn/verify/${Math.random().toString(36).substr(2, 6)}`
         });
+        setShowSuccessModal(true);
       }, 1500);
 
     } catch (error) {
@@ -363,19 +383,74 @@ export default function CreateInvoice() {
     downloadXml(generateTeifXml(issuer, invoice), `${invoice.number}.xml`);
   };
 
+  const handleCreateNewInvoice = () => {
+    // Reset invoice to initial state
+    const nextYear = new Date().getFullYear();
+
+    // Fetch next invoice number
+    if (companyId) {
+      fetch(`${API}/Invoices/next-number?companyId=${companyId}&year=${nextYear}`)
+        .then(r => r.json())
+        .then(data => {
+          setInvoice({
+            number: data.nextNumber,
+            documentType: '380',
+            date: new Date().toLocaleDateString('en-CA'),
+            dueDate: '',
+            paymentMode: 'Virement',
+            periodFrom: '',
+            periodTo: '',
+            clientId: null,
+            clientName: '',
+            clientMatricule: '',
+            clientRNE: '',
+            clientAddress: '',
+            notes: '',
+            items: [],
+            totals: { ht: 0, tva: 0, stamp: STAMP_DUTY, ttc: 0 },
+            dbId: null
+          });
+          setSaveQrCode(null);
+          setShowSuccessModal(false);
+          setShowPeriod(false);
+          setStatus('draft');
+          setTtnResponse(null);
+        })
+        .catch(() => {
+          // Fallback if API fails
+          setInvoice({
+            number: `FAC-${nextYear}-0001`,
+            documentType: '380',
+            date: new Date().toLocaleDateString('en-CA'),
+            dueDate: '',
+            paymentMode: 'Virement',
+            periodFrom: '',
+            periodTo: '',
+            clientId: null,
+            clientName: '',
+            clientMatricule: '',
+            clientRNE: '',
+            clientAddress: '',
+            notes: '',
+            items: [],
+            totals: { ht: 0, tva: 0, stamp: STAMP_DUTY, ttc: 0 },
+            dbId: null
+          });
+          setSaveQrCode(null);
+          setShowSuccessModal(false);
+          setShowPeriod(false);
+          setStatus('draft');
+          setTtnResponse(null);
+        });
+    }
+  };
+
+  const handleReturnToDashboard = () => {
+    window.location.href = '/dashboard';
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-8 font-['Plus_Jakarta_Sans'] bg-gray-50 min-h-screen">
-
-      {/* Save success notification */}
-      {saveSuccess && (
-        <div className="fixed top-6 right-6 z-50 bg-emerald-600 text-white px-8 py-5 rounded-2xl shadow-2xl font-bold flex items-center gap-4 animate-slideInRight border-b-4 border-emerald-800">
-          <div className="bg-white/20 p-2 rounded-full">✓</div>
-          <div>
-             <p className="text-sm">Enregistrement Réussi !</p>
-             <p className="text-[10px] opacity-75">La facture {invoice.number} est maintenant en base de données.</p>
-          </div>
-        </div>
-      )}
 
       {/* HEADER */}
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
@@ -393,15 +468,17 @@ export default function CreateInvoice() {
             </div>
             <div className="text-gray-500 text-sm leading-relaxed">
               <p className="font-bold text-gray-800">{issuer.name}</p>
+              {issuer.activity && (
+                <div className="inline-block bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase mb-1 tracking-wider border border-emerald-100">
+                  {issuer.activity}
+                </div>
+              )}
               <p>{issuer.address}</p>
               <p>Mat. Fiscal: <span className="font-mono text-emerald-700">{issuer.matricule}</span></p>
               <p>Numéro RNE: {issuer.rne}</p>
             </div>
           </div>
           <div className="text-right space-y-4">
-            <div className="inline-block bg-emerald-50 text-emerald-700 px-4 py-1 rounded-full text-xs font-bold tracking-widest border border-emerald-100">
-              DOCUMENT CONFORME TEIF v2.0
-            </div>
             <div className="space-y-1">
               <h2 className="text-gray-400 text-xs font-bold uppercase">Type de Document</h2>
               <select
@@ -421,21 +498,28 @@ export default function CreateInvoice() {
                 onChange={(e) => setInvoice({ ...invoice, number: e.target.value })}
               />
             </div>
-            <input 
+            <div className="space-y-1">
+              <h2 className="text-gray-400 text-xs font-bold uppercase flex justify-end gap-2 items-center">
+                Date d'émission
+                {invoice.date === today && <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter">Aujourd'hui</span>}
+              </h2>
+              <input
                 type="date"
                 className="text-sm text-gray-500 font-medium border-none p-0 focus:ring-0 text-right w-full bg-transparent outline-none"
                 value={invoice.date}
                 max={today}
+                min={today}
                 onChange={(e) => {
-                    const newDate = e.target.value;
-                    setInvoice(prev => ({
-                        ...prev,
-                        date: newDate,
-                        periodFrom: prev.periodFrom && prev.periodFrom > newDate ? newDate : prev.periodFrom,
-                        periodTo: prev.periodTo && prev.periodTo > newDate && !prev.periodTo.startsWith('20') ? newDate : prev.periodTo // Allow future if deliberately future
-                    }));
+                  const newDate = e.target.value;
+                  setInvoice(prev => ({
+                    ...prev,
+                    date: newDate,
+                    periodFrom: prev.periodFrom && prev.periodFrom > newDate ? newDate : prev.periodFrom,
+                    periodTo: prev.periodTo && prev.periodTo > newDate && !prev.periodTo.startsWith('20') ? newDate : prev.periodTo // Allow future if deliberately future
+                  }));
                 }}
-            />
+              />
+            </div>
           </div>
         </div>
 
@@ -445,71 +529,111 @@ export default function CreateInvoice() {
           <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
             <h3 className="text-xs font-extrabold text-emerald-700 uppercase tracking-widest mb-4">Informations Client</h3>
             <div className="space-y-4">
+
+              {/* SELECT obligatoire depuis la base */}
               <div className="relative">
-                <input
-                  list="clients-list"
-                  placeholder="Sélectionner ou saisir un Client"
-                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none font-bold"
-                  value={invoice.clientName}
+                <select
+                  className={`w-full bg-white border rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none font-bold appearance-none cursor-pointer ${!invoice.clientId ? 'border-orange-300 text-gray-400' : 'border-emerald-300 text-gray-900'}`}
+                  value={invoice.clientId || ''}
                   onChange={(e) => handleClientSelection(e.target.value)}
-                />
-                <datalist id="clients-list">
-                  {clients.map(c => <option key={c.id} value={c.name} />)}
-                </datalist>
-              </div>
-              <div className="relative">
-                <input
-                  placeholder="Matricule Fiscal (1234567ABM000) *"
-                  className={`w-full bg-white border rounded-lg px-4 py-2 text-sm focus:ring-4 font-mono transition-all outline-none ${invoice.clientMatricule && !validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) ? 'border-red-500 focus:ring-red-100' : 'border-gray-200 focus:ring-emerald-100'}`}
-                  value={invoice.clientMatricule}
-                  onChange={(e) => setInvoice({ ...invoice, clientMatricule: normalizeMatricule(e.target.value) })}
-                  maxLength={13}
-                />
-                {invoice.clientMatricule && (
-                  <div className={`mt-1 text-[10px] font-bold ${validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {validateMatriculeFiscal(normalizeMatricule(invoice.clientMatricule)) 
-                      ? `✓ Format valide : ${formatMatriculeDisplay(invoice.clientMatricule)}` 
-                      : `⚠ Format invalide (7 chiffres + 3 lettres + 3 chiffres)`}
+                  required
+                >
+                  <option value="">-- Sélectionner un client enregistré *</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.matriculeFiscal}
+                    </option>
+                  ))}
+                </select>
+                {clients.length === 0 && (
+                  <div className="mt-1 text-[10px] font-bold text-orange-500">
+                    ⚠ Aucun client enregistré. Veuillez d'abord ajouter un client dans le référentiel.
+                  </div>
+                )}
+                {!invoice.clientId && clients.length > 0 && (
+                  <div className="mt-1 text-[10px] font-bold text-orange-500">
+                    ⚠ La sélection d'un client enregistré est obligatoire.
+                  </div>
+                )}
+                {invoice.clientId && (
+                  <div className="mt-1 text-[10px] font-bold text-emerald-600">
+                    ✓ Client sélectionné depuis le référentiel
                   </div>
                 )}
               </div>
-              <input
-                placeholder="Numéro RNE (Facultatif)"
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:ring-4 focus:ring-emerald-100 transition-all outline-none"
-                value={invoice.clientRNE}
-                onChange={(e) => setInvoice({ ...invoice, clientRNE: e.target.value })}
-              />
-              <textarea
-                placeholder="Adresse du Client"
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:ring-4 focus:ring-emerald-100 transition-all outline-none resize-none"
-                rows="2"
-                value={invoice.clientAddress}
-                onChange={(e) => setInvoice({ ...invoice, clientAddress: e.target.value })}
-              />
+
+              {/* Champs auto-remplis en lecture seule */}
+              {invoice.clientId && (
+                <>
+                  <div className="relative">
+                    <input
+                      readOnly
+                      placeholder="Matricule Fiscal"
+                      className="w-full bg-gray-100 border border-emerald-200 rounded-lg px-4 py-2 text-sm font-mono font-bold text-emerald-700 outline-none cursor-not-allowed"
+                      value={formatMatriculeDisplay(invoice.clientMatricule)}
+                    />
+                    <div className="mt-1 text-[10px] font-bold text-emerald-600">
+                      ✓ Format valide : {formatMatriculeDisplay(invoice.clientMatricule)}
+                    </div>
+                  </div>
+                  <input
+                    readOnly
+                    placeholder="Numéro RNE"
+                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-sm outline-none cursor-not-allowed text-gray-600"
+                    value={invoice.clientRNE || '—'}
+                  />
+                  <textarea
+                    readOnly
+                    placeholder="Adresse du Client"
+                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-sm outline-none resize-none cursor-not-allowed text-gray-600"
+                    rows="2"
+                    value={invoice.clientAddress}
+                  />
+                </>
+              )}
             </div>
           </div>
 
           {/* Period & Payment */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-5">
             {/* PÉRIODE DE FACTURATION */}
-            <div>
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Période de Facturation</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-semibold text-slate-600 uppercase">Du</label>
-                  <input type="date" className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition-all"
-                    value={invoice.periodFrom}
-                    onChange={e => setInvoice({ ...invoice, periodFrom: e.target.value })} />
+            {!showPeriod ? (
+              <div className="flex flex-col items-center justify-center py-2 border border-dashed border-slate-300 rounded-lg hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group cursor-pointer"
+                onClick={() => setShowPeriod(true)}>
+                <span className="text-[10px] font-bold text-slate-400 group-hover:text-emerald-600 uppercase tracking-widest">+ Ajouter une période</span>
+              </div>
+            ) : (
+              <div className="animate-fadeIn">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Période de Facturation</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPeriod(false);
+                      setInvoice(prev => ({ ...prev, periodFrom: '', periodTo: '' }));
+                    }}
+                    className="text-[9px] font-bold text-red-500 uppercase hover:underline"
+                  >
+                    Retirer
+                  </button>
                 </div>
-                
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-semibold text-slate-600 uppercase">Au</label>
-                  <input type="date" className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition-all"
-                    value={invoice.periodTo}
-                    onChange={e => setInvoice({ ...invoice, periodTo: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase">Du</label>
+                    <input type="date" className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                      value={invoice.periodFrom}
+                      onChange={e => setInvoice({ ...invoice, periodFrom: e.target.value })} />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase">Au</label>
+                    <input type="date" className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                      value={invoice.periodTo}
+                      onChange={e => setInvoice({ ...invoice, periodTo: e.target.value })} />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* DIVIDER */}
             <div className="h-px bg-slate-200"></div>
@@ -524,7 +648,7 @@ export default function CreateInvoice() {
                     value={invoice.dueDate}
                     onChange={e => setInvoice({ ...invoice, dueDate: e.target.value })} />
                 </div>
-                
+
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-semibold text-slate-600 uppercase">Paiement</label>
                   <select className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
@@ -540,8 +664,8 @@ export default function CreateInvoice() {
             </div>
           </div>
 
-          {/* Signature */}
-          <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center relative overflow-hidden">
+          {/* Signature - CACHÉ */}
+          <div style={{ display: 'none' }} className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center relative overflow-hidden">
             <div className="text-center z-10">
               <h3 className="text-xs font-extrabold text-emerald-700 uppercase tracking-widest mb-2">Signature Digigo</h3>
               {status === 'signing' ? (
@@ -565,15 +689,6 @@ export default function CreateInvoice() {
           </div>
         </div>
 
-        {/* PRODUCT DATALIST FOR AUTO-COMPLETE */}
-        <datalist id="products-list">
-          {products.map(p => (
-            <option key={p.id} value={p.name}>
-              {parseFloat(p.defaultPrice).toFixed(3)} DT ({p.tvaRate}% TVA)
-            </option>
-          ))}
-        </datalist>
-
         {/* ITEMS TABLE */}
         <div className="mb-8 overflow-hidden rounded-xl border border-gray-100 shadow-sm">
           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -591,14 +706,32 @@ export default function CreateInvoice() {
             <tbody className="divide-y divide-gray-50 bg-white">
               {invoice.items.map((item, index) => (
                 <tr key={index} className="hover:bg-emerald-50/30 transition-colors group">
-                  <td className="px-6 py-4">
-                    <input
-                      list="products-list"
-                      className="bg-transparent border-none p-0 focus:ring-0 w-full font-bold text-gray-800 placeholder-gray-300"
-                      placeholder="Désignation de l'article..."
-                      value={item.description}
-                      onChange={(e) => handleProductSelection(index, e.target.value)}
-                    />
+                  <td className="px-6 py-4 relative">
+                    <div className="relative">
+                      <select
+                        className="w-full bg-white border-2 border-gray-200 rounded-lg px-4 py-2.5 pr-10 font-semibold text-gray-800 appearance-none cursor-pointer hover:border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                        value={item.productId || ''}
+                        onChange={(e) => {
+                          const selectedProduct = products.find(p => p.id === parseInt(e.target.value));
+                          if (selectedProduct) {
+                            handleProductSelection(index, selectedProduct);
+                          }
+                        }}
+                      >
+                        <option value="">Sélectionner un produit...</option>
+                        {products.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                      {/* Flèche personnalisée */}
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-gray-500">
+                          <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-4 w-28">
                     <select
@@ -755,11 +888,11 @@ export default function CreateInvoice() {
               <Icons.Document /> Aperçu TEIF
             </button>
             <button
-              onClick={handleSaveInvoice}
-              disabled={saving}
-              className={`flex-none font-black text-[10px] py-3 px-5 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-2 ${saving ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:-translate-y-1'}`}
+              onClick={() => handleSaveInvoice(false)}
+              disabled={saving || (invoice.dbId && status !== 'success')}
+              className={`flex-none font-black text-[10px] py-3 px-5 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-2 ${saving || (invoice.dbId && status !== 'success') ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:-translate-y-1'}`}
             >
-              {saving ? <><Icons.Clock /> ...</> : <><Icons.Save /> Enregistrer</>}
+              {saving ? <><Icons.Clock /> ...</> : invoice.dbId ? <><Icons.Check /> Enregistrée</> : <><Icons.Save /> Enregistrer</>}
             </button>
             <button
               onClick={handleSubmissionFlow}
@@ -818,7 +951,7 @@ export default function CreateInvoice() {
               >✕ FERMER</button>
             </div>
             <div className="flex-1 overflow-auto">
-              <InvoiceValidator 
+              <InvoiceValidator
                 key={Date.now()}
                 invoice={{
                   ...invoice,
@@ -832,6 +965,86 @@ export default function CreateInvoice() {
                 }}
                 onClose={() => setShowValidator(false)}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUCCESS MODAL - After Save */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn my-auto">
+            {/* Header with success indicator */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-6 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-3 shadow-lg">
+                <svg className="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1">
+                {ttnResponse ? 'Signée et envoyée au TTN avec succès !' : 'Facture Enregistrée !'}
+              </h2>
+              <p className="text-emerald-50 text-xs font-bold font-mono">
+                {invoice.number}
+              </p>
+            </div>
+
+            {/* Body with message */}
+            <div className="p-6 text-center">
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="flex-shrink-0 w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-[10px] font-black text-amber-900 uppercase tracking-widest">
+                      Statut : {ttnResponse ? 'Facture Validée' : 'Brouillon Enregistré'}
+                    </h3>
+                    <p className="text-xs text-amber-800 leading-tight">
+                      {ttnResponse 
+                        ? "Transmis au TTN avec succès."
+                        : "Facture enregistrée avec succès en attendant la signature et l'envoi au TTN."
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-4">
+                Actions Disponibles
+              </p>
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={handleReturnToDashboard}
+                  className="group bg-white border-2 border-gray-300 text-gray-700 font-black text-sm py-4 px-6 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all uppercase tracking-wider flex items-center justify-center gap-3 shadow-sm"
+                >
+                  <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Retour Dashboard
+                </button>
+
+                <button
+                  onClick={handleCreateNewInvoice}
+                  className="group bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-sm py-4 px-6 rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                >
+                  <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Créer une Autre Facture
+                </button>
+              </div>
+            </div>
+
+            {/* Footer note */}
+            <div className="bg-gray-50 px-8 py-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500 text-center font-medium">
+                💡 Vous pouvez retrouver cette facture dans votre liste de factures pour la signer et l'envoyer plus tard.
+              </p>
             </div>
           </div>
         </div>

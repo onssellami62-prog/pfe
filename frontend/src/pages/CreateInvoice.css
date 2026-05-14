@@ -16,3 +16,170 @@
 .bg-\[\#1e1e1e\] { background: #edf0f4 !important; padding: 40px !important; }
 .bg-\[\#1e1e1e\] pre { color: #0f4c3a !important; font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important; }
 button.bg-blue-600 { background: linear-gradient(135deg, #0f4c3a, #0d3f30) !important; border-radius: 12px !important; transition: all 0.2s !important; }
+
+
+/* Responsive Design - CreateInvoice adaptable à tous les écrans */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .max-w-6xl {
+        max-width: 100% !important;
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .max-w-6xl {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+        padding-top: 24px !important;
+    }
+    
+    /* Grilles responsive */
+    .grid.grid-cols-2,
+    .grid.grid-cols-3,
+    .grid.grid-cols-4 {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    /* Boutons responsive */
+    .flex.gap-3,
+    .flex.gap-4 {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .flex.gap-3 button,
+    .flex.gap-4 button {
+        width: 100% !important;
+    }
+    
+    /* Textes responsive */
+    .text-3xl {
+        font-size: 1.5rem !important;
+    }
+    
+    .text-2xl {
+        font-size: 1.25rem !important;
+    }
+    
+    .text-xl {
+        font-size: 1.1rem !important;
+    }
+    
+    /* Padding responsive */
+    .p-8 {
+        padding: 20px !important;
+    }
+    
+    .p-6 {
+        padding: 16px !important;
+    }
+    
+    .p-5 {
+        padding: 14px !important;
+    }
+    
+    /* Modal responsive */
+    .rounded-3xl {
+        border-radius: 16px !important;
+        max-width: calc(100vw - 32px) !important;
+    }
+    
+    .bg-\[\#1e1e1e\] {
+        padding: 20px !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .max-w-6xl {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        padding-top: 20px !important;
+    }
+    
+    .text-3xl {
+        font-size: 1.3rem !important;
+    }
+    
+    .text-2xl {
+        font-size: 1.15rem !important;
+    }
+    
+    .text-xl {
+        font-size: 1rem !important;
+    }
+    
+    .p-8 {
+        padding: 16px !important;
+    }
+    
+    .p-6 {
+        padding: 14px !important;
+    }
+    
+    .p-5 {
+        padding: 12px !important;
+    }
+    
+    /* Boutons plus petits */
+    button {
+        font-size: 0.85rem !important;
+        padding: 10px 16px !important;
+    }
+    
+    /* Inputs plus petits */
+    input,
+    select,
+    textarea {
+        font-size: 0.9rem !important;
+        padding: 10px 12px !important;
+    }
+    
+    /* Tables responsive */
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    table thead,
+    table tbody,
+    table tr,
+    table th,
+    table td {
+        display: block;
+    }
+    
+    table thead {
+        display: none;
+    }
+    
+    table tr {
+        margin-bottom: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 12px;
+    }
+    
+    table td {
+        text-align: right;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    table td:before {
+        content: attr(data-label);
+        float: left;
+        font-weight: 600;
+        color: #64748b;
+    }
+    
+    table td:last-child {
+        border-bottom: none;
+    }
+}

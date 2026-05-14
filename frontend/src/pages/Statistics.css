@@ -298,3 +298,100 @@
     .stats-header { flex-direction: column; gap: 16px; align-items: flex-start; }
     .header-controls { width: 100%; }
 }
+
+
+/* ========================================
+   RESPONSIVE DESIGN - STATISTICS
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .statistics-container {
+        padding: 20px !important;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .statistics-container {
+        padding: 16px !important;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .statistics-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .date-range-picker {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .date-range-picker input {
+        width: 100% !important;
+    }
+    
+    .chart-container {
+        padding: 16px !important;
+        height: 300px !important;
+    }
+    
+    .stat-card {
+        padding: 16px !important;
+    }
+    
+    .export-buttons {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .export-buttons button {
+        width: 100% !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .statistics-container {
+        padding: 12px !important;
+    }
+    
+    .statistics-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .stat-card {
+        padding: 14px !important;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem !important;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem !important;
+    }
+    
+    .chart-container {
+        height: 250px !important;
+        padding: 12px !important;
+    }
+    
+    .chart-title {
+        font-size: 0.9rem !important;
+    }
+}

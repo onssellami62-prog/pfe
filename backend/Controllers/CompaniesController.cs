@@ -164,6 +164,7 @@ namespace backend.Controllers
             company.Phone = updatedCompany.Phone;
             company.Email = updatedCompany.Email;
             company.RNE = updatedCompany.RNE;
+            company.Activity = updatedCompany.Activity;
 
             await _context.SaveChangesAsync();
 

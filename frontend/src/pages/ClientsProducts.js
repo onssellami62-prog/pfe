@@ -53,8 +53,9 @@ const Icons = {
   )
 };
 
-export default function ClientsProducts({ searchTerm }) {
-  const [activeTab, setActiveTab] = useState('clients'); // 'clients' | 'products'
+export default function ClientsProducts({ searchTerm, initialTab = 'clients', singleView = false }) {
+  const normalizeInitialTab = (tab) => (tab === 'products' ? 'products' : 'clients');
+  const [activeTab, setActiveTab] = useState(() => normalizeInitialTab(initialTab)); // 'clients' | 'products'
   const [companyId, setCompanyId] = useState(null);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
@@ -82,6 +83,14 @@ export default function ClientsProducts({ searchTerm }) {
       setCompanyId(user.companyId);
     }
   }, []);
+
+  useEffect(() => {
+    setActiveTab(normalizeInitialTab(initialTab));
+    setShowModal(false);
+    setEditMode(false);
+    setCurrentItem(null);
+    setMfError(null);
+  }, [initialTab]);
 
   const fetchClients = useCallback(async () => {
     if (!companyId) return;
@@ -184,7 +193,10 @@ export default function ClientsProducts({ searchTerm }) {
       return showToast(mfErr, 'error');
     }
 
-    if (!clientForm.rne.trim()) return showToast('Le numéro RNE est obligatoire', 'error');
+    const rneRegex = /^\d{7}[A-Z]$/;
+    if (!clientForm.rne || !rneRegex.test(clientForm.rne)) {
+      return showToast("Format RNE invalide (Ex: 1234567A)", 'error');
+    }
 
     const payload = { ...clientForm, matriculeFiscal: mf, companyId };
     const url = editMode ? `${API}/Clients/${currentItem.id}` : `${API}/Clients?userId=${JSON.parse(sessionStorage.getItem('user') || '{}').userId || ''}`;
@@ -264,7 +276,9 @@ export default function ClientsProducts({ searchTerm }) {
       <div className="cp-header">
         <div>
           <h1 className="cp-title">Référentiel</h1>
-          <p className="cp-subtitle">Gérez vos clients et votre catalogue produits</p>
+          <p className="cp-subtitle">
+            {activeTab === 'clients' ? 'Gérez vos clients' : 'Gérez votre catalogue produits'}
+          </p>
         </div>
         <button className="cp-btn-primary" onClick={openCreateModal}>
           + {activeTab === 'clients' ? 'Nouveau Client' : 'Nouveau Produit'}
@@ -272,24 +286,26 @@ export default function ClientsProducts({ searchTerm }) {
       </div>
 
       {/* Tabs */}
-      <div className="cp-tabs">
-        <button
-          className={`cp-tab ${activeTab === 'clients' ? 'cp-tab--active' : ''}`}
-          onClick={() => setActiveTab('clients')}
-        >
-          <span className="cp-tab-icon"><Icons.User /></span>
-          Clients
-          <span className="cp-badge">{clients.length}</span>
-        </button>
-        <button
-          className={`cp-tab ${activeTab === 'products' ? 'cp-tab--active' : ''}`}
-          onClick={() => setActiveTab('products')}
-        >
-          <span className="cp-tab-icon"><Icons.Box /></span>
-          Produits & Services
-          <span className="cp-badge">{products.length}</span>
-        </button>
-      </div>
+      {!singleView && (
+        <div className="cp-tabs">
+          <button
+            className={`cp-tab ${activeTab === 'clients' ? 'cp-tab--active' : ''}`}
+            onClick={() => setActiveTab('clients')}
+          >
+            <span className="cp-tab-icon"><Icons.User /></span>
+            Clients
+            <span className="cp-badge">{clients.length}</span>
+          </button>
+          <button
+            className={`cp-tab ${activeTab === 'products' ? 'cp-tab--active' : ''}`}
+            onClick={() => setActiveTab('products')}
+          >
+            <span className="cp-tab-icon"><Icons.Box /></span>
+            Produits & Services
+            <span className="cp-badge">{products.length}</span>
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       <div className="cp-content">
@@ -419,16 +435,20 @@ export default function ClientsProducts({ searchTerm }) {
                       <span className="cp-field-ok"><Icons.Check /> Format valide</span>
                     )}
                   </div>
-                  <div className="cp-form-group">
-                    <label>Numéro RNE *</label>
-                    <input
-                      type="text"
-                      placeholder="Identifiant RNE"
-                      value={clientForm.rne}
-                      className={!clientForm.rne && editMode ? 'cp-input-error' : ''}
-                      onChange={e => setClientForm({ ...clientForm, rne: e.target.value })}
-                    />
-                  </div>
+                    <div className="cp-form-group">
+                      <label>Numéro RNE * <span className="cp-mf-format">7 chiffres + 1 lettre</span></label>
+                      <input
+                        type="text"
+                        placeholder="Ex: 1234567A"
+                        value={clientForm.rne}
+                        maxLength="8"
+                        className={`cp-mono-input ${clientForm.rne && /^\d{7}[A-Z]$/.test(clientForm.rne) ? 'cp-input-valid' : 'cp-input-error'}`}
+                        onChange={e => setClientForm({ ...clientForm, rne: e.target.value.toUpperCase() })}
+                      />
+                      {clientForm.rne && !/^\d{7}[A-Z]$/.test(clientForm.rne) && (
+                        <span className="cp-field-error"><Icons.Alert /> Format requis: 7 chiffres + 1 lettre</span>
+                      )}
+                    </div>
                   <div className="cp-form-group">
                     <label>Adresse</label>
                     <input

@@ -124,3 +124,101 @@
 .status-info h4 { margin: 0 0 0.25rem 0; font-size: 0.95rem; color: #334155; }
 .status-info p { margin: 0; font-size: 0.8rem; color: #94a3b8; }
 .status-badge-orange { background: rgba(245,158,11,0.15); color: #fbbf24; padding: 0.375rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+
+
+/* ========================================
+   RESPONSIVE DESIGN - TAX DECLARATION
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .tax-container {
+        padding: 20px !important;
+    }
+    
+    .tax-summary-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .tax-container {
+        padding: 16px !important;
+    }
+    
+    .tax-summary-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .tax-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .period-selector {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .period-selector select {
+        width: 100% !important;
+    }
+    
+    .tax-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .tax-table {
+        min-width: 600px;
+    }
+    
+    .tax-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .tax-actions button {
+        width: 100% !important;
+    }
+    
+    .tax-card {
+        padding: 16px !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .tax-container {
+        padding: 12px !important;
+    }
+    
+    .tax-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .tax-card {
+        padding: 14px !important;
+    }
+    
+    .tax-amount {
+        font-size: 1.5rem !important;
+    }
+    
+    .tax-label {
+        font-size: 0.75rem !important;
+    }
+    
+    table th,
+    table td {
+        padding: 10px 8px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .btn {
+        font-size: 0.85rem !important;
+        padding: 10px 14px !important;
+    }
+}

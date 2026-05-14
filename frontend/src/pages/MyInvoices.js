@@ -81,7 +81,7 @@ export default function MyInvoices({ onNewInvoice }) {
     const [statusFilter, setStatusFilter] = useState('Tous les statuts');
     const [companyLogo, setCompanyLogo] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
- 
+
     useEffect(() => {
         const user = JSON.parse(sessionStorage.getItem('user') || '{}');
         if (!user.companyId) return;
@@ -90,7 +90,7 @@ export default function MyInvoices({ onNewInvoice }) {
             .then(data => {
                 if (data?.logoPath) setCompanyLogo(`http://localhost:5170/${data.logoPath}`);
             })
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     const closeModal = () => setSelectedInvoice(null);
@@ -235,7 +235,7 @@ export default function MyInvoices({ onNewInvoice }) {
                 </div>
             </div>
 
-            <InvoicePreviewModal 
+            <InvoicePreviewModal
                 isOpen={!!selectedInvoice}
                 onClose={closeModal}
                 invoice={selectedInvoice ? {

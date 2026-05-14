@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import './TaxDeclaration.css';
 
 const API = 'http://localhost:5170/api';
@@ -43,6 +45,8 @@ const Icons = {
 export default function TaxDeclaration() {
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     const companyId = user.companyId;
+    const pageRef = useRef(null);
+    const [exporting, setExporting] = useState(false);
 
     const [selectedPeriod, setSelectedPeriod] = useState(() => {
         const now = new Date();
@@ -99,8 +103,33 @@ export default function TaxDeclaration() {
         details: []
     };
 
+    const handleExportPDF = async () => {
+        if (!pageRef.current || exporting) return;
+        setExporting(true);
+        try {
+            const [m, y] = selectedPeriod.split('-');
+            const periodLabel = new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+            const canvas = await html2canvas(pageRef.current, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfW = pdf.internal.pageSize.getWidth();
+            const pdfH = (canvas.height * pdfW) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+            pdf.save(`Declaration_Fiscale_${periodLabel.replace(' ', '_')}.pdf`);
+        } catch (err) {
+            console.error('Export PDF error:', err);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
-        <div className="tax-declaration">
+        <div className="tax-declaration" ref={pageRef}>
             {/* Header section with title and month selector */}
             <header className="tax-header">
                 <h1>Déclaration Fiscale Mensuelle</h1>
@@ -157,11 +186,13 @@ export default function TaxDeclaration() {
                         <p>Répartition de la TVA par taux et droits de timbre</p>
                     </div>
                     <div className="header-actions">
-                        <button className="btn-secondary">
-                            <span className="icon"><Icons.Document /></span> Télécharger le Récapitulatif PDF
-                        </button>
-                        <button className="btn-primary">
-                            <span className="icon"><Icons.Download /></span> Générer le Fichier de Déclaration
+                        <button
+                            className="btn-primary"
+                            onClick={handleExportPDF}
+                            disabled={exporting}
+                        >
+                            <span className="icon"><Icons.Download /></span>
+                            {exporting ? 'Export en cours...' : 'Télécharger le Récapitulatif PDF'}
                         </button>
                     </div>
                 </div>

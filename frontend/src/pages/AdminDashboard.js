@@ -231,6 +231,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [userModal, setUserModal] = useState({ isOpen: false, data: null, mode: 'edit' });
   const [companyModal, setCompanyModal] = useState({ isOpen: false, data: null, mode: 'edit' });
   const [certModal, setCertModal] = useState({ isOpen: false, data: null, mode: 'edit' });
+  const [companyDetailModal, setCompanyDetailModal] = useState({ isOpen: false, data: null });
 
   // Notifications logic
   const pendingUsersCount = usersList.filter(u => u.status === 'Pending').length;
@@ -283,6 +284,9 @@ const AdminDashboard = ({ user, onLogout }) => {
       }
     }
 
+    const rneValue = formData.get('rne')?.trim();
+    const rneRegex = /^\d{7}[A-Z]$/;
+
     const updatedData = {
       ...userModal.data,
       name: formData.get('name'),
@@ -292,9 +296,14 @@ const AdminDashboard = ({ user, onLogout }) => {
       role: formData.get('role'),
       entreprise: formData.get('entreprise'),
       matriculeFiscal: formData.get('matriculeFiscal'),
-      rne: formData.get('rne'),
+      rne: rneValue,
       username: formData.get('email'),
     };
+
+    if (updatedData.role?.toLowerCase() !== 'admin' && (!rneValue || !rneRegex.test(rneValue))) {
+      alert("Format RNE invalide. Il doit être composé de 7 chiffres suivis d'une lettre majuscule (ex: 1234567A).");
+      return;
+    }
 
     // Validation changement mot de passe admin (ancien + nouveau requis ensemble)
     if (userModal.mode === 'edit' && userModal.data.role?.toLowerCase() === 'admin') {
@@ -407,6 +416,12 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const handleSaveCompany = async (e) => {
     e.preventDefault();
+    const rneRegex = /^\d{7}[A-Z]$/;
+    if (!companyModal.data.rne || !rneRegex.test(companyModal.data.rne)) {
+      alert("Format RNE invalide. Il doit être composé de 7 chiffres suivis d'une lettre majuscule (ex: 1234567A).");
+      return;
+    }
+    
     if (!validateMatriculeFiscal(companyModal.data.registrationNumber)) {
       alert(`Erreur : Le Matricule Fiscal est invalide. Format attendu : ${MF_FORMAT_DISPLAY} (13 caractères sans /)`);
       return;
@@ -794,8 +809,23 @@ const AdminDashboard = ({ user, onLogout }) => {
                           </select>
                         </div>
                         <div className="form-row">
-                          <label>Numéro RNE</label>
-                          <input name="rne" type="text" value={companyModal.data.rne || ''} onChange={(e) => setCompanyModal({ ...companyModal, data: { ...companyModal.data, rne: e.target.value } })} />
+                          <label>Numéro RNE (7 chiffres + 1 lettre)</label>
+                          <input 
+                            name="rne" 
+                            type="text" 
+                            value={companyModal.data.rne || ''} 
+                            placeholder="Ex: 1234567A"
+                            maxLength="8"
+                            style={{ 
+                              border: companyModal.data.rne && !/^\d{7}[A-Z]$/.test(companyModal.data.rne) ? '1px solid #ef4444' : '',
+                              fontFamily: 'monospace'
+                            }}
+                            onChange={(e) => setCompanyModal({ ...companyModal, data: { ...companyModal.data, rne: e.target.value.toUpperCase() } })} 
+                            required
+                          />
+                          {companyModal.data.rne && !/^\d{7}[A-Z]$/.test(companyModal.data.rne) && (
+                            <small style={{ color: '#ef4444' }}>Format requis : 7 chiffres + 1 lettre majuscule</small>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -925,8 +955,17 @@ const AdminDashboard = ({ user, onLogout }) => {
                           <input name="matriculeFiscal" type="text" defaultValue={userModal.data.matriculeFiscal} maxLength="13" minLength="13" placeholder="1234567XAM000" required disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'} />
                         </div>
                         <div className="form-row">
-                          <label>Numéro RNE</label>
-                          <input name="rne" type="text" defaultValue={userModal.data.rne} placeholder="Identifiant RNE" disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'} />
+                          <label>Numéro RNE (7 chiffres + 1 lettre)</label>
+                          <input 
+                            name="rne" 
+                            type="text" 
+                            defaultValue={userModal.data.rne} 
+                            placeholder="Ex: 1234567A" 
+                            maxLength="8"
+                            pattern="\d{7}[A-Z]"
+                            required
+                            disabled={userModal.data.status === 'Archived' || userModal.data.status === 'Refused'} 
+                          />
                         </div>
                         </>
                         )}
@@ -1020,13 +1059,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   </div>
                 </div>
               ))}
-              <div className="report-card">
-                <div>
-                  <h4>Quick Reports</h4>
-                  <h3>Générer le rapport fiscal trimestriel</h3>
-                </div>
-                <button className="btn-download">Télécharger PDF</button>
-              </div>
+
             </div>
 
             <div className="main-grid">
@@ -1194,9 +1227,18 @@ const AdminDashboard = ({ user, onLogout }) => {
                       </td>
                       <td>
                         {c.isArchived ? (
-                           <button className="btn-table-action btn-success-action" onClick={() => handleUnarchiveCompany(c.id)}>Restaurer</button>
+                          <div className="flex-actions-table">
+                            <button className="btn-table-action" onClick={() => setCompanyDetailModal({ isOpen: true, data: c })}>
+                              <Icons.Gear /> Voir Détails
+                            </button>
+                            <button className="btn-table-action btn-success-action" onClick={() => handleUnarchiveCompany(c.id)}>Restaurer</button>
+                          </div>
                         ) : (
-                           <button className="btn-table-action" onClick={() => setActiveNav('companies')}>Détails</button>
+                          <div className="flex-actions-table">
+                            <button className="btn-table-action" onClick={() => setCompanyDetailModal({ isOpen: true, data: c })}>
+                              <Icons.Gear /> Voir Détails
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -1204,6 +1246,123 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </tbody>
               </table>
             </div>
+
+            {/* MODALE DÉTAILS SOCIÉTÉ */}
+            {companyDetailModal.isOpen && companyDetailModal.data && (
+              <div className="admin-modal-overlay" onClick={() => setCompanyDetailModal({ isOpen: false, data: null })}>
+                <div className="admin-modal-content" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h3>Détails de la Société</h3>
+                    <button className="close-btn" onClick={() => setCompanyDetailModal({ isOpen: false, data: null })}>✕</button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="edit-form">
+
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                        <span className={`status-badge-admin ${companyDetailModal.data.isArchived ? 'status-archived' : 'status-valid'}`}>
+                          {companyDetailModal.data.isArchived ? <><Icons.Lock /> Archivée</> : <><Icons.Check /> Active</>}
+                        </span>
+                      </div>
+
+                      <div className="form-row">
+                        <label>Nom de la Société</label>
+                        <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontWeight: '600', color: '#1e293b' }}>
+                          {companyDetailModal.data.name || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <label>Identifiant Fiscal (Matricule)</label>
+                        <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: '700', color: '#059669', letterSpacing: '1px' }}>
+                          {companyDetailModal.data.registrationNumber || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <label>Numéro RNE</label>
+                        <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                          {companyDetailModal.data.rne || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <label>Adresse</label>
+                        <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                          {companyDetailModal.data.address || '—'}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-row">
+                          <label>Ville</label>
+                          <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                            {companyDetailModal.data.city || '—'}
+                          </div>
+                        </div>
+                        <div className="form-row">
+                          <label>Code Postal</label>
+                          <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                            {companyDetailModal.data.postalCode || '—'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-row">
+                          <label>Téléphone</label>
+                          <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                            {companyDetailModal.data.phone || '—'}
+                          </div>
+                        </div>
+                        <div className="form-row">
+                          <label>Email</label>
+                          <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                            {companyDetailModal.data.email || '—'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <label>Statut Certificat</label>
+                        <div style={{ padding: '10px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#15803d', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Icons.Check /> Valide
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <div className="footer-right">
+                      {companyDetailModal.data.isArchived && (
+                        <button
+                          className="btn-save"
+                          style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+                          onClick={() => {
+                            handleUnarchiveCompany(companyDetailModal.data.id);
+                            setCompanyDetailModal({ isOpen: false, data: null });
+                          }}
+                        >
+                          Restaurer la société
+                        </button>
+                      )}
+                      {!companyDetailModal.data.isArchived && (
+                        <button
+                          className="btn-save"
+                          onClick={() => {
+                            setCompanyDetailModal({ isOpen: false, data: null });
+                            openCompanyModal('edit', companyDetailModal.data);
+                          }}
+                        >
+                          Modifier
+                        </button>
+                      )}
+                      <button className="btn-cancel" onClick={() => setCompanyDetailModal({ isOpen: false, data: null })}>Fermer</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </>
         );
     }

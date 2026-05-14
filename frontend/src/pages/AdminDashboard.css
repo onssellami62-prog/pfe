@@ -428,84 +428,81 @@
 }
 
 .kpi-card {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 16px;
-    padding: 22px 24px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white;
+    border-radius: 18px;
+    padding: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     position: relative;
-    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-.kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #0f4c3a, #1a6b50);
-    opacity: 0;
-    transition: opacity 0.3s;
+.kpi-card:nth-child(1) {
+    background: linear-gradient(145deg, #ffffff, #f9fafb);
+    border-left: 5px solid #10b981;
 }
 
-.kpi-card:hover::before {
-    opacity: 1;
+.kpi-card:nth-child(2) {
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    border-left: 5px solid #3b82f6;
 }
 
 .kpi-card:hover {
-    background: rgba(255, 255, 255, 1);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
 }
 
 .kpi-label {
     font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    font-weight: 800;
+    letter-spacing: 1px;
     text-transform: uppercase;
     color: #64748b;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
-.kpi-label i {
-    display: flex;
-    align-items: center;
-    color: #0f4c3a;
-}
+.kpi-card:nth-child(1) .kpi-label i { color: #10b981; }
+.kpi-card:nth-child(2) .kpi-label i { color: #3b82f6; }
 
 .kpi-label i svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
 }
 
 .kpi-value {
-    font-size: 30px;
-    font-weight: 800;
-    color: #1e293b;
-    letter-spacing: -1px;
-    margin-bottom: 6px;
+    font-size: 36px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: -1.5px;
+    margin-bottom: 8px;
+    line-height: 1;
 }
 
 .kpi-trend {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 20px;
+    width: fit-content;
 }
 
-.kpi-trend.trend-up {
-    color: #0f4c3a;
+.kpi-card:nth-child(1) .kpi-trend {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
 }
 
-.kpi-trend.trend-down {
-    color: #fbbf24;
+.kpi-card:nth-child(2) .kpi-trend {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
 }
 
 .kpi-trend svg {
@@ -1459,5 +1456,93 @@
     .table-panel {
         padding: 16px;
         margin: 0 12px 16px;
+    }
+}
+
+
+/* ========================================
+   RESPONSIVE DESIGN - ADMIN DASHBOARD
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .admin-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+    
+    .admin-content {
+        padding: 20px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .admin-stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .admin-content {
+        padding: 16px !important;
+    }
+    
+    .admin-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .admin-header p {
+        font-size: 0.85rem !important;
+    }
+    
+    /* Tables responsive */
+    .admin-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .admin-table {
+        min-width: 600px;
+    }
+    
+    /* Modals responsive */
+    .modal-content {
+        max-width: calc(100vw - 32px) !important;
+        margin: 16px !important;
+    }
+    
+    /* Boutons responsive */
+    .admin-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .admin-actions button {
+        width: 100% !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .admin-content {
+        padding: 12px !important;
+    }
+    
+    .admin-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .admin-stat-card {
+        padding: 16px !important;
+    }
+    
+    .admin-stat-value {
+        font-size: 1.8rem !important;
+    }
+    
+    .admin-table th,
+    .admin-table td {
+        padding: 10px 8px !important;
+        font-size: 0.8rem !important;
     }
 }

@@ -110,25 +110,29 @@ export default function ImportInvoice() {
 
     // UNIVERSAL ADAPTIVE PARSE: Finding semantic clusters for any invoice layout
     const parseGenericText = (text, fileName) => {
+        console.log("🔍 Début de l'extraction pour:", fileName);
+        console.log("📄 Texte brut extrait (premiers 500 caractères):", text.substring(0, 500));
         const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
         const lowerText = cleanText.toLowerCase();
+        console.log("📝 Texte nettoyé, longueur:", cleanText.length);
+        console.log("📝 Texte nettoyé (premiers 500 caractères):", cleanText.substring(0, 500));
 
         // 1. SMART KEYWORD MAPPING (Synonyms for reliability)
         const findValueByKeywords = (keywords) => {
            for (const kw of keywords) {
-               const regex = new RegExp(`${kw}\\s*[:]?\\s*(\\d+[\\.,]\\d{2,3})`, 'i');
+               const regex = new RegExp(`${kw}\\s*[:]?\\s*(\\d+[\\.,\\s]?\\d{2,3}(?:[\\.,]\\d{3})?)`, 'i');
                const match = cleanText.match(regex);
-               if (match) return match[1].replace(',', '.');
+               if (match) return match[1].replace(/\s/g, '').replace(',', '.');
            }
            return null;
         };
 
         // 2. EXTRACTION DES TOTAUX
-        let totalHT = findValueByKeywords(['total h.t', 'total ht', 'net ht', 'base ht', 'montant ht', 'net hors taxe', 'total net ht']);
-        let totalTVA = findValueByKeywords(['total tva', 't.v.a', 'montant tva', 'tva total', 'tva']);
-        let totalTTC = findValueByKeywords(['total ttc', 'net à payer', 'net a payer', 'montant total', 't.t.c', 'total à payer']);
+        let totalHT = findValueByKeywords(['total h\\.?t\\.?', 'total ht', 'net ht', 'base ht', 'montant ht']);
+        let totalTVA = findValueByKeywords(['total tva', 't\\.?v\\.?a\\.?', 'montant tva global']);
+        let totalTTC = findValueByKeywords(['net à payer', 'net a payer', 'total ttc', 't\\.?t\\.?c\\.?']);
         
-        // 3. AUTO-RECALCULATION (Math Engine)
+        // 3. AUTO-RECALCULATION
         const timbre = 1.000;
         if (!totalTTC && totalHT && totalTVA) {
             totalTTC = (parseFloat(totalHT) + parseFloat(totalTVA) + timbre).toFixed(3);
@@ -138,69 +142,249 @@ export default function ImportInvoice() {
             totalHT = (parseFloat(totalTTC) - parseFloat(totalTVA) - timbre).toFixed(3);
         }
 
-        // 4. MF EXTRACTION
-        const mfRegex = /\d{7,8}\s*[A-Z](?:\s*\/\s*[A-Z]\s*\/\s*[A-Z]\s*\/\s*\d{3})?|\d{10,14}/gi;
-        let allMfs = (cleanText.match(mfRegex) || []).map(m => m.toUpperCase().replace(/\s/g, ''));
-        if (allMfs.some(m => m.includes('/'))) {
-            allMfs = allMfs.filter(m => m.includes('/') || m.length >= 10);
+        // 4. EXTRACTION DE LA DATE (AMÉLIORÉE)
+        let invoiceDate = "";
+        const datePatterns = [
+            /date\s*[:]?\s*(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/i,  // Date : 04/05/2026
+            /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/,  // 04/05/2026
+        ];
+        
+        for (const pattern of datePatterns) {
+            const match = cleanText.match(pattern);
+            if (match) {
+                const day = match[1];
+                const month = match[2];
+                const year = match[3];
+                // Format: YYYY-MM-DD pour compatibilité
+                invoiceDate = `${year}-${month}-${day}`;
+                break;
+            }
+        }
+        
+        if (!invoiceDate) {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            invoiceDate = `${yyyy}-${mm}-${dd}`;
         }
 
-        // 5. NAD DETECTION
-        const buyerKeywords = ['droit :', 'doit :', 'doit', 'droit', 'facturé à', 'client', 'vendu à', 'destinataire'];
-        let buyerIndex = -1;
-        for (const kw of buyerKeywords) {
-            const idx = lowerText.indexOf(kw);
-            if (idx !== -1) { buyerIndex = idx; break; }
+        // 5. EXTRACTION DU NUMÉRO DE FACTURE (AMÉLIORÉE)
+        console.log("🔢 Extraction du numéro de facture...");
+        let invoiceNumber = "";
+        const invoiceNumPatterns = [
+            /\b(FAC\s*[-\s]?\s*\d{4}\s*[-\s]?\s*\d{4})\b/i,  // FAC -2026-0020 ou FAC - 2026 - 0020
+            /facture\s*(?:de\s*vente)?\s*[:\s]*(FAC\s*[-\s]?\s*\d{4}\s*[-\s]?\s*\d{4})/i,
+            /facture\s*n[°o]?\s*[:]?\s*([A-Z]{2,4}\s*[-]?\s*\d{4}\s*[-]?\s*\d{4})/i,
+            /facture\s*n[°o]?\s*[:]?\s*([A-Z]{2,4}\s*[-]?\s*\d{4})/i,
+            /\b([A-Z]{2,4}\s*[-]\s*\d{4}\s*[-]\s*\d{4})\b/,
+        ];
+        
+        for (const pattern of invoiceNumPatterns) {
+            const match = cleanText.match(pattern);
+            if (match) {
+                // Normaliser: enlever tous les espaces, puis reconstruire avec tirets
+                const cleaned = match[1].replace(/\s+/g, '').replace(/-+/g, '-');
+                // Format: FAC-2026-0020
+                invoiceNumber = cleaned.replace(/([A-Z]+)(\d{4})(\d{4})/, '$1-$2-$3');
+                console.log("✅ Numéro trouvé:", invoiceNumber, "avec pattern:", pattern);
+                break;
+            }
+        }
+        
+        if (!invoiceNumber) {
+            invoiceNumber = `FCT-${Math.floor(1000 + Math.random() * 8999)}`;
+            console.log("⚠️ Numéro non trouvé, généré:", invoiceNumber);
         }
 
-        let sellerMatricule = allMfs[0] || "";
-        let buyerMatricule = (allMfs.length > 1) ? allMfs[1] : currentUser.matricule;
+        // 6. EXTRACTION DES MATRICULES FISCAUX (AMÉLIORÉE)
+        // Chercher les matricules avec format complet: 1234567/A/B/C/000
+        const mfFullPattern = /(\d{7,8})\s*[\/]\s*([A-Z])\s*[\/]\s*([A-Z])\s*[\/]\s*([A-Z])\s*[\/]\s*(\d{3})/gi;
+        const fullMatches = [];
+        let mfMatch;
+        while ((mfMatch = mfFullPattern.exec(cleanText)) !== null) {
+            // Nettoyer et formater le matricule: enlever tous les espaces et caractères spéciaux
+            const mf = `${mfMatch[1]}${mfMatch[2]}${mfMatch[3]}${mfMatch[4]}${mfMatch[5]}`.replace(/\s/g, '').trim();
+            // S'assurer que le matricule a exactement 13 caractères
+            if (mf.length === 13) {
+                fullMatches.push({ mf, position: mfMatch.index });
+            }
+        }
+
+        // 7. IDENTIFICATION VENDEUR vs CLIENT
+        // Chercher les sections "ÉMETTEUR" et "DESTINATAIRE"
+        const emetteurIndex = lowerText.indexOf('émetteur');
+        const vendeurIndex = lowerText.indexOf('vendeur');
+        const destinataireIndex = lowerText.indexOf('destinataire');
+        const acheteurIndex = lowerText.indexOf('acheteur');
+        const clientIndex = lowerText.indexOf('client');
+
+        const sellerSectionStart = Math.max(emetteurIndex, vendeurIndex);
+        const buyerSectionStart = Math.max(destinataireIndex, acheteurIndex, clientIndex);
+
+        let sellerMatricule = "";
+        let buyerMatricule = "";
+        let sellerName = "";
         let buyerName = "";
 
-        if (buyerIndex !== -1 && allMfs.length > 0) {
-            allMfs.forEach(mf => {
-                const pos = cleanText.toUpperCase().indexOf(mf.split('/')[0]);
-                if (pos > buyerIndex) buyerMatricule = mf;
-                else sellerMatricule = mf;
-            });
+        // Assigner les matricules selon leur position dans le texte
+        if (fullMatches.length >= 2) {
+            if (sellerSectionStart !== -1 && buyerSectionStart !== -1) {
+                // Trouver quel matricule est dans quelle section
+                fullMatches.forEach(({ mf, position }) => {
+                    if (position > sellerSectionStart && position < buyerSectionStart) {
+                        sellerMatricule = mf;
+                    } else if (position > buyerSectionStart) {
+                        buyerMatricule = mf;
+                    }
+                });
+            } else {
+                // Fallback: premier = vendeur, deuxième = client
+                sellerMatricule = fullMatches[0].mf;
+                buyerMatricule = fullMatches[1].mf;
+            }
+        } else if (fullMatches.length === 1) {
+            sellerMatricule = fullMatches[0].mf;
+            buyerMatricule = currentUser.matricule || "00000000000";
+        }
+
+        // 8. EXTRACTION DES NOMS ET ADRESSES (AMÉLIORÉE)
+        let clientAddress = "Tunis, Tunisie (Extraction)";
+        let sellerAddress = "Extrait par Intelligence Adaptative";
+        
+        // Chercher le nom du vendeur après "ÉMETTEUR" ou au début
+        if (sellerSectionStart !== -1) {
+            const afterEmetteur = cleanText.substring(sellerSectionStart, sellerSectionStart + 400);
+            const nameMatch = afterEmetteur.match(/(?:identité\s+légale|émetteur|vendeur)\s+([A-Z][A-Za-z\s]{2,40})/i);
+            if (nameMatch) {
+                sellerName = nameMatch[1].trim().split(/\s{2,}|matricule|mat\s*\.|fiscal/i)[0].trim();
+            }
             
-            const afterBuyer = cleanText.substring(buyerIndex).split(' ');
-            let nameStartIdx = (afterBuyer[1] === ':' || !afterBuyer[1]) ? 2 : 1;
-            if (afterBuyer[nameStartIdx] && /^\d+$/.test(afterBuyer[nameStartIdx])) nameStartIdx++; 
-            buyerName = afterBuyer.slice(nameStartIdx, nameStartIdx + 3).join(' ').replace(/[0-9\/]/g, '').trim();
+            // Extraire l'adresse du vendeur (chercher "route" ou adresse avant matricule)
+            const addrMatch = afterEmetteur.match(/(route\s+[a-z\s,\d\.]+)/i);
+            if (addrMatch) {
+                const addr = addrMatch[1].trim().replace(/\s+/g, ' ');
+                if (addr.length > 10) {
+                    sellerAddress = addr;
+                }
+            }
         }
 
-        if (!sellerMatricule) throw new Error("Matricule Vendeur non détecté.");
+        // Chercher le nom du client après "DESTINATAIRE" ou "CLIENT"
+        if (buyerSectionStart !== -1) {
+            const afterDestinataire = cleanText.substring(buyerSectionStart, buyerSectionStart + 400);
+            const nameMatch = afterDestinataire.match(/(?:client|destinataire|acheteur)\s+([A-Z][A-Za-z\s]{2,60})/i);
+            if (nameMatch) {
+                buyerName = nameMatch[1].trim().split(/\s{2,}|matricule|mat\s*\.|fiscal/i)[0].trim();
+            }
+            
+            // Extraire l'adresse du client
+            const addrMatch = afterDestinataire.match(/(route\s+[a-z\s,\d\.]+)/i);
+            if (addrMatch) {
+                const addr = addrMatch[1].trim().replace(/\s+/g, ' ');
+                if (addr.length > 10) {
+                    clientAddress = addr;
+                }
+            }
+        }
 
-        // 6. ITEMS
-        const itemRegex = /([A-Z0-9\s\-]{5,})\s+(\d+\.\d{2})\s+(\d+[\.,]\d{3})\s+(7|13|18|19)\.00/gi;
+        if (!sellerName) sellerName = "VENDEUR";
+        if (!buyerName) buyerName = "CLIENT";
+        // S'assurer que les matricules ont exactement 13 caractères
+        if (!sellerMatricule || sellerMatricule.length !== 13) sellerMatricule = "0000000AAA000";
+        if (!buyerMatricule || buyerMatricule.length !== 13) buyerMatricule = "0000000AAA000";
+
+        // 9. EXTRACTION DES ARTICLES (AMÉLIORÉE)
+        console.log("📦 Extraction des articles...");
         const items = [];
-        let itemMatch;
-        while ((itemMatch = itemRegex.exec(cleanText)) !== null) {
-            items.push({
-                description: itemMatch[1].trim(),
-                qty: parseFloat(itemMatch[2]),
-                puht: parseFloat(itemMatch[3].replace(',', '.')),
-                tvaRate: parseFloat(itemMatch[4])
+        
+        // Les articles sont dans une fenêtre autour de "TOTAL HT"
+        const totalHTIndex = lowerText.indexOf('total ht');
+        
+        console.log("📍 Position TOTAL HT:", totalHTIndex);
+        
+        if (totalHTIndex !== -1) {
+            // Chercher dans une fenêtre de 300 caractères autour de "TOTAL HT"
+            const windowStart = Math.max(0, totalHTIndex - 100);
+            const windowEnd = Math.min(cleanText.length, totalHTIndex + 300);
+            const windowText = cleanText.substring(windowStart, windowEnd);
+            
+            console.log("📋 Fenêtre de texte autour de TOTAL HT:", windowText);
+            
+            // Pattern amélioré pour gérer les espaces de l'OCR
+            // Ex: "cartable 5 380.000 1900.000" ou "Imprimente   174   1600 . 000   278400 . 000"
+            const articlePattern = /([a-zéèêàç]{3,30})\s+(\d+)\s+(\d+\s*\.?\s*\d{3})\s+(\d+\s*\.?\s*\d{3})/gi;
+            let match;
+            
+            while ((match = articlePattern.exec(windowText)) !== null) {
+                const description = match[1].trim();
+                const qty = parseFloat(match[2]);
+                const puht = parseFloat(match[3].replace(/\s/g, ''));
+                const totalLine = parseFloat(match[4].replace(/\s/g, ''));
+                
+                console.log("🔍 Ligne analysée:", { description, qty, puht, totalLine });
+                
+                // Vérifier que ce n'est pas un en-tête ou un total
+                if (!/désignation|qté|total|montant|tva|timbre|arrêt|facture|émetteur|client|polysoft/i.test(description) && qty > 0 && puht > 0) {
+                    // Vérifier la cohérence: qty * puht ≈ totalLine
+                    const calculatedTotal = qty * puht;
+                    const tolerance = Math.max(1, calculatedTotal * 0.01); // 1% de tolérance
+                    
+                    console.log("🧮 Calcul:", qty, "×", puht, "=", calculatedTotal, "vs", totalLine, "| Diff:", Math.abs(calculatedTotal - totalLine));
+                    
+                    if (Math.abs(calculatedTotal - totalLine) < tolerance) {
+                        items.push({
+                            description: description,
+                            qty: qty,
+                            puht: puht,
+                            tvaRate: 19
+                        });
+                        console.log("✅ Article ajouté:", description);
+                    } else {
+                        console.log("⚠️ Incohérence calcul - article ignoré");
+                    }
+                }
+            }
+        } else {
+            console.log("⚠️ TOTAL HT non trouvé dans le texte");
+        }
+
+        // Si aucun article trouvé, créer un article générique basé sur le total HT
+        if (items.length === 0 && totalHT) {
+            console.log("⚠️ Aucun article trouvé, création d'un article générique");
+            items.push({ 
+                description: "Articles extraits", 
+                qty: 1.0, 
+                puht: parseFloat(totalHT || 0), 
+                tvaRate: 19 
             });
         }
+        
+        console.log("📦 Articles extraits:", items.length);
 
-        if (items.length === 0) {
-            items.push({ description: "Articles Extraits PDF (" + fileName + ")", qty: 1.0, puht: parseFloat(totalHT || 0), tvaRate: 19 });
-        }
+        console.log("✅ Extraction terminée:", {
+            invoiceNumber,
+            invoiceDate,
+            sellerName,
+            buyerName,
+            itemsCount: items.length,
+            totalHT,
+            totalTVA,
+            totalTTC
+        });
 
         return {
             issuer: { 
-                name: cleanText.substring(0, 60).replace(/[0-9]/g, '').trim().toUpperCase().split('  ')[0],
+                name: sellerName,
                 matricule: sellerMatricule,
-                address: 'Extrait par Intelligence Adaptative'
+                address: sellerAddress
             },
             invoice: {
-                number: `FCT-${Math.floor(1000 + Math.random() * 8999)}`,
-                date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
-                clientName: buyerName || 'CLIENT_DETECTE',
+                number: invoiceNumber,
+                date: invoiceDate,
+                clientName: buyerName,
                 clientMatricule: buyerMatricule,
-                clientAddress: 'Tunis, Tunisie (Extraction)',
+                clientAddress: clientAddress,
                 items: items,
                 totals: { 
                     ht: totalHT || "0.000", 
@@ -424,7 +608,20 @@ export default function ImportInvoice() {
             )}
             
             <div className="mt-12 pb-12">
-                <button className={`w-full py-6 rounded-3xl text-white font-black uppercase tracking-widest shadow-2xl transition-all ${files.length === 0 || isProcessing ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-emerald-700 hover:scale-[1.01] shadow-emerald-200'}`} disabled={files.length === 0 || isProcessing} onClick={() => files.filter(f => f.status === 'ready').forEach(f => downloadXml(generateTeifXml(f.extraction.issuer, f.extraction.invoice), `TEIF_${f.extraction.issuer.name}_${f.extraction.invoice.number}.xml`))}>
+                <button 
+                    className={`w-full py-6 rounded-3xl text-white font-black uppercase tracking-widest shadow-2xl transition-all ${
+                        files.length === 0 || isProcessing 
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                            : 'bg-emerald-700 hover:scale-[1.01] shadow-emerald-200'
+                    }`} 
+                    disabled={files.length === 0 || isProcessing} 
+                    onClick={() => {
+                        files.filter(f => f.status === 'ready').forEach(f => {
+                            const xml = generateTeifXml(f.extraction.issuer, f.extraction.invoice);
+                            downloadXml(xml, `TEIF_${f.extraction.issuer.name}_${f.extraction.invoice.number}.xml`);
+                        });
+                    }}
+                >
                     🚀 Télécharger le flux TEIF Final
                 </button>
             </div>

@@ -9,6 +9,7 @@
     gap: 2rem;
     font-family: 'Inter', -apple-system, sans-serif;
     color: #334155;
+    isolation: isolate; /* Crée un contexte d'empilement isolé */
 }
 
 .list-header {
@@ -237,6 +238,8 @@
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.9);
     overflow: hidden;
+    position: relative;
+    z-index: 1; /* S'assure que le tableau reste en dessous du modal */
 }
 
 .table-header-row {
@@ -454,35 +457,43 @@
 }
 
 .sign-btn-action {
-    background: rgba(15, 76, 58, 0.15);
-    border: 1px solid rgba(15, 76, 58, 0.25);
+    background: rgba(15, 76, 58, 0.1);
+    border: 1px solid rgba(15, 76, 58, 0.3);
     color: #0f4c3a;
-    width: 32px;
     height: 32px;
+    padding: 0 12px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
 }
 
 .sign-btn-action:hover {
     background: #0f4c3a;
     color: white;
-    transform: scale(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 76, 58, 0.25);
 }
 
-.signed-icon-small {
-    color: #0f4c3a;
-    background: rgba(15, 76, 58, 0.15);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
+.signed-badge {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(15, 76, 58, 0.25);
+    gap: 4px;
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
 }
 
 .xml-btn-small {
@@ -923,7 +934,6 @@
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        color-adjust: exact !important;
     }
 
     /* 5. Handle Table breaks */
@@ -939,5 +949,388 @@
 
     .paper-table thead {
         display: table-header-group !important;
+    }
+}
+
+
+/* ========================================
+   RESPONSIVE DESIGN - INVOICE LISTS
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .invoice-lists-container {
+        padding: 20px !important;
+    }
+    
+    .lists-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .invoice-lists-container {
+        padding: 16px !important;
+    }
+    
+    .lists-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .lists-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .search-filter-bar {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .search-input {
+        width: 100% !important;
+    }
+    
+    .filter-dropdown {
+        width: 100% !important;
+    }
+    
+    .invoice-list-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .invoice-list-table {
+        min-width: 700px;
+    }
+    
+    .list-actions {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .list-actions button {
+        width: 100% !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .invoice-lists-container {
+        padding: 12px !important;
+    }
+    
+    .lists-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .list-card {
+        padding: 14px !important;
+    }
+    
+    .list-title {
+        font-size: 1rem !important;
+    }
+    
+    .list-count {
+        font-size: 1.5rem !important;
+    }
+    
+    table th,
+    table td {
+        padding: 10px 8px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .status-badge {
+        font-size: 0.7rem !important;
+        padding: 4px 10px !important;
+    }
+}
+
+/* =====================================================
+   SIGNATURE ALERT & TTN BUTTON
+   ===================================================== */
+
+/* Bouton Envoyer à TTN */
+.send-ttn-btn {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    border: none;
+    color: white;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+}
+
+.send-ttn-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1e40af, #1e3a8a);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.35);
+}
+
+.send-ttn-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Overlay de l'alerte */
+.sign-alert-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999 !important; /* Réduit à une valeur raisonnable */
+    animation: overlayFadeIn 0.3s ease;
+    overflow: hidden;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Boîte de l'alerte */
+.sign-alert-box {
+    position: relative;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 90%;
+    max-width: 540px;
+    margin: 0 auto;
+    box-shadow: 0 50px 120px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border-top: 5px solid #15803d;
+    z-index: 100000 !important; /* Légèrement supérieur à l'overlay */
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px) scale(0.96); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+@keyframes overlayFadeIn {
+    from { 
+        opacity: 0;
+    }
+    to { 
+        opacity: 1;
+    }
+}
+
+/* Icône verte */
+.sign-alert-icon {
+    width: 72px;
+    height: 72px;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(34, 197, 94, 0.25);
+}
+
+/* Titre */
+.sign-alert-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    text-align: center;
+    line-height: 1.3;
+}
+
+/* Numéro de facture */
+.sign-alert-number {
+    font-size: 1rem;
+    color: #475569;
+    text-align: center;
+    margin: 0;
+    line-height: 1.6;
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.sign-alert-number strong {
+    color: #0f4c3a;
+    font-weight: 700;
+}
+
+/* Sous-texte */
+.sign-alert-sub {
+    font-size: 0.9rem;
+    color: #64748b;
+    text-align: center;
+    margin: 0;
+    background: #f8fafc;
+    padding: 14px 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    line-height: 1.6;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Boutons de l'alerte */
+.sign-alert-actions {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.sign-alert-close {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sign-alert-close:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.sign-alert-send {
+    flex: 2;
+    padding: 12px;
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sign-alert-send:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1e40af, #1e3a8a);
+    box-shadow: 0 4px 15px rgba(29, 78, 216, 0.35);
+    transform: translateY(-1px);
+}
+
+.sign-alert-send:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.sending-spinner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* Responsive pour le modal de signature */
+@media (max-width: 768px) {
+    .sign-alert-box {
+        padding: 36px 28px;
+        max-width: 95%;
+        margin: 16px;
+        gap: 16px;
+    }
+    
+    .sign-alert-icon {
+        width: 64px;
+        height: 64px;
+    }
+    
+    .sign-alert-title {
+        font-size: 1.3rem;
+    }
+    
+    .sign-alert-number {
+        font-size: 0.95rem;
+    }
+    
+    .sign-alert-sub {
+        font-size: 0.85rem;
+        padding: 12px 16px;
+    }
+    
+    .sign-alert-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .sign-alert-close,
+    .sign-alert-send {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .sign-alert-box {
+        padding: 32px 24px;
+        max-width: 96%;
+        margin: 12px;
+        gap: 14px;
+        border-radius: 16px;
+    }
+    
+    .sign-alert-icon {
+        width: 56px;
+        height: 56px;
+    }
+    
+    .sign-alert-icon svg {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .sign-alert-title {
+        font-size: 1.15rem;
+    }
+    
+    .sign-alert-number {
+        font-size: 0.9rem;
+    }
+    
+    .sign-alert-sub {
+        font-size: 0.8rem;
+        padding: 10px 14px;
+    }
+    
+    .sign-alert-close,
+    .sign-alert-send {
+        padding: 11px;
+        font-size: 13px;
     }
 }

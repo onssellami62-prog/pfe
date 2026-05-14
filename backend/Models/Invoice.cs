@@ -48,11 +48,17 @@ namespace backend.Models
         public string Status { get; set; } = "Brouillon"; // Brouillon, Validée, Rejetée
         public string FilePath { get; set; } = string.Empty;
         public string XmlContent { get; set; } = string.Empty;
+        
+        // Audit trail - Date de création pour détecter l'antidatation
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Signature
         public bool IsSigned { get; set; } = false;
         public DateTime? SignedAt { get; set; }
         public string SignedXmlContent { get; set; } = string.Empty;
+
+        // Référence TTN (générée lors de l'envoi à Tunisie Trade Network)
+        public string? TtnReference { get; set; }
 
         // Issuer
         public int CompanyId { get; set; }

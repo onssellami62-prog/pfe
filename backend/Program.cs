@@ -12,12 +12,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-// 2. CORS (Autoriser le Frontend React)
+// 2. CORS (Autoriser le Frontend React — localhost ET réseau local)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact", policy => 
+    options.AddPolicy("AllowReact", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.SetIsOriginAllowed(_ => true) // Autorise toute origine (localhost + IP réseau)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });

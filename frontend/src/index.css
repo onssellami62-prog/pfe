@@ -180,9 +180,234 @@ input, textarea, select {
     box-shadow: none !important;
   }
   
-  .bg-emerald-600 { background-color: #059669 !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
-  .bg-emerald-50 { background-color: #ecfdf5 !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
-  .bg-gray-900 { background-color: #111827 !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
-  .text-white { color: white !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
+  .bg-emerald-600 { background-color: #059669 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bg-emerald-50 { background-color: #ecfdf5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bg-gray-900 { background-color: #111827 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .text-white { color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .text-emerald-700 { color: #047857 !important; }
+}
+
+
+/* ========================================
+   RESPONSIVE DESIGN GLOBAL - TOUTE L'APPLICATION
+   ======================================== */
+
+/* Variables responsive */
+:root {
+    --mobile-padding: 12px;
+    --tablet-padding: 16px;
+    --desktop-padding: 20px;
+}
+
+/* Utilitaires responsive globaux */
+@media (max-width: 1200px) {
+    .container {
+        max-width: 100% !important;
+        padding-left: var(--desktop-padding) !important;
+        padding-right: var(--desktop-padding) !important;
+    }
+    
+    h1 { font-size: 1.8rem !important; }
+    h2 { font-size: 1.5rem !important; }
+    h3 { font-size: 1.3rem !important; }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding-left: var(--tablet-padding) !important;
+        padding-right: var(--tablet-padding) !important;
+    }
+    
+    h1 { font-size: 1.5rem !important; }
+    h2 { font-size: 1.3rem !important; }
+    h3 { font-size: 1.1rem !important; }
+    
+    /* Cacher les éléments non essentiels sur mobile */
+    .hide-mobile {
+        display: none !important;
+    }
+    
+    /* Afficher les éléments mobile uniquement */
+    .show-mobile {
+        display: block !important;
+    }
+    
+    /* Grilles responsive */
+    .grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Flex responsive */
+    .flex-row-mobile {
+        flex-direction: column !important;
+    }
+    
+    /* Espacements réduits */
+    .gap-4 { gap: 0.75rem !important; }
+    .gap-6 { gap: 1rem !important; }
+    .gap-8 { gap: 1.25rem !important; }
+    
+    /* Padding réduit */
+    .p-4 { padding: 0.75rem !important; }
+    .p-6 { padding: 1rem !important; }
+    .p-8 { padding: 1.25rem !important; }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding-left: var(--mobile-padding) !important;
+        padding-right: var(--mobile-padding) !important;
+    }
+    
+    h1 { font-size: 1.3rem !important; }
+    h2 { font-size: 1.15rem !important; }
+    h3 { font-size: 1rem !important; }
+    
+    /* Boutons pleine largeur sur mobile */
+    .btn-mobile-full {
+        width: 100% !important;
+    }
+    
+    /* Textes plus petits */
+    body {
+        font-size: 14px !important;
+    }
+    
+    /* Espacements très réduits */
+    .gap-4 { gap: 0.5rem !important; }
+    .gap-6 { gap: 0.75rem !important; }
+    .gap-8 { gap: 1rem !important; }
+    
+    /* Padding très réduit */
+    .p-4 { padding: 0.5rem !important; }
+    .p-6 { padding: 0.75rem !important; }
+    .p-8 { padding: 1rem !important; }
+}
+
+/* Tables responsive globales */
+@media (max-width: 768px) {
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table-responsive table {
+        min-width: 600px;
+    }
+}
+
+/* Modals responsive globales */
+@media (max-width: 768px) {
+    .modal-responsive {
+        max-width: calc(100vw - 32px) !important;
+        margin: 16px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-responsive {
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+    }
+}
+
+/* Cards responsive globales */
+@media (max-width: 768px) {
+    .card-responsive {
+        padding: 16px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-responsive {
+        padding: 12px !important;
+    }
+}
+
+/* Formulaires responsive globaux */
+@media (max-width: 768px) {
+    .form-responsive {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .form-responsive input,
+    .form-responsive select,
+    .form-responsive textarea {
+        font-size: 16px !important; /* Évite le zoom sur iOS */
+    }
+}
+
+/* Navigation responsive globale */
+@media (max-width: 768px) {
+    .nav-responsive {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .nav-responsive a,
+    .nav-responsive button {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
+
+/* Images responsive globales */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Vidéos responsive globales */
+video {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Iframes responsive globales */
+iframe {
+    max-width: 100%;
+}
+
+/* Scrollbar personnalisée pour mobile */
+@media (max-width: 768px) {
+    ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 2px;
+    }
+}
+
+/* Touch targets pour mobile (minimum 44x44px) */
+@media (max-width: 768px) {
+    button,
+    a,
+    input[type="checkbox"],
+    input[type="radio"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Orientation landscape sur mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .landscape-hide {
+        display: none !important;
+    }
+    
+    .modal-responsive {
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+    }
 }

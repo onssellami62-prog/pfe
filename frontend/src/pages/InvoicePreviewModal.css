@@ -119,6 +119,18 @@
     letter-spacing: -0.5px;
 }
 
+.company-activity-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #15803d;
+    background: rgba(21, 128, 61, 0.08);
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
 .company-address-small {
     font-size: 14px;
     color: #64748b;
@@ -543,6 +555,122 @@
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        color-adjust: exact !important;
+    }
+}
+
+
+/* ========================================
+   RESPONSIVE DESIGN - INVOICE PREVIEW MODAL
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .modal-content {
+        max-width: 90vw !important;
+    }
+    
+    .invoice-preview-container {
+        padding: 20px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .modal-overlay {
+        padding: 16px !important;
+    }
+    
+    .modal-content {
+        max-width: 100% !important;
+        max-height: calc(100vh - 32px) !important;
+        margin: 0 !important;
+    }
+    
+    .invoice-preview-container {
+        padding: 16px !important;
+    }
+    
+    .invoice-header {
+        flex-direction: column !important;
+        gap: 16px !important;
+    }
+    
+    .invoice-logo {
+        max-width: 120px !important;
+    }
+    
+    .invoice-info-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .invoice-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .invoice-table {
+        min-width: 500px;
+    }
+    
+    .invoice-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .invoice-actions button {
+        width: 100% !important;
+    }
+    
+    .modal-close-btn {
+        top: 12px !important;
+        right: 12px !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .modal-overlay {
+        padding: 0 !important;
+    }
+    
+    .modal-content {
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+    }
+    
+    .invoice-preview-container {
+        padding: 12px !important;
+    }
+    
+    .invoice-title {
+        font-size: 1.2rem !important;
+    }
+    
+    .invoice-number {
+        font-size: 1rem !important;
+    }
+    
+    .invoice-logo {
+        max-width: 100px !important;
+    }
+    
+    .invoice-section-title {
+        font-size: 0.9rem !important;
+    }
+    
+    table th,
+    table td {
+        padding: 8px 6px !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .invoice-total {
+        font-size: 1.3rem !important;
+    }
+    
+    .btn {
+        font-size: 0.85rem !important;
+        padding: 10px 14px !important;
     }
 }

@@ -16,6 +16,7 @@ namespace backend.Models
         public string Email { get; set; } = string.Empty;
         public bool IsArchived { get; set; } = false;
         public string? LogoPath { get; set; }
+        public string Activity { get; set; } = string.Empty;
 
         [JsonIgnore]
         public ICollection<User> Users { get; set; } = new List<User>();

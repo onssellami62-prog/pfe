@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { formatMatriculeDisplay, validateMatriculeFiscal } from '../utils/invoiceFormatters';
-import { amountToWords } from '../utils/invoiceFormatters';
+import React, { useState } from 'react';
+// import { formatMatriculeDisplay, validateMatriculeFiscal } from '../utils/invoiceFormatters';
+// import { amountToWords } from '../utils/invoiceFormatters';
 import './InvoiceLists.js.css';
-import { generateTeifXml, downloadXml } from '../utils/teifGenerator';
+// import { generateTeifXml, downloadXml } from '../utils/teifGenerator';
 import InvoicePreviewModal from './InvoicePreviewModal';
 
 const API = 'http://localhost:5170/api';
@@ -75,13 +75,15 @@ const Icons = {
 export default function InvoiceLists({ initialFilter = 'validated', onErrorClick, searchTerm: globalTerm, logo }) {
     const [filter, setFilter] = useState(initialFilter); // 'validated', 'pending', 'rejected'
     const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [, setLoading] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [showXml, setShowXml] = useState(false);
     const [localSearchTerm, setLocalSearchTerm] = useState('');
     const searchTerm = globalTerm !== undefined ? globalTerm : localSearchTerm;
     const [showFilters, setShowFilters] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+    const [signedAlert, setSignedAlert] = useState(null);   // { invoiceNumber, id }
+    const [sendingTTN, setSendingTTN] = useState(null);     // id de la facture en cours d'envoi
 
     // Charger les factures depuis l'API
     const fetchInvoices = React.useCallback(async () => {
@@ -117,15 +119,12 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
         setShowXml(false);
     };
 
-    const handleSignInvoice = async (id) => {
-        if (!window.confirm("Êtes-vous sûr de vouloir signer électroniquement cette facture ? Cette action est irréversible et validera le document.")) return;
-        
+    const handleSignInvoice = async (invoiceNumber, id) => {
         try {
-            const res = await fetch(`${API}/Invoices/${id}/sign`, {
-                method: 'POST'
-            });
+            const res = await fetch(`${API}/Invoices/${id}/sign`, { method: 'POST' });
             if (res.ok) {
-                alert("Facture signée avec succès !");
+                // Afficher l'alerte personnalisée avec le numéro de facture
+                setSignedAlert({ invoiceNumber, id });
                 fetchInvoices();
             } else {
                 const err = await res.text();
@@ -134,6 +133,29 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
         } catch (error) {
             console.error("Erreur signature:", error);
             alert("Erreur réseau lors de la signature.");
+        }
+    };
+
+    const handleSendToTTN = async (invoiceNumber, id) => {
+        setSendingTTN(id);
+        try {
+            // Simulation envoi TTN (2 secondes)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Mettre à jour le statut en "Validée"
+            const res = await fetch(`${API}/Invoices/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify('Validée')
+            });
+            if (res.ok) {
+                fetchInvoices();
+            }
+        } catch (error) {
+            console.error("Erreur envoi TTN:", error);
+        } finally {
+            setSendingTTN(null);
+            setSignedAlert(null);
         }
     };
 
@@ -310,13 +332,22 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                                                 <button className="eye-btn" onClick={() => handleViewInvoice(row)} title="Voir Détails"><Icons.Eye /></button>
                                                 <button className="xml-btn-small" onClick={() => handleViewXmlRaw(row)} title="Voir Structure XML"><Icons.FileCode /></button>
                                                 {row.status === 'Brouillon' && !row.isSigned && (
-                                                    <button className="sign-btn-action" onClick={() => handleSignInvoice(row.id)} title="Signer numériquement">
-                                                        <Icons.Key />
+                                                    <button className="sign-btn-action" onClick={() => handleSignInvoice(row.invoiceNumber, row.id)} title="Signer numériquement">
+                                                        Signer la facture
+                                                    </button>
+                                                )}
+                                                {row.isSigned && row.status === 'Brouillon' && (
+                                                    <button
+                                                        className="send-ttn-btn"
+                                                        onClick={() => handleSendToTTN(row.invoiceNumber, row.id)}
+                                                        disabled={sendingTTN === row.id}
+                                                    >
+                                                        {sendingTTN === row.id ? 'Envoi...' : 'Envoyer à TTN'}
                                                     </button>
                                                 )}
                                                 {row.isSigned && (
-                                                    <span className="signed-icon-small" title="Facture Signée Électroniquement">
-                                                        <Icons.Lock />
+                                                    <span className="signed-badge" title="Facture Signée Électroniquement">
+                                                        ✓ Signée
                                                     </span>
                                                 )}
                                                 <button className="more-btn"><Icons.More /></button>
@@ -330,7 +361,7 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                 </table>
 
                 {/* SHARED UNIFIED MODAL */}
-                <InvoicePreviewModal 
+                <InvoicePreviewModal
                     isOpen={!!selectedInvoice}
                     onClose={closeModal}
                     invoice={selectedInvoice}
@@ -358,6 +389,46 @@ export default function InvoiceLists({ initialFilter = 'validated', onErrorClick
                         <p>
                             Les erreurs de validation (TEIF XML) sont souvent liées à des informations manquantes dans la fiche client ou à un format de numéro de TVA intracommunautaire invalide. Cliquez sur "Voir l'erreur" pour obtenir le détail technique du rejet par la plateforme.
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ALERTE SIGNATURE - Placée au niveau racine pour éviter les problèmes de z-index */}
+            {signedAlert && (
+                <div className="sign-alert-overlay">
+                    <div className="sign-alert-box">
+                        <div className="sign-alert-icon">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                        </div>
+                        <h3 className="sign-alert-title">Facture signée avec succès</h3>
+                        <p className="sign-alert-number">
+                            La facture <strong>{signedAlert.invoiceNumber}</strong> a été signée électroniquement (XAdES).
+                        </p>
+                        <p className="sign-alert-sub">
+                            La facture reste en brouillon. Cliquez sur "Envoyer à TTN" pour la valider.
+                        </p>
+                        <div className="sign-alert-actions">
+                            <button
+                                className="sign-alert-close"
+                                onClick={() => setSignedAlert(null)}
+                            >
+                                Fermer
+                            </button>
+                            <button
+                                className="sign-alert-send"
+                                onClick={() => handleSendToTTN(signedAlert.invoiceNumber, signedAlert.id)}
+                                disabled={sendingTTN === signedAlert.id}
+                            >
+                                {sendingTTN === signedAlert.id ? (
+                                    <span className="sending-spinner">Envoi en cours...</span>
+                                ) : (
+                                    'Envoyer à TTN'
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

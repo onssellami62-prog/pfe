@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Login.css';
 import slide1Img from '../assets/abstract3d.png';
 
@@ -13,6 +13,78 @@ function Login({ onLoginSuccess }) {
     const [nom, setNom] = useState('');
     const [entreprise, setEntreprise] = useState('');
     const [mf, setMf] = useState('');
+
+    // Timer pour le renvoi OTP (120 secondes = 2 minutes)
+    const [otpTimer, setOtpTimer] = useState(120);
+    const [canResend, setCanResend] = useState(false);
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendSuccess, setResendSuccess] = useState(false);
+    const timerRef = useRef(null);
+
+    // Démarrer le timer quand OTP est requis
+    useEffect(() => {
+        if (requireOtp) {
+            setOtpTimer(120);
+            setCanResend(false);
+            setResendSuccess(false);
+            timerRef.current = setInterval(() => {
+                setOtpTimer(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timerRef.current);
+                        setCanResend(true);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+        return () => clearInterval(timerRef.current);
+    }, [requireOtp]);
+
+    // Formater le timer en MM:SS
+    const formatTimer = (seconds) => {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    };
+
+    // Renvoyer le code OTP
+    const handleResendOtp = async () => {
+        if (!canResend || resendLoading) return;
+        setResendLoading(true);
+        setLoginError('');
+        setResendSuccess(false);
+        try {
+            const response = await fetch('http://localhost:5170/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: identifiant, password }),
+            });
+            if (response.ok) {
+                setOtpCode('');
+                setResendSuccess(true);
+                setCanResend(false);
+                setOtpTimer(120);
+                timerRef.current = setInterval(() => {
+                    setOtpTimer(prev => {
+                        if (prev <= 1) {
+                            clearInterval(timerRef.current);
+                            setCanResend(true);
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                setTimeout(() => setResendSuccess(false), 4000);
+            } else {
+                setLoginError("Erreur lors du renvoi du code.");
+            }
+        } catch {
+            setLoginError("Serveur backend non disponible.");
+        } finally {
+            setResendLoading(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -138,6 +210,20 @@ function Login({ onLoginSuccess }) {
                         <h2>Validation de securite</h2>
                         <p className="form-subtitle">Veuillez renseigner le code envoye a votre e-mail.</p>
                     </div>
+
+                    {/* Timer */}
+                    <div className="otp-timer-box">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        {otpTimer > 0 ? (
+                            <span>Code valide pendant <strong>{formatTimer(otpTimer)}</strong></span>
+                        ) : (
+                            <span className="otp-expired">Code expiré. Veuillez renvoyer un nouveau code.</span>
+                        )}
+                    </div>
+
                     <div className="field">
                         <label>Code OTP (6 chiffres)</label>
                         <div className="input-box">
@@ -147,13 +233,46 @@ function Login({ onLoginSuccess }) {
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                 </svg>
                             </span>
-                            <input type="text" placeholder="000000" maxLength="6" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} required />
+                            <input
+                                type="text"
+                                placeholder="000000"
+                                maxLength="6"
+                                value={otpCode}
+                                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                                required
+                            />
                         </div>
                     </div>
+
+                    {/* Message succès renvoi */}
+                    {resendSuccess && (
+                        <div className="otp-resend-success">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            Nouveau code envoyé avec succès !
+                        </div>
+                    )}
+
                     {loginError && <div className="error-msg">{loginError}</div>}
-                    <button type="submit" className="btn-login">Verifier et se connecter <span>&#8594;</span></button>
+
+                    <button type="submit" className="btn-login" disabled={otpTimer === 0}>
+                        Verifier et se connecter <span>&#8594;</span>
+                    </button>
+
+                    {/* Bouton Renvoyer le code */}
+                    <div className="otp-resend-row">
+                        <span className="otp-resend-label">Vous n'avez pas recu le code ?</span>
+                        <button
+                            type="button"
+                            className={`btn-resend-otp ${canResend ? 'active' : 'disabled'}`}
+                            onClick={handleResendOtp}
+                            disabled={!canResend || resendLoading}
+                        >
+                            {resendLoading ? 'Envoi...' : canResend ? 'Renvoyer le code' : `Renvoyer dans ${formatTimer(otpTimer)}`}
+                        </button>
+                    </div>
+
                     <div className="toggle-text">
-                        <button type="button" onClick={() => setRequireOtp(false)}>Annuler</button>
+                        <button type="button" onClick={() => { setRequireOtp(false); clearInterval(timerRef.current); }}>Annuler</button>
                     </div>
                 </form>
             );

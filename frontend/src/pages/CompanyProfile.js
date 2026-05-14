@@ -95,7 +95,8 @@ export default function CompanyProfile() {
         postalCode: '',
         phone: '',
         email: '',
-        rne: ''
+        rne: '',
+        activity: ''
     });
     const [logoUrl, setLogoUrl] = React.useState(null);
     const [logoUploading, setLogoUploading] = React.useState(false);
@@ -113,7 +114,8 @@ export default function CompanyProfile() {
                             postalCode: data.postalCode || '',
                             phone: data.phone || '',
                             email: data.email || '',
-                            rne: data.rne || ''
+                            rne: data.rne || '',
+                            activity: data.activity || ''
                         });
                         if (data.logoPath) {
                             setLogoUrl(`http://localhost:5170/${data.logoPath}`);
@@ -166,6 +168,13 @@ export default function CompanyProfile() {
 
     const handleSave = async () => {
         if (!savedUser.companyId) return;
+
+        // Validation format RNE (7 chiffres + 1 lettre)
+        const rneRegex = /^\d{7}[A-Z]$/;
+        if (!companyInfo.rne || !rneRegex.test(companyInfo.rne)) {
+            alert("Le format du RNE est invalide. Il doit être composé de 7 chiffres suivis d'une lettre majuscule (ex: 1234567A).");
+            return;
+        }
         
         try {
             // On récupère d'abord l'objet complet pour ne pas perdre le Nom et le Matricule lors du PUT
@@ -180,7 +189,8 @@ export default function CompanyProfile() {
                 postalCode: companyInfo.postalCode,
                 phone: companyInfo.phone,
                 email: companyInfo.email,
-                rne: companyInfo.rne
+                rne: companyInfo.rne,
+                activity: companyInfo.activity
             };
 
             const response = await fetch(`http://localhost:5170/api/Companies/${savedUser.companyId}?userId=${savedUser.userId || ''}`, {
@@ -195,7 +205,8 @@ export default function CompanyProfile() {
                     entreprise: editableCompanyName,
                     address: companyInfo.address + (companyInfo.city ? `, ${companyInfo.postalCode} ${companyInfo.city}` : ''),
                     phone: companyInfo.phone,
-                    rne: companyInfo.rne
+                    rne: companyInfo.rne,
+                    activity: companyInfo.activity
                 };
                 sessionStorage.setItem('user', JSON.stringify(updated));
                 alert("Modifications enregistrées avec succès !");
@@ -215,12 +226,7 @@ export default function CompanyProfile() {
                         <button className="nav-item active">
                             <span className="icon"><Icons.User /></span> Profil
                         </button>
-                        <button className="nav-item">
-                            <span className="icon"><Icons.Shield /></span> Sécurité
-                        </button>
-                        <button className="nav-item">
-                            <span className="icon"><Icons.Bell /></span> Notifications
-                        </button>
+
                         <button className="nav-item">
                             <span className="icon"><Icons.Scroll /></span> Certificats
                         </button>
@@ -286,6 +292,16 @@ export default function CompanyProfile() {
                                 <label>Nom de la Societe</label>
                                 <input type="text" value={editableCompanyName} onChange={(e) => setEditableCompanyName(e.target.value)} />
                             </div>
+                            <div className="input-group">
+                                <label>Secteur d'Activité</label>
+                                <input 
+                                    name="activity"
+                                    type="text" 
+                                    placeholder="Ex: Services Informatiques, Commerce, BTP..." 
+                                    value={companyInfo.activity} 
+                                    onChange={handleChange} 
+                                />
+                            </div>
                         </div>
                     </section>
 
@@ -328,12 +344,21 @@ export default function CompanyProfile() {
                                 <input 
                                     name="rne"
                                     type="text" 
-                                    placeholder="Identifiant RNE"
+                                    placeholder="Ex: 1234567A"
                                     value={companyInfo.rne} 
                                     onChange={handleChange}
-                                    style={{ border: !companyInfo.rne ? '1px solid #ff4d4f' : '' }}
+                                    style={{ 
+                                        border: !companyInfo.rne || !/^\d{7}[A-Z]$/.test(companyInfo.rne) ? '1px solid #ff4d4f' : '1px solid #10b981',
+                                        fontFamily: 'monospace',
+                                        letterSpacing: '1px'
+                                    }}
+                                    maxLength="8"
                                 />
-                                {!companyInfo.rne && <p className="helper-text error" style={{ color: '#ff4d4f', fontSize: '11px' }}>Ce champ est désormais obligatoire.</p>}
+                                {(!companyInfo.rne || !/^\d{7}[A-Z]$/.test(companyInfo.rne)) && (
+                                    <p className="helper-text error" style={{ color: '#ff4d4f', fontSize: '11px' }}>
+                                        Format requis : 7 chiffres + 1 lettre majuscule (ex: 1234567A).
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </section>

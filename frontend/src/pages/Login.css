@@ -300,3 +300,249 @@
         gap: 20px;
     }
 }
+
+
+/* Responsive Design Amélioré - Adaptable à tous les écrans */
+
+/* Tablettes (max-width: 1024px) */
+@media (max-width: 1024px) {
+    .login-navbar,
+    .login-bottom-footer {
+        padding: 18px 32px;
+    }
+    
+    .login-card {
+        max-width: 400px;
+        padding: 36px 32px;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .login-navbar,
+    .login-bottom-footer {
+        padding: 16px 24px;
+    }
+    
+    .brand-name {
+        font-size: 0.85rem;
+    }
+    
+    .navbar-links {
+        gap: 20px;
+    }
+    
+    .navbar-links a {
+        font-size: 0.65rem;
+    }
+    
+    .login-card {
+        max-width: 380px;
+        padding: 32px 28px;
+        border-radius: 20px;
+    }
+    
+    .form-title h2 {
+        font-size: 1.6rem;
+    }
+    
+    .form-subtitle {
+        font-size: 0.88rem;
+    }
+    
+    .login-bottom-footer {
+        font-size: 0.62rem;
+    }
+    
+    .bottom-links {
+        gap: 20px;
+    }
+}
+
+/* Très petits mobiles (max-width: 380px) */
+@media (max-width: 380px) {
+    .login-navbar,
+    .login-bottom-footer {
+        padding: 12px 16px;
+    }
+    
+    .brand-name {
+        font-size: 0.75rem;
+    }
+    
+    .navbar-links {
+        gap: 12px;
+    }
+    
+    .navbar-links a {
+        font-size: 0.55rem;
+    }
+    
+    .login-card {
+        max-width: calc(100% - 24px);
+        padding: 24px 20px;
+        border-radius: 16px;
+    }
+    
+    .form-title h2 {
+        font-size: 1.3rem;
+    }
+    
+    .form-subtitle {
+        font-size: 0.78rem;
+    }
+    
+    .field {
+        gap: 6px;
+    }
+    
+    .input-icon {
+        width: 40px;
+        min-width: 40px;
+    }
+    
+    .input-box input {
+        font-size: 0.82rem;
+        padding: 10px 12px;
+    }
+    
+    .btn-login {
+        padding: 11px 0;
+        font-size: 0.82rem;
+    }
+    
+    .error-msg {
+        padding: 10px 12px;
+        font-size: 0.75rem;
+    }
+    
+    .waiting-block h2 {
+        font-size: 1.2rem;
+    }
+    
+    .waiting-block p {
+        font-size: 0.8rem;
+    }
+}
+
+/* =====================================================
+   OTP TIMER & RESEND BUTTON
+   ===================================================== */
+
+/* Boîte du timer */
+.otp-timer-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #166534;
+    margin-bottom: 4px;
+}
+
+.otp-timer-box strong {
+    font-weight: 800;
+    color: #059669;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+}
+
+.otp-timer-box svg {
+    color: #059669;
+    flex-shrink: 0;
+}
+
+/* Code expiré */
+.otp-expired {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.otp-timer-box:has(.otp-expired) {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+/* Message succès renvoi */
+.otp-resend-success {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #166534;
+    font-weight: 600;
+    animation: fadeInDown 0.3s ease;
+}
+
+.otp-resend-success svg {
+    color: #16a34a;
+    flex-shrink: 0;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Ligne renvoyer le code */
+.otp-resend-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.otp-resend-label {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* Bouton renvoyer */
+.btn-resend-otp {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+}
+
+.btn-resend-otp.active {
+    color: #059669;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.btn-resend-otp.active:hover {
+    background: #dcfce7;
+    border-color: #86efac;
+    transform: translateY(-1px);
+}
+
+.btn-resend-otp.disabled {
+    color: #94a3b8;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    cursor: not-allowed;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Bouton vérifier désactivé si code expiré */
+.btn-login:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}

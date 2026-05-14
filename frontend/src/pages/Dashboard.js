@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './Dashboard.css';
-import { formatMatriculeDisplay, validateMatriculeFiscal } from '../utils/matriculeValidator';
-import { amountToWords } from '../utils/amountToWords';
+// import { formatMatriculeDisplay, validateMatriculeFiscal } from '../utils/matriculeValidator';
+// import { amountToWords } from '../utils/amountToWords';
 import CompanyProfile from './CompanyProfile';
 import TaxDeclaration from './TaxDeclaration';
 import Statistics from './Statistics';
@@ -110,13 +110,23 @@ const NAV_ITEMS = [
         ),
     },
     {
-        key: 'referentiel', label: 'Clients & Produits',
+        key: 'clients', label: 'Clients',
         icon: (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+        ),
+    },
+    {
+        key: 'produits', label: 'Produits',
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
             </svg>
         ),
     },
@@ -130,8 +140,8 @@ function StatusBadge({ statut }) {
     else if (s.includes('brouillon') || s.includes('attente')) cls = 'en-attente';
 
     const label = s === 'brouillon' ? 'EN ATTENTE' : (statut || 'EN COURS').toUpperCase();
-    const normalizedCls = label.toLowerCase().replace(/\s+/g, '-').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    
+    // const normalizedCls = label.toLowerCase().replace(/\s+/g, '-').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
     // We keep using cls for mapping logic but can also use normalizedCls if we want to be very generic
     return <span className={`pill ${cls}`}>{label}</span>;
 }
@@ -151,6 +161,7 @@ export default function Dashboard({ onLogout }) {
     const [notifications, setNotifications] = useState([]);
     const [showNotifPanel, setShowNotifPanel] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [showMobileSidebar, setShowMobileSidebar] = useState(false);
     const companyName = user.entreprise || 'Ma Societe';
     const hasMultipleCompanies = user.companies && user.companies.length > 1;
 
@@ -191,22 +202,22 @@ export default function Dashboard({ onLogout }) {
     const timeAgo = (dateStr) => {
         // Convertir la date ISO en objet Date
         const date = new Date(dateStr);
-        
+
         // Obtenir l'heure actuelle en UTC
         const now = new Date();
-        
+
         // Calculer la différence en secondes
         const diff = (now.getTime() - date.getTime()) / 1000;
-        
+
         if (diff < 60) return 'A l\'instant';
         if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
         if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
         if (diff < 604800) return `Il y a ${Math.floor(diff / 86400)}j`;
-        
+
         // Pour les dates plus anciennes, afficher la date réelle
-        return date.toLocaleDateString('fr-FR', { 
-            day: '2-digit', 
-            month: '2-digit', 
+        return date.toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
             year: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
@@ -247,8 +258,8 @@ export default function Dashboard({ onLogout }) {
                 // Sync rne and phone to user state and sessionStorage
                 if (data?.rne || data?.phone) {
                     setUser(prev => {
-                        const updated = { 
-                            ...prev, 
+                        const updated = {
+                            ...prev,
                             rne: data.rne || prev.rne || '',
                             phone: data.phone || prev.phone || ''
                         };
@@ -261,11 +272,11 @@ export default function Dashboard({ onLogout }) {
     }, [user.companyId]);
 
     const handleCompanySwitch = (newCo) => {
-        const updatedUser = { 
-            ...user, 
-            companyId: newCo.id, 
-            entreprise: newCo.name, 
-            matriculeFiscal: newCo.registrationNumber 
+        const updatedUser = {
+            ...user,
+            companyId: newCo.id,
+            entreprise: newCo.name,
+            matriculeFiscal: newCo.registrationNumber
         };
         setUser(updatedUser);
         sessionStorage.setItem('user', JSON.stringify(updatedUser)); // Persistent update
@@ -305,7 +316,8 @@ export default function Dashboard({ onLogout }) {
             return <InvoiceLists key={user.companyId} initialFilter={initialFilter} searchTerm={searchTerm} logo={companyLogo} onErrorClick={(inv) => { setDiagnosticInvoice(inv); navigateTo('diagnostic'); }} />;
         }
         if (activeNav === 'gestion-facture') return <InvoiceManagement key={user.companyId} searchTerm={searchTerm} logo={companyLogo} onBack={() => navigateTo('accueil')} />;
-        if (activeNav === 'referentiel') return <ClientsProducts key={user.companyId} searchTerm={searchTerm} onBack={() => navigateTo('accueil')} />;
+        if (activeNav === 'clients') return <ClientsProducts key={`${user.companyId}-clients`} searchTerm={searchTerm} initialTab="clients" singleView onBack={() => navigateTo('accueil')} />;
+        if (activeNav === 'produits') return <ClientsProducts key={`${user.companyId}-produits`} searchTerm={searchTerm} initialTab="products" singleView onBack={() => navigateTo('accueil')} />;
         if (activeNav === 'profile') return <CompanyProfile onLogout={onLogout} />;
         if (activeNav === 'fiscal') return <TaxDeclaration searchTerm={searchTerm} />;
         if (activeNav === 'stats') return <Statistics searchTerm={searchTerm} />;
@@ -432,7 +444,12 @@ export default function Dashboard({ onLogout }) {
 
     return (
         <div className="dashboard-layout">
-            <aside className="sidebar">
+            {/* Overlay pour fermer la sidebar sur mobile */}
+            {showMobileSidebar && (
+                <div className="sidebar-overlay active" onClick={() => setShowMobileSidebar(false)}></div>
+            )}
+
+            <aside className={`sidebar ${showMobileSidebar ? 'open' : ''}`}>
                 <div className="sidebar-logo">
                     {companyLogo ? (
                         <img src={companyLogo} alt="Logo" className="sidebar-company-logo" />
@@ -446,7 +463,14 @@ export default function Dashboard({ onLogout }) {
                 </div>
                 <nav className="sidebar-nav">
                     {NAV_ITEMS.map((item) => (
-                        <button key={item.key} className={`nav-item ${activeNav === item.key || (item.key === 'accueil' && ['list-validated','list-pending','list-rejected','diagnostic'].includes(activeNav)) ? 'active' : ''}`} onClick={() => navigateTo(item.key)}>
+                        <button
+                            key={item.key}
+                            className={`nav-item ${activeNav === item.key || (item.key === 'accueil' && ['list-validated', 'list-pending', 'list-rejected', 'diagnostic'].includes(activeNav)) ? 'active' : ''}`}
+                            onClick={() => {
+                                navigateTo(item.key);
+                                setShowMobileSidebar(false);
+                            }}
+                        >
                             {item.icon} {item.label}
                         </button>
                     ))}
@@ -472,6 +496,15 @@ export default function Dashboard({ onLogout }) {
             <div className="main-area">
                 <header className="topbar">
                     <div className="topbar-left">
+                        {/* Bouton hamburger pour mobile */}
+                        <button className="mobile-menu-btn" onClick={() => setShowMobileSidebar(!showMobileSidebar)}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        </button>
+
                         {activeNav !== 'accueil' && (
                             <button className="back-btn-header" onClick={() => navigateTo('accueil')}>
                                 Retour
@@ -480,7 +513,7 @@ export default function Dashboard({ onLogout }) {
                         <div className="topbar-search">
                             <input
                                 type="text"
-                                placeholder={activeNav === 'referentiel' ? 'Rechercher un client ou produit...' : 'Rechercher une facture...'}
+                                placeholder={(activeNav === 'clients' || activeNav === 'produits') ? (activeNav === 'clients' ? 'Rechercher un client...' : 'Rechercher un produit...') : 'Rechercher une facture...'}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -516,21 +549,21 @@ export default function Dashboard({ onLogout }) {
                                 </div>
                             )}
                         </div>
-                        
+
                         <div className="company-switch-anchor" style={{ position: 'relative' }}>
-                            <button 
-                                className={`company-selector ${hasMultipleCompanies ? 'multi' : ''}`} 
+                            <button
+                                className={`company-selector ${hasMultipleCompanies ? 'multi' : ''}`}
                                 onClick={() => hasMultipleCompanies ? setShowCompanyMenu(!showCompanyMenu) : navigateTo('profile')}
                             >
                                 {companyName} {hasMultipleCompanies ? '▾' : ''}
                             </button>
-                            
+
                             {showCompanyMenu && hasMultipleCompanies && (
                                 <div className="company-dropdown-menu">
                                     <div className="dropdown-header">Vos Sociétés</div>
                                     {user.companies.map(c => (
-                                        <div 
-                                            key={c.id} 
+                                        <div
+                                            key={c.id}
                                             className={`dropdown-item ${c.id === user.companyId ? 'active' : ''}`}
                                             onClick={() => handleCompanySwitch(c)}
                                         >
@@ -548,7 +581,7 @@ export default function Dashboard({ onLogout }) {
 
                 <main className={`page-content ${contentVisible ? 'content-enter' : 'content-exit'}`}>{renderContent()}</main>
 
-                <InvoicePreviewModal 
+                <InvoicePreviewModal
                     isOpen={!!selectedInvoice}
                     onClose={closeModal}
                     invoice={selectedInvoice}

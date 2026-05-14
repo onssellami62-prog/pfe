@@ -14,24 +14,35 @@ const InvoiceValidator = ({ invoice, onClose }) => {
     
     try {
       const invoicePayload = {
-        InvoiceNumber: invoice.number,
-        DocumentType: invoice.documentType,
-        Date: invoice.date,
-        ClientId: invoice.clientId,
-        ClientName: invoice.clientName,
-        ClientMatricule: invoice.clientMatricule,
-        ClientRNE: invoice.clientRNE,
-        ClientAddress: invoice.clientAddress,
-        DueDate: invoice.dueDate,
-        PaymentMode: invoice.paymentMode,
-        Notes: invoice.notes,
-        PeriodFrom: invoice.periodFrom,
-        PeriodTo: invoice.periodTo,
-        TotalHT: invoice.totals?.ht || 0,
-        TotalTVA: invoice.totals?.tva || 0,
-        StampDuty: invoice.totals?.stamp || 0,
-        TotalTTC: invoice.totals?.ttc || 0,
-        Lines: invoice.lines || []
+        invoiceNumber: String(invoice.number || ''),
+        documentType: String(invoice.documentType || '380'),
+        date: invoice.date || new Date().toISOString().split('T')[0],
+        companyId: Number(invoice.companyId) || 0,
+        clientId: invoice.clientId ? Number(invoice.clientId) : null,
+        clientName: String(invoice.clientName || ''),
+        clientMatricule: String(invoice.clientMatricule || ''),
+        clientRNE: String(invoice.clientRNE || ''),
+        clientAddress: String(invoice.clientAddress || ''),
+        dueDate: invoice.dueDate || null,
+        paymentMode: String(invoice.paymentMode || 'Virement'),
+        notes: String(invoice.notes || ''),
+        periodFrom: invoice.periodFrom || null,
+        periodTo: invoice.periodTo || null,
+        totalHT: Number(invoice.totals?.ht) || 0,
+        totalTVA: Number(invoice.totals?.tva) || 0,
+        stampDuty: Number(invoice.totals?.stamp) || 0,
+        totalTTC: Number(invoice.totals?.ttc) || 0,
+        lines: (invoice.items || []).map((item, index) => ({
+          id: index + 1, // Add temporary IDs for the validator
+          productId: item.productId ? Number(item.productId) : null,
+          description: String(item.description || ''),
+          unit: String(item.unit || 'Pièce'),
+          qty: Number(item.qty) || 0,
+          tvaRate: Number(item.tvaRate) || 0,
+          unitPriceHT: Number(item.puht) || 0,
+          totalHT: Number((item.qty || 0) * (item.puht || 0)) || 0,
+          totalTVA: Number(((item.qty || 0) * (item.puht || 0)) * ((item.tvaRate || 0) / 100)) || 0
+        }))
       };
 
       const response = await fetch('http://localhost:5170/api/Invoices/validate-draft', {
@@ -43,9 +54,12 @@ const InvoiceValidator = ({ invoice, onClose }) => {
       if (response.ok) {
         const result = await response.json();
         setValidationResult(result);
+      } else {
+        const errorText = await response.text();
+        console.error('Erreur API (Status ' + response.status + '):', errorText);
       }
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('Erreur réseau:', error);
     } finally {
       setIsAnalyzing(false);
     }

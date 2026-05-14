@@ -16,16 +16,16 @@ function App() {
     setUser(userData);
   };
 
-  const handleLogout = () => {
+  const handleLogout = React.useCallback(() => {
     setUser(null);
     sessionStorage.removeItem('user');
     sessionStorage.removeItem('token');
-  };
+  }, []);
 
   // Inactivity Timer logic (5 minutes)
   const timeoutRef = useRef(null);
 
-  const resetTimer = () => {
+  const resetTimer = React.useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (user) {
       timeoutRef.current = setTimeout(() => {
@@ -33,7 +33,7 @@ function App() {
         handleLogout();
       }, 5 * 60 * 1000); // 300,000 ms = 5 minutes
     }
-  };
+  }, [user, handleLogout]);
 
   useEffect(() => {
     if (user) {
@@ -50,7 +50,7 @@ function App() {
     } else {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     }
-  }, [user]);
+  }, [user, resetTimer]);
 
   return (
     <BrowserRouter>

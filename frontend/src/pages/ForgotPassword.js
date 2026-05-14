@@ -34,8 +34,8 @@ export default function ForgotPassword() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setMessage(data.message);
+        await response.json();
+        setMessage("Un code de verification a ete envoye a votre email.");
         setStep(2);
       } else {
         const errMsg = await response.text();
@@ -90,8 +90,9 @@ export default function ForgotPassword() {
       return;
     }
 
-    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/\d/.test(newPassword) || !/[@#$*!]/.test(newPassword)) {
-      setError('Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial (@#$*!).');
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$*!])[A-Za-z\d@#$*!]{8,}$/;
+    if (!complexityRegex.test(newPassword)) {
+      setError('Le mot de passe ne respecte pas les critères de sécurité.');
       return;
     }
 
@@ -105,7 +106,7 @@ export default function ForgotPassword() {
 
       if (response.ok) {
         setMessage('Mot de passe modifié avec succès ! Redirection...');
-        setTimeout(() => navigate('/login'), 2000);
+        setTimeout(() => navigate('/login'), 2500);
       } else {
         const errMsg = await response.text();
         setError(errMsg || 'Erreur lors de la réinitialisation.');
@@ -116,154 +117,185 @@ export default function ForgotPassword() {
     setLoading(false);
   };
 
+  const renderContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <form className="login-form" onSubmit={handleSendCode}>
+            <div className="form-title">
+              <h2>Récupération</h2>
+              <p className="form-subtitle">Entrez votre email pour recevoir un code de vérification.</p>
+            </div>
+
+            <div className="field">
+              <label>ADRESSE EMAIL</label>
+              <div className="input-box">
+                <span className="input-icon">@</span>
+                <input
+                  type="email"
+                  placeholder="votre@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {error && <div className="error-msg">{error}</div>}
+            {message && <div className="error-msg" style={{ backgroundColor: '#ecfdf5', borderColor: '#10b981', color: '#065f46' }}>{message}</div>}
+
+            <button type="submit" className="btn-login" disabled={loading}>
+              {loading ? 'Envoi en cours...' : 'Envoyer le code'} <span>&#8594;</span>
+            </button>
+
+            <div className="toggle-text">
+              <button type="button" onClick={() => navigate('/login')}>Retour à la connexion</button>
+            </div>
+          </form>
+        );
+
+      case 2:
+        return (
+          <form className="login-form" onSubmit={handleVerifyCode}>
+            <div className="form-title">
+              <h2>Vérification</h2>
+              <p className="form-subtitle">Entrez le code à 6 chiffres envoyé à {email}.</p>
+            </div>
+
+            <div className="field">
+              <label>CODE DE VÉRIFICATION</label>
+              <div className="input-box">
+                <span className="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="000000"
+                  maxLength="6"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                  style={{ textAlign: 'center', letterSpacing: '4px', fontSize: '1.2rem', fontWeight: '700' }}
+                />
+              </div>
+            </div>
+
+            {error && <div className="error-msg">{error}</div>}
+            {message && <div className="error-msg" style={{ backgroundColor: '#ecfdf5', borderColor: '#10b981', color: '#065f46' }}>{message}</div>}
+
+            <button type="submit" className="btn-login" disabled={loading}>
+              {loading ? 'Vérification...' : 'Vérifier le code'} <span>&#8594;</span>
+            </button>
+
+            <div className="toggle-text">
+              Pas reçu ? <button type="button" onClick={() => { setStep(1); setError(''); setMessage(''); }}>Renvoyer un code</button>
+            </div>
+          </form>
+        );
+
+      case 3:
+        return (
+          <form className="login-form" onSubmit={handleResetPassword}>
+            <div className="form-title">
+              <h2>Nouveau mot de passe</h2>
+              <p className="form-subtitle">Définissez votre nouvel accès sécurisé.</p>
+            </div>
+
+            <div className="field">
+              <label>NOUVEAU MOT DE PASSE</label>
+              <div className="input-box">
+                <span className="input-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  type="password"
+                  placeholder="********"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="field">
+              <label>CONFIRMER LE MOT DE PASSE</label>
+              <div className="input-box">
+                <span className="input-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                  </svg>
+                </span>
+                <input
+                  type="password"
+                  placeholder="********"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+              <div style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', color: newPassword.length >= 8 ? '#059669' : '#94a3b8' }}>
+                {newPassword.length >= 8 ? '●' : '○'} 8+ caractères
+              </div>
+              <div style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', color: /[A-Z]/.test(newPassword) ? '#059669' : '#94a3b8' }}>
+                {/[A-Z]/.test(newPassword) ? '●' : '○'} Majuscule
+              </div>
+              <div style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', color: /\d/.test(newPassword) ? '#059669' : '#94a3b8' }}>
+                {/\d/.test(newPassword) ? '●' : '○'} Chiffre
+              </div>
+              <div style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', color: /[@#$*!]/.test(newPassword) ? '#059669' : '#94a3b8' }}>
+                {/[@#$*!]/.test(newPassword) ? '●' : '○'} Spécial (@#$*!)
+              </div>
+            </div>
+
+            {error && <div className="error-msg">{error}</div>}
+            {message && <div className="error-msg" style={{ backgroundColor: '#ecfdf5', borderColor: '#10b981', color: '#065f46' }}>{message}</div>}
+
+            <button type="submit" className="btn-login" disabled={loading}>
+              {loading ? 'Enregistrement...' : 'Valider le mot de passe'} <span>&#8594;</span>
+            </button>
+          </form>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="login-page">
-      <div className="login-left" style={{ maxWidth: '520px', margin: '0 auto' }}>
-        {/* Logo */}
-        <div className="login-logo">
-          <div className="login-logo-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-          </div>
-          <span className="login-logo-text">El Fatoora</span>
+      <nav className="login-navbar">
+        <div className="navbar-brand">
+          <span className="brand-dot"></span>
+          <span className="brand-name">El Fatoora</span>
         </div>
-
-        {/* Titre */}
-        <div className="login-welcome">
-          <h1>Mot de passe oublié</h1>
-          <p>
-            {step === 1 && "Entrez votre email pour recevoir un code de vérification."}
-            {step === 2 && "Entrez le code à 6 chiffres reçu par email."}
-            {step === 3 && "Choisissez votre nouveau mot de passe."}
-          </p>
+        <div className="navbar-links">
+          <button onClick={() => navigate('/login')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', fontWeight: '600', cursor: 'pointer', letterSpacing: '1.5px' }}>CONNEXION</button>
+          <a href="/aide">SUPPORT</a>
         </div>
+      </nav>
 
-        {/* Messages */}
-        {message && (
-          <div style={{ background: '#ecfdf5', border: '1px solid #1a6b50', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', color: '#0a3326', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a6b50" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            {message}
-          </div>
-        )}
-
-        {error && (
-          <div className="login-error-msg">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            {error}
-          </div>
-        )}
-
-        {/* Étape 1 : Email */}
-        {step === 1 && (
-          <form className="login-form" onSubmit={handleSendCode}>
-            <div className="form-group">
-              <label>Adresse email</label>
-              <input
-                type="email"
-                placeholder="Entrez votre email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <button type="submit" className="btn-login" disabled={loading}>
-              {loading ? 'Envoi en cours...' : 'Envoyer le code'}
-            </button>
-          </form>
-        )}
-
-        {/* Étape 2 : Code OTP */}
-        {step === 2 && (
-          <form className="login-form" onSubmit={handleVerifyCode}>
-            <div className="form-group">
-              <label>Code de vérification</label>
-              <input
-                type="text"
-                placeholder="Entrez le code à 6 chiffres"
-                maxLength="6"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                required
-                style={{ textAlign: 'center', letterSpacing: '8px', fontSize: '24px', fontWeight: '700' }}
-              />
-            </div>
-            <button type="submit" className="btn-login" disabled={loading}>
-              {loading ? 'Vérification...' : 'Vérifier le code'}
-            </button>
-            <button type="button" className="btn-register-toggle" onClick={() => { setStep(1); setError(''); setMessage(''); }} style={{ width: '100%', marginTop: '8px', background: 'none', border: 'none', color: '#1e40af', cursor: 'pointer', fontWeight: '600' }}>
-              Renvoyer un code
-            </button>
-          </form>
-        )}
-
-        {/* Étape 3 : Nouveau mot de passe */}
-        {step === 3 && (
-          <form className="login-form" onSubmit={handleResetPassword}>
-            <div className="form-group">
-              <label>Nouveau mot de passe</label>
-              <input
-                type="password"
-                placeholder="Min. 8 car., majuscule, chiffre, @#$*!"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Confirmer le mot de passe</label>
-              <input
-                type="password"
-                placeholder="Retapez le mot de passe"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* Indicateurs de complexité */}
-            <div style={{ fontSize: '12px', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ color: newPassword.length >= 8 ? '#1a6b50' : '#ef4444' }}>
-                {newPassword.length >= 8 ? '✓' : '✗'} Minimum 8 caractères
-              </span>
-              <span style={{ color: /[A-Z]/.test(newPassword) ? '#1a6b50' : '#ef4444' }}>
-                {/[A-Z]/.test(newPassword) ? '✓' : '✗'} Une majuscule
-              </span>
-              <span style={{ color: /[a-z]/.test(newPassword) ? '#1a6b50' : '#ef4444' }}>
-                {/[a-z]/.test(newPassword) ? '✓' : '✗'} Une minuscule
-              </span>
-              <span style={{ color: /\d/.test(newPassword) ? '#1a6b50' : '#ef4444' }}>
-                {/\d/.test(newPassword) ? '✓' : '✗'} Un chiffre
-              </span>
-              <span style={{ color: /[@#$*!]/.test(newPassword) ? '#1a6b50' : '#ef4444' }}>
-                {/[@#$*!]/.test(newPassword) ? '✓' : '✗'} Un caractère spécial (@#$*!)
-              </span>
-              {confirmPassword && (
-                <span style={{ color: newPassword === confirmPassword ? '#1a6b50' : '#ef4444' }}>
-                  {newPassword === confirmPassword ? '✓' : '✗'} Les mots de passe correspondent
-                </span>
-              )}
-            </div>
-
-            <button type="submit" className="btn-login" disabled={loading}>
-              {loading ? 'Enregistrement...' : 'Valider le nouveau mot de passe'}
-            </button>
-          </form>
-        )}
-
-        {/* Retour au login */}
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <button
-            onClick={() => navigate('/login')}
-            style={{ background: 'none', border: 'none', color: '#1e40af', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
-          >
-            ← Retour à la connexion
-          </button>
+      <div className="login-center">
+        <div className="login-card">
+          {renderContent()}
         </div>
       </div>
+
+      <footer className="login-bottom-footer">
+        <span>© 2024 El Fatoora - Tous droits réservés</span>
+        <div className="bottom-links">
+          <a href="/aide">CONFIDENTIALITÉ</a>
+          <a href="/aide">CONDITIONS</a>
+          <a href="/aide">SÉCURITÉ</a>
+        </div>
+      </footer>
     </div>
   );
 }

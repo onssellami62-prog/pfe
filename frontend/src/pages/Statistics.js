@@ -88,7 +88,7 @@ export default function Statistics() {
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     const companyId = user.companyId;
 
-    const getDateRange = (filter) => {
+    const getDateRange = React.useCallback((filter) => {
         const today = new Date();
         if (filter === '30j') {
             const from = new Date(today);
@@ -102,7 +102,7 @@ export default function Statistics() {
             return { from: customFrom, to: customTo };
         }
         return {};
-    };
+    }, [customFrom, customTo]);
 
     useEffect(() => {
         if (!companyId) return;
@@ -135,7 +135,7 @@ export default function Statistics() {
         };
 
         fetchStats();
-    }, [companyId, activeFilter, customFrom, customTo]);
+    }, [companyId, activeFilter, customFrom, customTo, getDateRange]);
 
     if (loading) return <div className="stats-page"><div className="loading-stats">Chargement des statistiques...</div></div>;
     if (error) return <div className="stats-page"><div className="error-stats">{error}</div></div>;

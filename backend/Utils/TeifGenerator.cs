@@ -6,132 +6,266 @@ namespace backend.Utils
 {
     public static class TeifGenerator
     {
-        private static readonly XNamespace ns = "urn:tn:gov:dgi:teif:2.0";
+        // TEIF v1.8.8 has NO targetNamespace — elements are unqualified
         private static readonly XNamespace ds = "http://www.w3.org/2000/09/xmldsig#";
-        private static readonly XNamespace xades = "http://uri.etsi.org/01903/v1.3.2#";
 
-        private class SplitMF {
-            public string Id88 { get; set; } = "";
-            public string Id89 { get; set; } = "";
-            public string Id90 { get; set; } = "";
-            public string Id91 { get; set; } = "";
-            public string Full => $"{Id88}{Id89}{Id90}{Id91}";
-        }
-
-        private static SplitMF SplitMatricule(string mf) {
+        // -------------------------------------------------------------------
+        // Helper: normalise the Matricule Fiscal to exactly 13 chars
+        // Format: 7 digits + letter + letter + letter + 3 digits  (I-01)
+        // -------------------------------------------------------------------
+        private static string NormaliseMatricule(string mf)
+        {
             string clean = Regex.Replace(mf ?? "", "[^a-zA-Z0-9]", "").ToUpper();
-            if (clean.Length < 13) {
-                return new SplitMF { 
-                    Id88 = clean.PadRight(13, 'X').Substring(0, 8), 
-                    Id89 = "X", 
-                    Id90 = "X", 
-                    Id91 = "000" 
-                };
-            }
-            
-            return new SplitMF {
-                Id88 = clean.Substring(0, 8),
-                Id89 = clean.Substring(8, 1),
-                Id90 = clean.Substring(9, 1),
-                Id91 = clean.Substring(10, 3)
-            };
+            // Pad or truncate to 13 characters so the XSD assert passes
+            if (clean.Length < 13)
+                clean = clean.PadRight(13, '0');
+            else if (clean.Length > 13)
+                clean = clean.Substring(0, 13);
+            return clean;
         }
 
-        private static string ExtractCity(string address) {
-            if (string.IsNullOrEmpty(address)) return "Tunis";
-            var parts = address.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            return parts.Last();
+        // -------------------------------------------------------------------
+        // Helper: format a date as ddMMyy (required by XSD DtmDetailType)
+        // -------------------------------------------------------------------
+        private static string FormatDate(DateTime d) => d.ToString("ddMMyy");
+
+        // -------------------------------------------------------------------
+        // Helper: build a <Moa> element with the mandatory attributes
+        //   amountTypeCode codes (v1.8.8):
+        //     I-171 … I-188  — see XSD enumeration
+        //   Typical usage:
+        //     I-171  Line net amount (HT per line)
+        //     I-176  Tax amount (TVA total)
+        //     I-177  Total TTC
+        //     I-179  Total HT (taxable base)
+        //     I-175  Stamp duty
+        // -------------------------------------------------------------------
+        private static XElement MoaElement(string amountTypeCode, decimal amount)
+        {
+            return new XElement("Moa",
+                new XAttribute("currencyCodeList", "ISO_4217"),
+                new XAttribute("amountTypeCode", amountTypeCode),
+                new XElement("Amount",
+                    new XAttribute("currencyIdentifier", "TND"),
+                    amount.ToString("F3")
+                )
+            );
         }
 
+        // -------------------------------------------------------------------
+        // Helper: wrap a Moa inside an AmountDetails container
+        // -------------------------------------------------------------------
+        private static XElement AmountDetails(string amountTypeCode, decimal amount)
+        {
+            return new XElement("AmountDetails",
+                new XElement("MoaDetails",
+                    MoaElement(amountTypeCode, amount)
+                )
+            );
+        }
+
+        // -------------------------------------------------------------------
+        // Main entry point
+        // -------------------------------------------------------------------
         public static string GenerateXml(Invoice invoice, Company company)
         {
-            var senderMF = SplitMatricule(company.RegistrationNumber);
-            var receiverMF = SplitMatricule(invoice.ClientMatricule);
+            string senderMF   = NormaliseMatricule(company.RegistrationNumber);
+            string receiverMF = NormaliseMatricule(invoice.ClientMatricule);
+
+            var lines = invoice.Lines ?? new List<InvoiceLine>();
 
             var doc = new XDocument(
                 new XDeclaration("1.0", "UTF-8", null),
-                new XElement(ns + "TEIF",
-                    new XAttribute("version", "2.0"),
+                new XElement("TEIF",
+                    new XAttribute("version", "1.8.8"),
                     new XAttribute("controlingAgency", "TTN"),
                     new XAttribute(XNamespace.Xmlns + "ds", ds.NamespaceName),
-                    new XAttribute(XNamespace.Xmlns + "xades", xades.NamespaceName),
 
-                    new XElement(ns + "INVOICEHEADER",
-                        new XElement(ns + "MessageSenderIdentifier", new XAttribute("type", "I-01"), senderMF.Full),
-                        new XElement(ns + "MessageRecieverIdentifier", new XAttribute("type", "I-01"), receiverMF.Full)
+                    // ── InvoiceHeader ─────────────────────────────────────
+                    new XElement("InvoiceHeader",
+                        new XElement("MessageSenderIdentifier",
+                            new XAttribute("type", "I-01"),
+                            senderMF
+                        ),
+                        new XElement("MessageRecieverIdentifier",
+                            new XAttribute("type", "I-01"),
+                            receiverMF
+                        )
                     ),
 
-                    new XElement(ns + "INVOICEBODY",
-                        new XElement(ns + "BGM",
-                            new XElement(ns + "Element1001", invoice.DocumentType)
-                        ),
-                        new XElement(ns + "DTM", new XAttribute("format", "102"), invoice.Date.Date.ToString("yyyyMMdd")),
+                    // ── InvoiceBody ───────────────────────────────────────
+                    new XElement("InvoiceBody",
 
-                        new XElement(ns + "PartnerSection",
-                            new XElement(ns + "NAD",
-                                new XElement(ns + "PartyType", "SE"),
-                                new XElement(ns + "ID_0088", senderMF.Id88),
-                                new XElement(ns + "ID_0089", senderMF.Id89),
-                                new XElement(ns + "ID_0090", senderMF.Id90),
-                                new XElement(ns + "ID_0091", senderMF.Id91),
-                                new XElement(ns + "Name", company.Name),
-                                new XElement(ns + "Address", company.Address),
-                                new XElement(ns + "City", ExtractCity(company.Address))
-                            ),
-                            new XElement(ns + "NAD",
-                                new XElement(ns + "PartyType", "BY"),
-                                new XElement(ns + "ID_0088", receiverMF.Id88),
-                                new XElement(ns + "ID_0089", receiverMF.Id89),
-                                new XElement(ns + "ID_0090", receiverMF.Id90),
-                                new XElement(ns + "ID_0091", receiverMF.Id91),
-                                new XElement(ns + "Name", invoice.ClientName),
-                                new XElement(ns + "Address", invoice.ClientAddress),
-                                new XElement(ns + "City", ExtractCity(invoice.ClientAddress))
+                        // Bgm — document identification
+                        new XElement("Bgm",
+                            new XElement("DocumentIdentifier", invoice.InvoiceNumber ?? invoice.Id.ToString()),
+                            new XElement("DocumentType",
+                                new XAttribute("code", "I-11"),   // I-11 = Facture
+                                "Facture"
                             )
                         ),
 
-                        new XElement(ns + "LINSECTION",
-                            invoice.Lines?.Select((line, idx) => 
-                                new XElement(ns + "LIN",
-                                    new XElement(ns + "Element1082", idx + 1),
-                                    new XElement(ns + "Element7008", line.Description),
-                                    new XElement(ns + "Element6060", line.Qty.ToString("F3")),
-                                    new XElement(ns + "Element5118", line.UnitPriceHT.ToString("F3")),
-                                    new XElement(ns + "MOA", line.TotalHT.ToString("F3"))
-                                )
-                            ) ?? Enumerable.Empty<XElement>()
-                        ),
-
-                        new XElement(ns + "TAXSECTION",
-                            invoice.Lines?.GroupBy(l => l.TvaRate).Select(g => 
-                                new XElement(ns + "TaxGroup",
-                                    new XElement(ns + "TaxCategoryCode", "I-1602"),
-                                    new XElement(ns + "TaxRate", g.Key.ToString("F3")),
-                                    new XElement(ns + "TaxBaseAmount", g.Sum(l => l.TotalHT).ToString("F3")),
-                                    new XElement(ns + "TaxAmount", g.Sum(l => l.TotalTVA).ToString("F3"))
-                                )
-                            ),
-                            new XElement(ns + "TaxGroup",
-                                new XElement(ns + "TaxCategoryCode", "I-1601"),
-                                new XElement(ns + "TaxAmount", invoice.StampDuty.ToString("F3"))
+                        // Dtm — invoice date  (functionCode I-31 = Invoice date)
+                        new XElement("Dtm",
+                            new XElement("DateText",
+                                new XAttribute("functionCode", "I-31"),
+                                new XAttribute("format", "ddMMyy"),
+                                FormatDate(invoice.Date)
                             )
                         ),
 
-                        new XElement(ns + "MOASECTION",
-                            new XElement(ns + "MOA",
-                                new XElement(ns + "Element5025", "79"),
-                                new XElement(ns + "Element5004", invoice.TotalHT.ToString("F3"))
+                        // PartnerSection — Seller (I-61) + Buyer (I-62)
+                        new XElement("PartnerSection",
+
+                            // Seller
+                            new XElement("PartnerDetails",
+                                new XAttribute("functionCode", "I-61"),
+                                new XElement("Nad",
+                                    new XElement("PartnerIdentifier",
+                                        new XAttribute("type", "I-01"),
+                                        senderMF
+                                    ),
+                                    new XElement("PartnerName",
+                                        new XAttribute("nameType", "Qualification"),
+                                        company.Name ?? ""
+                                    ),
+                                    new XElement("PartnerAdresses",
+                                        new XElement("AdressDescription", company.Address ?? ""),
+                                        new XElement("Country",
+                                            new XAttribute("codeList", "ISO_3166-1"),
+                                            "TN"
+                                        )
+                                    )
+                                )
                             ),
-                            new XElement(ns + "MOA",
-                                new XElement(ns + "Element5025", "176"),
-                                new XElement(ns + "Element5004", invoice.TotalTVA.ToString("F3"))
+
+                            // Buyer
+                            new XElement("PartnerDetails",
+                                new XAttribute("functionCode", "I-62"),
+                                new XElement("Nad",
+                                    new XElement("PartnerIdentifier",
+                                        new XAttribute("type", "I-01"),
+                                        receiverMF
+                                    ),
+                                    new XElement("PartnerName",
+                                        new XAttribute("nameType", "Qualification"),
+                                        invoice.ClientName ?? ""
+                                    ),
+                                    new XElement("PartnerAdresses",
+                                        new XElement("AdressDescription", invoice.ClientAddress ?? ""),
+                                        new XElement("Country",
+                                            new XAttribute("codeList", "ISO_3166-1"),
+                                            "TN"
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        // LinSection — one <Lin> per invoice line
+                        new XElement("LinSection",
+                            lines.Select((line, idx) =>
+                                new XElement("Lin",
+                                    new XElement("ItemIdentifier", (idx + 1).ToString()),
+                                    new XElement("LinImd",
+                                        new XAttribute("lang", "fr"),
+                                        new XElement("ItemCode", line.Id > 0 ? line.Id.ToString() : (idx + 1).ToString()),
+                                        new XElement("ItemDescription", line.Description ?? "")
+                                    ),
+                                    new XElement("LinQty",
+                                        new XElement("Quantity",
+                                            new XAttribute("measurementUnit", "UN"),
+                                            line.Qty.ToString("F3")
+                                        )
+                                    ),
+                                    new XElement("LinTax",
+                                        new XElement("TaxTypeName",
+                                            new XAttribute("code", "I-1602"),  // I-1602 = TVA
+                                            "TVA"
+                                        ),
+                                        new XElement("TaxDetails",
+                                            new XElement("TaxRate", ((int)line.TvaRate).ToString())
+                                        )
+                                    ),
+                                    new XElement("LinMoa",
+                                        // I-171 = line net amount (HT)
+                                        new XElement("MoaDetails",
+                                            MoaElement("I-171", line.TotalHT)
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        // InvoiceMoa — invoice-level amounts
+                        new XElement("InvoiceMoa",
+                            // I-179 = Total taxable amount (HT)
+                            new XElement("AmountDetails",
+                                new XElement("MoaDetails", MoaElement("I-179", invoice.TotalHT))
                             ),
-                            new XElement(ns + "MOA",
-                                new XElement(ns + "Element5025", "128"),
-                                new XElement(ns + "Element5004", invoice.TotalTTC.ToString("F3"))
+                            // I-176 = Total tax amount (TVA)
+                            new XElement("AmountDetails",
+                                new XElement("MoaDetails", MoaElement("I-176", invoice.TotalTVA))
+                            ),
+                            // I-175 = Stamp duty
+                            new XElement("AmountDetails",
+                                new XElement("MoaDetails", MoaElement("I-175", invoice.StampDuty))
+                            ),
+                            // I-177 = Total payable (TTC)
+                            new XElement("AmountDetails",
+                                new XElement("MoaDetails", MoaElement("I-177", invoice.TotalTTC))
+                            )
+                        ),
+
+                        // InvoiceTax — one entry per TVA rate group + stamp duty
+                        new XElement("InvoiceTax",
+                            // TVA groups
+                            lines.GroupBy(l => l.TvaRate).Select(g =>
+                                new XElement("InvoiceTaxDetails",
+                                    new XElement("Tax",
+                                        new XElement("TaxTypeName",
+                                            new XAttribute("code", "I-1602"),
+                                            "TVA"
+                                        ),
+                                        new XElement("TaxDetails",
+                                            new XElement("TaxRate", ((int)g.Key).ToString())
+                                        )
+                                    ),
+                                    // taxable base for this rate
+                                    new XElement("AmountDetails",
+                                        new XElement("MoaDetails",
+                                            MoaElement("I-179", g.Sum(l => l.TotalHT))
+                                        )
+                                    ),
+                                    // tax amount for this rate
+                                    new XElement("AmountDetails",
+                                        new XElement("MoaDetails",
+                                            MoaElement("I-176", g.Sum(l => l.TotalTVA))
+                                        )
+                                    )
+                                )
+                            ),
+                            // Stamp duty (I-1601)
+                            new XElement("InvoiceTaxDetails",
+                                new XElement("Tax",
+                                    new XElement("TaxTypeName",
+                                        new XAttribute("code", "I-1601"),
+                                        "Droit de timbre"
+                                    ),
+                                    new XElement("TaxDetails",
+                                        new XElement("TaxRate", "0")
+                                    )
+                                ),
+                                new XElement("AmountDetails",
+                                    new XElement("MoaDetails",
+                                        MoaElement("I-175", invoice.StampDuty)
+                                    )
+                                )
                             )
                         )
                     ),
+
+                    // ── ds:Signature placeholder (filled by signing service) ──
                     new XElement(ds + "Signature")
                 )
             );

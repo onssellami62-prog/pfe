@@ -483,3 +483,132 @@
     flex-direction: column;
   }
 }
+
+
+/* ========================================
+   RESPONSIVE DESIGN - INVOICE VALIDATOR
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .validator-results {
+        padding: 20px !important;
+    }
+    
+    .category-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .validator-modal {
+        max-width: calc(100vw - 32px) !important;
+        margin: 16px !important;
+    }
+    
+    .validator-results {
+        padding: 16px !important;
+    }
+    
+    .results-header {
+        flex-direction: column !important;
+        gap: 16px !important;
+    }
+    
+    .score-main {
+        width: 100% !important;
+        text-align: center !important;
+    }
+    
+    .score-value {
+        font-size: 3rem !important;
+    }
+    
+    .stats-quick {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+    
+    .category-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+    
+    .error-card {
+        padding: 14px !important;
+    }
+    
+    .validator-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .validator-actions button {
+        width: 100% !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .validator-modal {
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+    }
+    
+    .validator-results {
+        padding: 12px !important;
+    }
+    
+    .score-icon {
+        width: 48px !important;
+        height: 48px !important;
+    }
+    
+    .score-value {
+        font-size: 2.5rem !important;
+    }
+    
+    .score-label {
+        font-size: 0.8rem !important;
+    }
+    
+    .stats-quick {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+    
+    .stat-value {
+        font-size: 1.2rem !important;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem !important;
+    }
+    
+    .error-card {
+        padding: 12px !important;
+    }
+    
+    .error-header {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+    
+    .error-severity {
+        font-size: 0.7rem !important;
+    }
+    
+    .error-message {
+        font-size: 0.85rem !important;
+    }
+    
+    .btn-submit-ready,
+    .btn-fix-errors {
+        font-size: 0.85rem !important;
+        padding: 12px 20px !important;
+    }
+}

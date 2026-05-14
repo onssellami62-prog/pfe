@@ -294,3 +294,89 @@
 .logo-btn.danger:hover {
     background: rgba(239, 68, 68, 0.1) !important;
 }
+
+
+/* ========================================
+   RESPONSIVE DESIGN - COMPANY PROFILE
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .profile-container {
+        padding: 20px !important;
+    }
+    
+    .profile-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .profile-container {
+        padding: 16px !important;
+    }
+    
+    .profile-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .profile-card {
+        padding: 20px !important;
+    }
+    
+    .profile-form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .profile-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .profile-actions button {
+        width: 100% !important;
+    }
+    
+    .logo-upload-section {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+    }
+    
+    .logo-preview {
+        width: 100% !important;
+        max-width: 200px !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .profile-container {
+        padding: 12px !important;
+    }
+    
+    .profile-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .profile-card {
+        padding: 16px !important;
+    }
+    
+    .form-label {
+        font-size: 0.8rem !important;
+    }
+    
+    .form-input {
+        font-size: 0.85rem !important;
+        padding: 10px 12px !important;
+    }
+    
+    .btn {
+        font-size: 0.85rem !important;
+        padding: 10px 14px !important;
+    }
+}

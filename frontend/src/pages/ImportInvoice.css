@@ -197,3 +197,105 @@
     transform: scale(1.01);
     box-shadow: 0 25px 50px rgba(15, 76, 58,0.4);
 }
+
+
+/* ========================================
+   RESPONSIVE DESIGN - IMPORT INVOICE
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .import-container {
+        padding: 20px !important;
+    }
+    
+    .import-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .import-container {
+        padding: 16px !important;
+    }
+    
+    .import-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .dropzone {
+        padding: 30px 20px !important;
+    }
+    
+    .dropzone-icon {
+        font-size: 2.5rem !important;
+    }
+    
+    .import-preview {
+        padding: 16px !important;
+    }
+    
+    .preview-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .preview-table {
+        min-width: 600px;
+    }
+    
+    .import-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .import-actions button {
+        width: 100% !important;
+    }
+    
+    .file-info {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .import-container {
+        padding: 12px !important;
+    }
+    
+    .import-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .dropzone {
+        padding: 24px 16px !important;
+    }
+    
+    .dropzone-text {
+        font-size: 0.85rem !important;
+    }
+    
+    .import-preview {
+        padding: 14px !important;
+    }
+    
+    .preview-title {
+        font-size: 1rem !important;
+    }
+    
+    table th,
+    table td {
+        padding: 10px 8px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .btn {
+        font-size: 0.85rem !important;
+        padding: 10px 14px !important;
+    }
+}

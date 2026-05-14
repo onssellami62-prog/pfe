@@ -149,3 +149,103 @@
 .hint-icon { width: 24px; height: 24px; background: #0f4c3a; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; font-size: 0.75rem; }
 .hint-content h4 { margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #0f4c3a; }
 .hint-content p { margin: 0; font-size: 0.85rem; color: #0f4c3a; line-height: 1.5; opacity: 0.8; }
+
+
+/* ========================================
+   RESPONSIVE DESIGN - MY INVOICES
+   ======================================== */
+
+/* Tablettes (max-width: 1200px) */
+@media (max-width: 1200px) {
+    .invoices-container {
+        padding: 20px !important;
+    }
+    
+    .invoices-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+}
+
+/* Tablettes et mobiles (max-width: 768px) */
+@media (max-width: 768px) {
+    .invoices-container {
+        padding: 16px !important;
+    }
+    
+    .invoices-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .invoices-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .filters-bar {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .filter-group {
+        width: 100% !important;
+    }
+    
+    /* Tables responsive */
+    .invoices-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .invoices-table {
+        min-width: 700px;
+    }
+    
+    /* Cards responsive */
+    .invoice-card {
+        padding: 16px !important;
+    }
+    
+    .invoice-actions {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .invoice-actions button {
+        width: 100% !important;
+    }
+}
+
+/* Petits mobiles (max-width: 480px) */
+@media (max-width: 480px) {
+    .invoices-container {
+        padding: 12px !important;
+    }
+    
+    .invoices-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .invoice-card {
+        padding: 14px !important;
+    }
+    
+    .invoice-number {
+        font-size: 1rem !important;
+    }
+    
+    .invoice-amount {
+        font-size: 1.2rem !important;
+    }
+    
+    .status-badge {
+        font-size: 0.7rem !important;
+        padding: 4px 10px !important;
+    }
+    
+    table th,
+    table td {
+        padding: 10px 8px !important;
+        font-size: 0.8rem !important;
+    }
+}
