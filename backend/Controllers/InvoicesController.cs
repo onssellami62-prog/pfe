@@ -170,6 +170,9 @@ namespace backend.Controllers
                 _context.Invoices.Add(invoice);
                 await _context.SaveChangesAsync();
                 
+                // Debug: Log l'ID généré
+                Console.WriteLine($"[DEBUG] Invoice créée avec ID: {invoice.Id}");
+                
                 // Log activity
                 string performerName = Request.Query["performerName"].ToString();
                 if (string.IsNullOrEmpty(performerName)) performerName = "Système";
@@ -198,14 +201,23 @@ namespace backend.Controllers
                     });
                 }
                 await _context.SaveChangesAsync();
+                
+                // Debug: Log avant le retour
+                Console.WriteLine($"[DEBUG] Retour de l'objet invoice avec ID: {invoice.Id}, InvoiceNumber: {invoice.InvoiceNumber}");
+                
+                return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, invoice);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[Error Invoices] {ex.Message}");
-                if (ex.InnerException != null) Console.WriteLine($"[Inner] {ex.InnerException.Message}");
+                string errorMessage = ex.Message;
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"[Inner] {ex.InnerException.Message}");
+                    errorMessage += $" | Détails: {ex.InnerException.Message}";
+                }
+                return StatusCode(500, $"Erreur lors de la création de la facture: {errorMessage}");
             }
-
-            return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, invoice);
         }
 
 

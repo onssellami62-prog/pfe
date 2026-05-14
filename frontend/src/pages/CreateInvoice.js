@@ -239,9 +239,18 @@ export default function CreateInvoice() {
 
   // Save invoice to database
   const handleSaveInvoice = async (isSubmitting = false) => {
-    if (!companyId) return alert('Erreur: Société non identifiée.');
-    if (!invoice.clientId) return alert('Veuillez sélectionner un client enregistré dans votre référentiel.');
-    if (invoice.items.length === 0) return alert('Ajoutez au moins une ligne produit/service.');
+    if (!companyId) {
+      alert('Erreur: Société non identifiée.');
+      return null;
+    }
+    if (!invoice.clientId) {
+      alert('Veuillez sélectionner un client enregistré dans votre référentiel.');
+      return null;
+    }
+    if (invoice.items.length === 0) {
+      alert('Ajoutez au moins une ligne produit/service.');
+      return null;
+    }
 
     setSaving(true);
     const payload = {
@@ -286,23 +295,37 @@ export default function CreateInvoice() {
       const responseData = await res.text();
 
       if (!res.ok) {
+        console.error('❌ Erreur HTTP:', res.status);
+        console.error('❌ Message du serveur:', responseData);
         alert(`Erreur lors de l'enregistrement: ${responseData || 'Erreur inconnue'}`);
-        return;
+        return null;
       }
 
       let saved;
       try {
         saved = JSON.parse(responseData);
+        console.log('✅ Réponse du serveur parsée:', saved);
+        console.log('✅ Propriétés disponibles:', Object.keys(saved));
+        console.log('✅ ID (minuscule):', saved.id);
+        console.log('✅ ID (majuscule):', saved.Id);
       } catch (e) {
-        saved = { invoiceNumber: invoice.number };
+        console.error('Erreur de parsing JSON:', e);
+        console.error('Réponse brute:', responseData);
+        alert('Erreur: Réponse invalide du serveur.');
+        return null;
       }
 
       setSaveSuccess(true);
-      if (saved && saved.id) {
-        setInvoice(prev => ({ ...prev, number: saved.invoiceNumber, dbId: saved.id }));
+      // C# peut retourner "Id" ou "id" selon la configuration de sérialisation
+      const invoiceId = saved.id || saved.Id;
+      const invoiceNumber = saved.invoiceNumber || saved.InvoiceNumber;
+      
+      // Vérifier que l'ID est valide (> 0)
+      if (saved && invoiceId && invoiceId > 0) {
+        setInvoice(prev => ({ ...prev, number: invoiceNumber, dbId: invoiceId }));
 
         // Generate QR code as a LINK to the full XML (to ensure 100% data preservation)
-        const xmlLink = `${API}/Invoices/${saved.id}/xml`;
+        const xmlLink = `${API}/Invoices/${invoiceId}/xml`;
         const encodedLink = encodeURIComponent(xmlLink);
         setSaveQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=L&data=${encodedLink}`);
 
@@ -311,10 +334,15 @@ export default function CreateInvoice() {
           setShowSuccessModal(true);
         }
 
-        return saved.id;
+        setTimeout(() => setSaveSuccess(false), 5000);
+        return invoiceId;
       }
 
-      setTimeout(() => setSaveSuccess(false), 5000);
+      // Si saved.id n'existe pas ou est 0
+      console.error('Réponse du serveur sans ID valide:', saved);
+      console.error('ID reçu:', invoiceId);
+      alert('Erreur: Le serveur n\'a pas retourné d\'ID de facture valide. Vérifiez les logs du serveur.');
+      return null;
     } catch (err) {
       console.error('Save error:', err);
       alert('Erreur critique de connexion au serveur.');
