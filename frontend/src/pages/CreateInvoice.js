@@ -2,427 +2,269 @@ import React, { useState, useEffect } from 'react';
 
 const API_BASE    = 'http://localhost:5170/api';
 const getToken    = () => localStorage.getItem('token');
-const authHeaders = () => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${getToken()}`
+const authHeaders = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` });
+const fmt         = (n) => parseFloat(n || 0).toFixed(3);
+
+const emptyInvoice = () => ({
+    tiersId: '', clientName: '', clientMatricule: '', clientType: '',
+    date: new Date().toISOString().split('T')[0],
+    dateLimitePaiement: '', timbreFiscal: true, remiseGlobale: 0,
+    items: [], totals: { ht: 0, tva: 0, stamp: 0.6, ttc: 0 }
 });
 
-const formatAmount = (num) => parseFloat(num || 0).toFixed(3);
+const typeLabel = (t) => ({ 'I-01':'Société Tunisienne','I-02':'Personne Physique','I-03':'Carte Séjour','I-04':'Société Étrangère' }[t] || t || '');
+
+const s = {
+    page:    { fontFamily:"'Inter',sans-serif", height:'100%', display:'flex', flexDirection:'column' },
+    card:    { background:'#fff', borderRadius:14, border:'1px solid #e5e7eb', boxShadow:'0 2px 12px rgba(0,0,0,0.06)', padding:'18px 22px', flex:1, display:'flex', flexDirection:'column', gap:12, overflow:'hidden' },
+    label:   { fontSize:10, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3, display:'block' },
+    input:   { width:'100%', border:'1px solid #e5e7eb', borderRadius:7, padding:'6px 10px', fontSize:12, outline:'none', fontFamily:'inherit', background:'#fff' },
+    select:  { width:'100%', border:'1px solid #e5e7eb', borderRadius:7, padding:'6px 10px', fontSize:12, outline:'none', fontFamily:'inherit', background:'#fff' },
+    section: { background:'#f9fafb', border:'1px solid #f0f0f5', borderRadius:10, padding:'12px 14px' },
+    th:      { fontSize:10, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.05em', padding:'7px 10px', textAlign:'left', borderBottom:'1px solid #f3f4f6', whiteSpace:'nowrap' },
+    td:      { padding:'5px 10px', fontSize:12, borderBottom:'1px solid #f9fafb', verticalAlign:'middle' },
+    btnPrimary: { background:'#2563eb', color:'#fff', border:'none', borderRadius:9, padding:'9px 20px', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6 },
+    btnSecondary: { background:'none', color:'#6b7280', border:'1px solid #e5e7eb', borderRadius:9, padding:'9px 16px', fontSize:12, fontWeight:600, cursor:'pointer' },
+};
 
 export default function CreateInvoice() {
-    const [clients, setClients]   = useState([]);
-    const [produits, setProduits] = useState([]);
-    const [status, setStatus]     = useState('draft');
+    const [clients,     setClients]     = useState([]);
+    const [produits,    setProduits]    = useState([]);
+    const [status,      setStatus]      = useState('draft');
     const [ttnResponse, setTtnResponse] = useState(null);
-    const [error, setError]       = useState('');
+    const [error,       setError]       = useState('');
+    const [invoice,     setInvoice]     = useState(emptyInvoice());
 
-    const [invoice, setInvoice] = useState({
-        tiersId:            '',
-        clientName:         '',
-        clientMatricule:    '',
-        date:               new Date().toISOString().split('T')[0],
-        dateLimitePaiement: '',
-        periodFrom:         '',
-        periodTo:           '',
-        timbreFiscal:       true,
-        remiseGlobale:      0,
-        items:              [],
-        totals:             { ht: 0, tva: 0, stamp: 0.600, ttc: 0 }
-    });
-
-    // ── Chargement clients et produits ───────────────────────────────────
     useEffect(() => {
-        fetch(`${API_BASE}/tiers`, { headers: authHeaders() })
-            .then(r => r.json()).then(setClients).catch(() => {});
-        fetch(`${API_BASE}/produits`, { headers: authHeaders() })
-            .then(r => r.json()).then(setProduits).catch(() => {});
+        fetch(`${API_BASE}/tiers`,    { headers: authHeaders() }).then(r => r.json()).then(setClients).catch(() => {});
+        fetch(`${API_BASE}/produits`, { headers: authHeaders() }).then(r => r.json()).then(setProduits).catch(() => {});
     }, []);
 
-    // ── Calcul automatique des totaux ────────────────────────────────────
     useEffect(() => {
         let ht = 0, tva = 0;
         invoice.items.forEach(item => {
-            const lineHT  = (item.qty || 0) * (item.puht || 0);
-            const remise  = lineHT * ((item.remise || 0) / 100);
-            const netHT   = lineHT - remise;
-            const lineTVA = netHT * ((item.tvaRate || 0) / 100);
-            ht  += netHT;
-            tva += lineTVA;
+            const net = (item.qty||0)*(item.puht||0)*(1-(item.remise||0)/100);
+            ht  += net;
+            tva += net * ((item.tvaRate||0)/100);
         });
-        const remiseGlob = ht * ((invoice.remiseGlobale || 0) / 100);
-        const htApres    = ht - remiseGlob;
-        const stamp      = invoice.timbreFiscal ? 0.600 : 0;
-        const ttc        = htApres + tva + stamp;
-
-        setInvoice(prev => ({
-            ...prev,
-            totals: { ht: htApres, tva, stamp, ttc }
-        }));
+        const htR  = ht * (1 - (invoice.remiseGlobale||0)/100);
+        const stamp = invoice.timbreFiscal ? 0.6 : 0;
+        setInvoice(prev => ({ ...prev, totals: { ht: htR, tva, stamp, ttc: htR+tva+stamp } }));
     }, [invoice.items, invoice.remiseGlobale, invoice.timbreFiscal]);
 
-    // ── Sélection client ─────────────────────────────────────────────────
     const handleClientChange = (id) => {
-        const client = clients.find(c => c.id === parseInt(id));
-        if (client) {
-            setInvoice(prev => ({
-                ...prev,
-                tiersId:         client.id,
-                clientName:      client.nom,
-                clientMatricule: client.matriculeFiscal || client.cin || ''
-            }));
-        }
+        const c = clients.find(c => c.id === parseInt(id));
+        if (c) setInvoice(prev => ({ ...prev, tiersId: c.id, clientName: c.nom, clientType: c.typeIdentifiant||'', clientMatricule: c.matriculeFiscal||c.cin||c.carteSejourPasseport||c.matriculeFiscalEtranger||'' }));
     };
 
-    // ── Gestion lignes ───────────────────────────────────────────────────
-    const addItem = () => {
-        setInvoice(prev => ({
-            ...prev,
-            items: [...prev.items, { produitId: '', description: '', qty: 1, puht: 0, tvaRate: 19, remise: 0 }]
-        }));
-    };
-
+    const addItem    = () => setInvoice(prev => ({ ...prev, items: [...prev.items, { produitId:'', description:'', qty:1, puht:0, tvaRate:19, remise:0 }] }));
+    const removeItem = (i) => setInvoice(prev => ({ ...prev, items: prev.items.filter((_,j) => j!==i) }));
     const updateItem = (index, field, value) => {
-        const newItems = [...invoice.items];
-        newItems[index][field] = value;
-
-        // Si on sélectionne un produit → auto-remplir
+        const items = [...invoice.items];
+        items[index][field] = value;
         if (field === 'produitId' && value) {
-            const produit = produits.find(p => p.id === parseInt(value));
-            if (produit) {
-                newItems[index].description = produit.nom;
-                newItems[index].puht        = produit.prixUnitaire;
-                newItems[index].tvaRate     = produit.tauxTVA;
-            }
+            const p = produits.find(p => p.id === parseInt(value));
+            if (p) { items[index].description = p.nom; items[index].puht = p.prixUnitaire; items[index].tvaRate = p.tauxTVA; }
         }
-        setInvoice(prev => ({ ...prev, items: newItems }));
+        setInvoice(prev => ({ ...prev, items }));
     };
 
-    const removeItem = (index) => {
-        setInvoice(prev => ({
-            ...prev,
-            items: prev.items.filter((_, i) => i !== index)
-        }));
-    };
+    const resetForm = () => { setInvoice(emptyInvoice()); setStatus('draft'); setTtnResponse(null); setError(''); };
 
-    // ── Envoi au backend ─────────────────────────────────────────────────
     const handleSubmit = async () => {
         setError('');
-
-        if (!invoice.tiersId) {
-            setError('Veuillez sélectionner un client.');
-            return;
+        if (!invoice.tiersId)           return setError('Veuillez sélectionner un client.');
+        if (!invoice.items.length)      return setError('Ajoutez au moins une ligne.');
+        for (const item of invoice.items) {
+            if (!item.description)      return setError('Désignation obligatoire pour chaque ligne.');
+            if (!item.puht||item.puht<=0) return setError('Prix unitaire doit être > 0.');
         }
-        if (invoice.items.length === 0) {
-            setError('Ajoutez au moins une ligne produit.');
-            return;
-        }
-
-        setStatus('validating');
-
+        setStatus('sending');
         try {
-            const body = {
-                tiersId:            invoice.tiersId,
-                dateFacture:        invoice.date,
-                dateLimitePaiement: invoice.dateLimitePaiement || null,
-                periodeDu:          invoice.periodFrom || null,
-                periodeAu:          invoice.periodTo   || null,
-                timbreFiscal:       invoice.timbreFiscal,
-                remiseGlobale:      invoice.remiseGlobale,
-                lignes: invoice.items.map(item => ({
-                    produitId:   parseInt(item.produitId) || 1,
-                    designation: item.description,
-                    quantite:    parseInt(item.qty)       || 1,
-                    prixUnitaire: parseFloat(item.puht)   || 0,
-                    remiseLigne:  parseFloat(item.remise) || 0,
-                    tauxTVA:      parseFloat(item.tvaRate)|| 19
-                }))
-            };
-
-            setStatus('sending');
-
-            const res  = await fetch(`${API_BASE}/factures`, {
-                method: 'POST',
-                headers: authHeaders(),
-                body: JSON.stringify(body)
-            });
+            const res  = await fetch(`${API_BASE}/factures`, { method:'POST', headers: authHeaders(), body: JSON.stringify({
+                tiersId: invoice.tiersId, dateFacture: invoice.date,
+                dateLimitePaiement: invoice.dateLimitePaiement||null,
+                timbreFiscal: invoice.timbreFiscal, remiseGlobale: invoice.remiseGlobale,
+                lignes: invoice.items.map(item => ({ produitId: parseInt(item.produitId)||1, designation: item.description, quantite: parseInt(item.qty)||1, prixUnitaire: parseFloat(item.puht)||0, remiseLigne: parseFloat(item.remise)||0, tauxTVA: parseFloat(item.tvaRate)||19 }))
+            })});
             const data = await res.json();
-
-            if (!res.ok) {
-                setError(data.message || 'Erreur serveur.');
-                setStatus('draft');
-                return;
-            }
-
+            if (!res.ok) { setError(data.message||'Erreur serveur.'); setStatus('draft'); return; }
             setStatus('success');
-            setTtnResponse({
-                reference:    `FAC-${data.numeroFacture}`,
-                numeroFacture: data.numeroFacture,
-                message:      data.message
-            });
-
-        } catch (err) {
-            setError('Erreur de connexion au serveur.');
-            setStatus('draft');
-        }
+            setTtnResponse({ reference:`FAC-${data.numeroFacture}`, message: data.message });
+        } catch { setError('Erreur de connexion.'); setStatus('draft'); }
     };
 
     return (
-        <div className="max-w-6xl mx-auto p-8 font-['Plus_Jakarta_Sans'] bg-gray-50 min-h-screen">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+        <div style={s.page}>
+            <div style={s.card}>
 
-                {/* HEADER */}
-                <div className="flex justify-between items-start mb-10 border-b border-gray-100 pb-8">
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="bg-blue-600 p-2 rounded-lg text-white font-black text-xl">EF</div>
-                            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 uppercase">EL FATOORA</h1>
-                        </div>
-                        <div className="text-gray-500 text-sm leading-relaxed">
-                            <p className="font-bold text-gray-800">SOCIETE GENERALE DE COMMERCE SA</p>
-                            <p>Avenue Habib Bourguiba, 1001 Tunis</p>
-                            <p>Mat. Fiscal: <span className="font-mono text-blue-600">1234567/A/P/M/000</span></p>
+                {/* ── HEADER ─────────────────────────────────────────── */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:10, borderBottom:'1px solid #f3f4f6' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ background:'#2563eb', borderRadius:8, padding:'6px 10px', color:'#fff', fontWeight:800, fontSize:14 }}>EF</div>
+                        <div>
+                            <div style={{ fontWeight:800, fontSize:15, color:'#111827' }}>Nouvelle Facture</div>
+                            <div style={{ fontSize:11, color:'#9ca3af' }}>Conforme TEIF v1.8.7 · TTN Tunisie</div>
                         </div>
                     </div>
-                    <div className="text-right space-y-2">
-                        <div className="inline-block bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-xs font-bold tracking-widest border border-blue-100">
-                            DOCUMENT CONFORME TEIF v1.8.8
-                        </div>
-                        <p className="text-sm text-gray-500 font-medium">{new Date().toLocaleDateString('fr-TN')}</p>
-                    </div>
+                    <div style={{ fontSize:11, color:'#9ca3af' }}>{new Date().toLocaleDateString('fr-TN')}</div>
                 </div>
 
-                {/* INFOS FACTURE */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                {/* ── INFOS ─────────────────────────────────────────── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:10 }}>
 
-                    {/* Sélection client */}
-                    <div className="bg-gray-50 p-5 rounded-xl border border-dashed border-gray-200">
-                        <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-3">Client</h3>
-                        <select
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2 outline-none focus:border-blue-500"
-                            value={invoice.tiersId}
-                            onChange={e => handleClientChange(e.target.value)}
-                        >
-                            <option value="">-- Sélectionner un client --</option>
-                            {clients.map(c => (
-                                <option key={c.id} value={c.id}>{c.nom}</option>
-                            ))}
+                    {/* Client */}
+                    <div style={s.section}>
+                        <label style={s.label}>Client</label>
+                        <select style={s.select} value={invoice.tiersId} onChange={e => handleClientChange(e.target.value)}>
+                            <option value="">-- Sélectionner --</option>
+                            {clients.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
                         </select>
-                        {invoice.clientMatricule && (
-                            <p className="text-xs font-mono text-blue-600 mt-1">
-                                Mat: {invoice.clientMatricule}
-                            </p>
-                        )}
+                        {invoice.clientMatricule && <div style={{ fontSize:11, color:'#2563eb', marginTop:4, fontFamily:'monospace' }}>{invoice.clientMatricule}</div>}
+                        {invoice.clientType      && <div style={{ fontSize:10, color:'#9ca3af', marginTop:2 }}>{typeLabel(invoice.clientType)}</div>}
                     </div>
 
                     {/* Dates */}
-                    <div className="bg-gray-50 p-5 rounded-xl border border-dashed border-gray-200">
-                        <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-3">Dates</h3>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase w-16">Facture</label>
-                                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
-                                    value={invoice.date}
-                                    onChange={e => setInvoice(prev => ({ ...prev, date: e.target.value }))} />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase w-16">Échéance</label>
-                                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
-                                    value={invoice.dateLimitePaiement}
-                                    onChange={e => setInvoice(prev => ({ ...prev, dateLimitePaiement: e.target.value }))} />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase w-16">Du</label>
-                                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
-                                    value={invoice.periodFrom}
-                                    onChange={e => setInvoice(prev => ({ ...prev, periodFrom: e.target.value }))} />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase w-16">Au</label>
-                                <input type="date" className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
-                                    value={invoice.periodTo}
-                                    onChange={e => setInvoice(prev => ({ ...prev, periodTo: e.target.value }))} />
-                            </div>
+                    <div style={s.section}>
+                        <label style={s.label}>Dates</label>
+                        <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                            {[
+                                { label:'Facture *',  field:'date',               max: new Date().toISOString().split('T')[0] },
+                                { label:'Échéance',   field:'dateLimitePaiement', min: invoice.date },
+                            ].map((d, i) => (
+                                <div key={i} style={{ display:'flex', alignItems:'center', gap:6 }}>
+                                    <span style={{ fontSize:10, color:'#9ca3af', minWidth:52, fontWeight:600 }}>{d.label}</span>
+                                    <input type="date" style={{ ...s.input, flex:1 }}
+                                        min={d.min} max={d.max}
+                                        value={invoice[d.field]||''}
+                                        onChange={e => setInvoice(prev => ({ ...prev, [d.field]: e.target.value }))} />
+                                </div>
+                            ))}
                         </div>
                     </div>
 
                     {/* Options */}
-                    <div className="bg-gray-50 p-5 rounded-xl border border-dashed border-gray-200">
-                        <h3 className="text-xs font-extrabold text-blue-600 uppercase tracking-widest mb-3">Options</h3>
-                        <div className="space-y-3">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={invoice.timbreFiscal}
-                                    onChange={e => setInvoice(prev => ({ ...prev, timbreFiscal: e.target.checked }))}
-                                    className="w-4 h-4 accent-blue-600" />
-                                <span className="text-xs font-bold text-gray-700">Timbre fiscal (0.600 DT)</span>
-                            </label>
-                            <div>
-                                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Remise globale (%)</label>
-                                <input type="number" min="0" max="100" step="0.01"
-                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
-                                    value={invoice.remiseGlobale}
-                                    onChange={e => setInvoice(prev => ({ ...prev, remiseGlobale: parseFloat(e.target.value) || 0 }))} />
-                            </div>
-                        </div>
+                    <div style={s.section}>
+                        <label style={s.label}>Options</label>
+                        <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, cursor:'pointer', marginBottom:8 }}>
+                            <input type="checkbox" checked={invoice.timbreFiscal} onChange={e => setInvoice(prev => ({ ...prev, timbreFiscal: e.target.checked }))} />
+                            Timbre fiscal (0.600 DT)
+                        </label>
+                        <label style={s.label}>Remise globale (%)</label>
+                        <input type="number" min="0" max="100" step="0.01" style={s.input}
+                            value={invoice.remiseGlobale}
+                            onChange={e => setInvoice(prev => ({ ...prev, remiseGlobale: parseFloat(e.target.value)||0 }))} />
                     </div>
                 </div>
 
-                {/* LIGNES PRODUITS */}
-                <div className="mb-8 overflow-hidden rounded-xl border border-gray-100 shadow-sm">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th className="px-4 py-3 font-black uppercase text-[10px] text-gray-500">Produit</th>
-                                <th className="px-4 py-3 font-black uppercase text-[10px] text-gray-500">Désignation</th>
-                                <th className="px-3 py-3 font-black uppercase text-[10px] text-gray-500 text-center">Qté</th>
-                                <th className="px-3 py-3 font-black uppercase text-[10px] text-gray-500 text-center">TVA</th>
-                                <th className="px-3 py-3 font-black uppercase text-[10px] text-gray-500 text-center">Remise%</th>
-                                <th className="px-3 py-3 font-black uppercase text-[10px] text-gray-500 text-right">PU HT</th>
-                                <th className="px-4 py-3 font-black uppercase text-[10px] text-gray-500 text-right">Total HT</th>
-                                <th className="w-8"></th>
+                {/* ── LIGNES ────────────────────────────────────────── */}
+                <div style={{ border:'1px solid #f0f0f5', borderRadius:10, overflow:'hidden', flex:1 }}>
+                    <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                        <thead>
+                            <tr style={{ background:'#f9fafb' }}>
+                                <th style={s.th}>Produit</th>
+                                <th style={s.th}>Désignation</th>
+                                <th style={{ ...s.th, textAlign:'center' }}>Qté</th>
+                                <th style={{ ...s.th, textAlign:'center' }}>TVA</th>
+                                <th style={{ ...s.th, textAlign:'center' }}>Rem%</th>
+                                <th style={{ ...s.th, textAlign:'right' }}>PU HT</th>
+                                <th style={{ ...s.th, textAlign:'right' }}>Total HT</th>
+                                <th style={{ ...s.th, width:24 }}></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50 bg-white">
-                            {invoice.items.map((item, index) => {
-                                const lineHT = (item.qty || 0) * (item.puht || 0) * (1 - (item.remise || 0) / 100);
+                        <tbody>
+                            {invoice.items.map((item, idx) => {
+                                const lineHT = (item.qty||0)*(item.puht||0)*(1-(item.remise||0)/100);
                                 return (
-                                    <tr key={index} className="hover:bg-blue-50/30 transition-colors group">
-                                        <td className="px-4 py-3 w-40">
-                                            <select
-                                                className="bg-transparent border border-gray-200 rounded px-2 py-1 text-xs w-full outline-none focus:border-blue-500"
-                                                value={item.produitId}
-                                                onChange={e => updateItem(index, 'produitId', e.target.value)}
-                                            >
-                                                <option value="">-- Produit --</option>
-                                                {produits.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.nom}</option>
-                                                ))}
+                                    <tr key={idx}>
+                                        <td style={{ ...s.td, width:130 }}>
+                                            <select style={{ ...s.select, fontSize:11 }} value={item.produitId} onChange={e => updateItem(idx,'produitId',e.target.value)}>
+                                                <option value="">--</option>
+                                                {produits.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
                                             </select>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <input
-                                                className="bg-transparent border-none p-0 focus:ring-0 w-full font-bold text-gray-800 placeholder-gray-300 text-sm"
-                                                placeholder="Désignation..."
-                                                value={item.description}
-                                                onChange={e => updateItem(index, 'description', e.target.value)}
-                                            />
+                                        <td style={s.td}>
+                                            <input style={{ border:'none', outline:'none', width:'100%', fontSize:12, fontFamily:'inherit', background:'transparent', fontWeight:600 }}
+                                                placeholder="Désignation..." value={item.description}
+                                                onChange={e => updateItem(idx,'description',e.target.value)} />
                                         </td>
-                                        <td className="px-3 py-3 w-16">
-                                            <input type="number" min="1"
-                                                className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-sm"
-                                                value={item.qty}
-                                                onChange={e => updateItem(index, 'qty', e.target.value)} />
+                                        <td style={{ ...s.td, width:50, textAlign:'center' }}>
+                                            <input type="number" min="1" style={{ border:'none', outline:'none', width:'100%', fontSize:12, textAlign:'center', background:'transparent', fontFamily:'inherit', fontWeight:600 }}
+                                                value={item.qty} onChange={e => updateItem(idx,'qty',e.target.value)} />
                                         </td>
-                                        <td className="px-3 py-3 w-20">
-                                            <select
-                                                className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-blue-600 text-sm"
-                                                value={item.tvaRate}
-                                                onChange={e => updateItem(index, 'tvaRate', parseInt(e.target.value))}>
-                                                <option value="7">7%</option>
-                                                <option value="13">13%</option>
-                                                <option value="19">19%</option>
+                                        <td style={{ ...s.td, width:60, textAlign:'center' }}>
+                                            <select style={{ border:'none', outline:'none', fontSize:12, color:'#2563eb', fontWeight:700, background:'transparent', fontFamily:'inherit', cursor:'pointer' }}
+                                                value={item.tvaRate} onChange={e => updateItem(idx,'tvaRate',parseInt(e.target.value))}>
+                                                {[0,7,13,19].map(v => <option key={v} value={v}>{v}%</option>)}
                                             </select>
                                         </td>
-                                        <td className="px-3 py-3 w-20">
-                                            <input type="number" min="0" max="100"
-                                                className="bg-transparent border-none p-0 focus:ring-0 w-full text-center font-bold text-sm"
-                                                value={item.remise}
-                                                onChange={e => updateItem(index, 'remise', e.target.value)} />
+                                        <td style={{ ...s.td, width:50, textAlign:'center' }}>
+                                            <input type="number" min="0" max="100" style={{ border:'none', outline:'none', width:'100%', fontSize:12, textAlign:'center', background:'transparent', fontFamily:'inherit' }}
+                                                value={item.remise} onChange={e => updateItem(idx,'remise',e.target.value)} />
                                         </td>
-                                        <td className="px-3 py-3 w-28">
-                                            <input type="number" step="0.001"
-                                                className="bg-transparent border-none p-0 focus:ring-0 w-full text-right font-bold text-gray-700 text-sm"
-                                                value={item.puht}
-                                                onChange={e => updateItem(index, 'puht', parseFloat(e.target.value))} />
+                                        <td style={{ ...s.td, width:90, textAlign:'right' }}>
+                                            <input type="number" step="0.001" min="0" style={{ border:'none', outline:'none', width:'100%', fontSize:12, textAlign:'right', background:'transparent', fontFamily:'inherit', fontWeight:600 }}
+                                                value={item.puht} onChange={e => updateItem(idx,'puht',parseFloat(e.target.value))} />
                                         </td>
-                                        <td className="px-4 py-3 text-right font-black text-gray-900 text-sm">
-                                            {formatAmount(lineHT)}
-                                        </td>
-                                        <td className="px-2">
-                                            <button onClick={() => removeItem(index)}
-                                                className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">✕</button>
+                                        <td style={{ ...s.td, textAlign:'right', fontWeight:700, color:'#111827' }}>{fmt(lineHT)}</td>
+                                        <td style={s.td}>
+                                            <button onClick={() => removeItem(idx)} style={{ background:'none', border:'none', cursor:'pointer', color:'#d1d5db', fontSize:14 }}>✕</button>
                                         </td>
                                     </tr>
                                 );
                             })}
                         </tbody>
                     </table>
-                    <button onClick={addItem}
-                        className="w-full bg-white border-t border-gray-100 py-3 text-[10px] font-black tracking-[0.2em] text-blue-600 hover:bg-gray-50 transition-colors">
-                        + AJOUTER UNE LIGNE PRODUIT / SERVICE
+                    <button onClick={addItem} style={{ width:'100%', background:'none', border:'none', borderTop:'1px solid #f3f4f6', padding:'8px', fontSize:11, fontWeight:700, color:'#2563eb', cursor:'pointer', letterSpacing:'0.1em' }}>
+                        + AJOUTER UNE LIGNE
                     </button>
                 </div>
 
-                {/* TOTAUX */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                    <div>
-                        {/* Message erreur */}
-                        {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-sm text-red-700 font-medium">
-                                {error}
-                            </div>
-                        )}
+                {/* ── TOTAUX + ACTIONS ──────────────────────────────── */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', gap:16 }}>
 
-                        {/* Réponse succès */}
+                    {/* Erreur / Succès */}
+                    <div style={{ flex:1 }}>
+                        {error && <div style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:8, padding:'8px 12px', fontSize:12, color:'#dc2626', fontWeight:600 }}>❌ {error}</div>}
                         {ttnResponse && (
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-center gap-4">
-                                <div className="text-3xl">✅</div>
-                                <div>
-                                    <h4 className="text-xs font-black text-green-700 uppercase mb-1">Facture enregistrée</h4>
-                                    <p className="text-xs font-mono text-green-600">{ttnResponse.reference}</p>
-                                    <p className="text-xs text-green-800 mt-1">{ttnResponse.message}</p>
-                                </div>
+                            <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'10px 14px' }}>
+                                <div style={{ fontSize:13, fontWeight:700, color:'#16a34a', marginBottom:4 }}>✅ Facture enregistrée</div>
+                                <div style={{ fontSize:11, color:'#15803d', fontFamily:'monospace' }}>{ttnResponse.reference}</div>
+                                <button onClick={resetForm} style={{ marginTop:8, background:'#16a34a', color:'#fff', border:'none', borderRadius:7, padding:'6px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                                    + Nouvelle facture
+                                </button>
                             </div>
                         )}
                     </div>
 
-                    <div className="bg-gray-900 rounded-2xl p-8 text-white shadow-2xl space-y-4">
-                        <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                            <span>Total HT</span>
-                            <span>{formatAmount(invoice.totals.ht)} DT</span>
-                        </div>
-                        <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                            <span>TVA</span>
-                            <span>{formatAmount(invoice.totals.tva)} DT</span>
-                        </div>
-                        {invoice.timbreFiscal && (
-                            <div className="flex justify-between text-gray-400 font-bold uppercase text-[10px] tracking-widest">
-                                <span>Timbre Fiscal</span>
-                                <span>{formatAmount(invoice.totals.stamp)} DT</span>
+                    {/* Totaux */}
+                    <div style={{ background:'#111827', borderRadius:12, padding:'14px 20px', color:'#fff', minWidth:220 }}>
+                        {[
+                            { label:'Total HT',     val: fmt(invoice.totals.ht),    color:'#9ca3af' },
+                            { label:'TVA',           val: fmt(invoice.totals.tva),   color:'#9ca3af' },
+                            invoice.timbreFiscal && { label:'Timbre',  val: fmt(0.6), color:'#9ca3af' },
+                        ].filter(Boolean).map((r, i) => (
+                            <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:r.color, marginBottom:5 }}>
+                                <span>{r.label}</span><span>{r.val} DT</span>
                             </div>
-                        )}
-                        {invoice.remiseGlobale > 0 && (
-                            <div className="flex justify-between text-orange-400 font-bold uppercase text-[10px] tracking-widest">
-                                <span>Remise globale ({invoice.remiseGlobale}%)</span>
-                                <span>- {formatAmount(invoice.totals.ht * invoice.remiseGlobale / 100)} DT</span>
-                            </div>
-                        )}
-                        <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-                            <span className="text-sm font-black uppercase">NET À PAYER TTC</span>
-                            <span className="text-3xl font-extrabold text-blue-400">{formatAmount(invoice.totals.ttc)} <span className="text-sm font-light opacity-50">DT</span></span>
+                        ))}
+                        <div style={{ borderTop:'1px solid rgba(255,255,255,0.1)', paddingTop:8, marginTop:4, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                            <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase' }}>Net TTC</span>
+                            <span style={{ fontSize:20, fontWeight:800, color:'#60a5fa' }}>{fmt(invoice.totals.ttc)} <span style={{ fontSize:11, opacity:0.5 }}>DT</span></span>
                         </div>
                     </div>
-                </div>
 
-                {/* ACTIONS */}
-                <div className="mt-10 flex gap-4 items-center justify-end border-t border-gray-100 pt-8">
-                    <button className="border border-gray-200 text-gray-600 font-black text-xs py-3 px-8 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest">
-                        📄 Aperçu TEIF
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={status === 'sending' || status === 'validating'}
-                        className={`bg-blue-600 text-white font-black text-xs py-3 px-10 rounded-xl shadow-lg transition-all uppercase tracking-widest flex items-center gap-2 ${status === 'sending' || status === 'validating' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 hover:-translate-y-0.5'}`}>
-                        {status === 'sending'    ? '⏳ Enregistrement...' :
-                         status === 'validating' ? '🔍 Validation...'     :
-                         status === 'success'    ? '✅ Nouvelle Facture'  :
-                         '💾 Enregistrer la Facture'}
-                    </button>
+                    {/* Boutons */}
+                    {status !== 'success' && (
+                        <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+                            <button onClick={resetForm} style={s.btnSecondary}>🗑️ Réinitialiser</button>
+                            <button onClick={handleSubmit} disabled={status==='sending'} style={{ ...s.btnPrimary, opacity: status==='sending' ? 0.6 : 1 }}>
+                                {status==='sending' ? '⏳ Enregistrement...' : '💾 Enregistrer'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
-
-            <footer className="text-center text-[10px] text-gray-400 uppercase font-black tracking-widest pb-8">
-                Module Digital Trust & Signature — Conforme TEIF v1.8.8 TTN
-            </footer>
         </div>
     );
 }

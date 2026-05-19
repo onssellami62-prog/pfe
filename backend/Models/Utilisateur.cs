@@ -17,11 +17,23 @@ namespace backend.Models
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
 
+        /// <summary>JSON array des pages accessibles ex: ["factures","clients","statistiques"]</summary>
+        [MaxLength(500)]
+        public string? Permissions { get; set; }
+
         /// <summary>Rôles : SuperAdmin, Admin, Comptable, Commercial</summary>
         [MaxLength(30)]
         public string Role { get; set; } = "Admin";
 
         public bool PremierConnexion { get; set; } = true;
         public bool EstActif { get; set; } = true;
+
+        // ── Mot de passe oublié ───────────────────────────────────────
+        // Token généré à l'étape 6 (POST /forgot_password)
+        // Mis à null après réinitialisation réussie (étape 16)
+        public string? ResetPasswordToken { get; set; }
+
+        // Expiration du token : 15 min après génération
+        public DateTime? ResetPasswordTokenExpiry { get; set; }
     }
 }

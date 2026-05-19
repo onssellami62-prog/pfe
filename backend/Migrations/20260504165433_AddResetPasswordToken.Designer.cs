@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Data;
 
@@ -11,9 +12,11 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260504165433_AddResetPasswordToken")]
+    partial class AddResetPasswordToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,9 +39,6 @@ namespace backend.Migrations
                     b.Property<DateTime?>("DateLimitePaiement")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime?>("DateReferenceTTN")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<DateTime?>("DateValidation")
                         .HasColumnType("datetime(6)");
 
@@ -46,12 +46,15 @@ namespace backend.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("IdSaveEfact")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("IdTTN")
-                        .HasMaxLength(70)
-                        .HasColumnType("varchar(70)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("ModeConnexion")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("MontantEnLettres")
                         .HasMaxLength(500)
@@ -72,9 +75,8 @@ namespace backend.Migrations
                     b.Property<DateTime?>("PeriodeDu")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("ReferenceCev")
-                        .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                    b.Property<string>("QrCode")
+                        .HasColumnType("longtext");
 
                     b.Property<decimal>("RemiseGlobale")
                         .HasColumnType("decimal(5,2)");
@@ -213,13 +215,9 @@ namespace backend.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<string>("CarteSejourPasseport")
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
-
-                    b.Property<string>("CodePostal")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                    b.Property<string>("CodeClient")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("Contact")
                         .HasMaxLength(150)
@@ -232,30 +230,22 @@ namespace backend.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
 
+                    b.Property<string>("IdSaveEfact")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<string>("MatriculeFiscal")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
-
-                    b.Property<string>("MatriculeFiscalEtranger")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("ModeConnexion")
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("Nom")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<string>("Pays")
-                        .HasMaxLength(2)
-                        .HasColumnType("varchar(2)");
-
                     b.Property<string>("Profil")
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("SiteWeb")
                         .HasMaxLength(200)
@@ -270,13 +260,8 @@ namespace backend.Migrations
                         .HasColumnType("varchar(20)");
 
                     b.Property<string>("TypeIdentifiant")
-                        .IsRequired()
                         .HasMaxLength(6)
                         .HasColumnType("varchar(6)");
-
-                    b.Property<string>("Ville")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 

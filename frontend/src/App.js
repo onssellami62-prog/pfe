@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login          from './pages/Login';
-import Dashboard      from './pages/Dashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import ChangePassword from './pages/Changepassword';
-import Install        from './pages/Install';
+import Login           from './pages/Login';
+import Dashboard       from './pages/Dashboard';
+import ChangePassword  from './pages/Changepassword';
+import Install         from './pages/Install';
+import ForgotPassword  from './pages/ForgotPassword';
+import ResetPassword   from './pages/ResetPassword';
+import useInactivityLogout from './hooks/useInactivityLogout';
 
 function App() {
-    const [user, setUser]                       = useState(null);
+    const [user, setUser]                             = useState(null);
     const [mustChangePassword, setMustChangePassword] = useState(false);
-    const [installed, setInstalled]             = useState(null);
+    const [installed, setInstalled]                   = useState(null);
 
-    // Vérifier au démarrage si installation nécessaire
     useEffect(() => {
         fetch('http://localhost:5170/api/install/status')
             .then(r => r.json())
             .then(data => setInstalled(data.installed))
-            .catch(() => setInstalled(true));
+            .catch(() => setInstalled(false));
     }, []);
 
     const handleLogin = (userData) => {
@@ -28,23 +29,18 @@ function App() {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = useCallback(() => {
         setUser(null);
         setMustChangePassword(false);
-    };
+    }, []);
 
-    // Chargement
+    // ── Déconnexion automatique après 5 min d'inactivité ──────────────
+    useInactivityLogout(user, handleLogout);
+
     if (installed === null) return null;
-
-    // Page d'installation (première fois)
     if (!installed) return <Install onInstalled={() => setInstalled(true)} />;
-
-    // Page changement de mot de passe (première connexion)
     if (mustChangePassword && user) return (
-        <ChangePassword
-            user={user}
-            onSuccess={() => setMustChangePassword(false)}
-        />
+        <ChangePassword user={user} onSuccess={() => setMustChangePassword(false)} />
     );
 
     return (
@@ -52,25 +48,19 @@ function App() {
             <Routes>
                 <Route
                     path="/login"
-                    element={
-                        user
-                            ? <Navigate to="/dashboard" replace />
-                            : <Login onLoginSuccess={handleLogin} />
-                    }
+                    element={user ? <Navigate to="/dashboard" replace /> : <Login onLoginSuccess={handleLogin} />}
                 />
                 <Route
                     path="/dashboard"
-                    element={
-                        user ? (
-                            user.role === 'SuperAdmin' || user.role === 'Admin' ? (
-                                <Dashboard onLogout={handleLogout} user={user} />
-                            ) : (
-                                <AdminDashboard user={user} onLogout={handleLogout} />
-                            )
-                        ) : (
-                            <Navigate to="/login" replace />
-                        )
-                    }
+                    element={user ? <Dashboard onLogout={handleLogout} user={user} /> : <Navigate to="/login" replace />}
+                />
+                <Route
+                    path="/forgot-password"
+                    element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+                />
+                <Route
+                    path="/reset-password"
+                    element={<ResetPassword />}
                 />
                 <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>

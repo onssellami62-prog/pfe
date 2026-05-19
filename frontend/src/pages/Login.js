@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import slide1Img from '../assets/abstract3d.png';
 
@@ -27,6 +28,7 @@ const SLIDES = [
 ];
 
 function Login({ onLoginSuccess }) {
+    const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [identifiant, setIdentifiant] = useState('');
     const [password, setPassword] = useState('');
@@ -125,6 +127,7 @@ const handleSubmit = async (e) => {
             name:  data.name,
             email: data.email,
             role:  data.role,
+            permissions: data.permissions,
             token: data.token,
         });
 
@@ -286,9 +289,13 @@ const handleSubmit = async (e) => {
                             />
                             <span>Se souvenir de moi</span>
                         </label>
-                        <a href="/mot-de-passe-oublie" className="forgot-link">
-                            Mot de passe oublié ?
-                        </a>
+                        <span
+                                className="forgot-link"
+                                onClick={() => navigate('/forgot-password')}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                Mot de passe oublié ?
+                            </span>
                     </div>
 
                     {/* Error message */}

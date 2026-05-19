@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace backend.Controllers
@@ -26,7 +27,7 @@ namespace backend.Controllers
             var factures = await _context.Factures
                 .Include(f => f.Tiers)
                 .Include(f => f.Lignes)
-                .OrderByDescending(f => f.DateFacture)
+                .OrderByDescending(f => f.NumeroFacture)
                 .Select(f => new FactureListDto
                 {
                     NumeroFacture = f.NumeroFacture,
@@ -82,6 +83,7 @@ namespace backend.Controllers
                 TiersNom = facture.Tiers?.Nom,
                 TiersMatricule = facture.Tiers?.MatriculeFiscal,
                 TiersAdresse = facture.Tiers?.Adresse,
+                TypeDocument = facture.TypeDocument,
                 Lignes = facture.Lignes.Select(l => new LigneDto
                 {
                     Numligne = l.Numligne,
@@ -103,20 +105,68 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] FactureCreateDto dto)
         {
-            // Vérifier que le tiers existe
+            // ── Validation client ────────────────────────────────────────
             var tiers = await _context.Tiers.FindAsync(dto.TiersId);
             if (tiers == null)
                 return BadRequest(new { message = "Client introuvable." });
 
-            // Vérifier que les produits existent
+            // ── Validation lignes ────────────────────────────────────────
+            if (dto.Lignes == null || dto.Lignes.Count == 0)
+                return BadRequest(new { message = "La facture doit contenir au moins une ligne." });
+
+            // ── Validation date ──────────────────────────────────────────
+            if (!dto.DateFacture.HasValue)
+                return BadRequest(new { message = "La date de facture est obligatoire." });
+
+            if (dto.DateFacture.Value > DateTime.Now)
+                return BadRequest(new { message = "La date de facture ne peut pas être dans le futur." });
+
+            if (dto.DateFacture.Value < DateTime.Now.AddYears(-1))
+                return BadRequest(new { message = "La date de facture ne peut pas dépasser 1 an." });
+
+            // ── Validation date échéance ─────────────────────────────────
+            if (dto.DateLimitePaiement.HasValue && dto.DateLimitePaiement.Value < dto.DateFacture.Value)
+                return BadRequest(new { message = "La date d'échéance doit être après la date de facture." });
+
+            // ── Validation période ───────────────────────────────────────
+            if (dto.PeriodeDu.HasValue && dto.PeriodeAu.HasValue && dto.PeriodeDu.Value > dto.PeriodeAu.Value)
+                return BadRequest(new { message = "La date 'Période Au' doit être après 'Période Du'." });
+
+            // ── Validation lignes métier ─────────────────────────────────
+            decimal[] tvaValides = { 7m, 13m, 19m };
             foreach (var ligne in dto.Lignes)
             {
+                // Produit existe
                 var produit = await _context.Produits.FindAsync(ligne.ProduitId);
                 if (produit == null)
                     return BadRequest(new { message = $"Produit ID {ligne.ProduitId} introuvable." });
+
+                // Prix > 0
+                if (ligne.PrixUnitaire <= 0)
+                    return BadRequest(new { message = $"Le prix unitaire doit être supérieur à 0 pour '{ligne.Designation}'." });
+
+                // Quantité > 0
+                if (ligne.Quantite <= 0)
+                    return BadRequest(new { message = $"La quantité doit être supérieure à 0 pour '{ligne.Designation}'." });
+
+                // TVA valide
+                if (!Array.Exists(tvaValides, t => t == ligne.TauxTVA))
+                    return BadRequest(new { message = $"Le taux TVA {ligne.TauxTVA}% est invalide. Valeurs acceptées : 7%, 13%, 19%." });
+
+                // Désignation obligatoire
+                if (string.IsNullOrWhiteSpace(ligne.Designation))
+                    return BadRequest(new { message = "La désignation est obligatoire pour chaque ligne." });
+
+                // Remise entre 0 et 100
+                if (ligne.RemiseLigne < 0 || ligne.RemiseLigne > 100)
+                    return BadRequest(new { message = $"La remise doit être entre 0% et 100% pour '{ligne.Designation}'." });
             }
 
-            // ── Calculs automatiques ────────────────────────────────────
+            // ── Validation remise globale ────────────────────────────────
+            if (dto.RemiseGlobale < 0 || dto.RemiseGlobale > 100)
+                return BadRequest(new { message = "La remise globale doit être entre 0% et 100%." });
+
+            // ── Calculs automatiques ─────────────────────────────────────
             var lignes = dto.Lignes.Select(l =>
             {
                 var montantHTBrut = l.Quantite * l.PrixUnitaire;
@@ -144,12 +194,16 @@ namespace backend.Controllers
             var totalTVA = lignes.Sum(l => l.MontantTVA);
             var montantRemiseGlob = totalHT * (dto.RemiseGlobale / 100);
             var totalHTApresRemise = totalHT - montantRemiseGlob;
-            var montantTimbre = dto.TimbreFiscal ? 0.500m : 0m;
+            var montantTimbre = dto.TimbreFiscal ? 0.600m : 0m;
             var montantTTC = totalHTApresRemise + totalTVA + montantTimbre;
+
+            // ── Validation montant final > 0 ─────────────────────────────
+            if (montantTTC <= 0)
+                return BadRequest(new { message = "Le montant TTC doit être supérieur à 0." });
 
             var facture = new Facture
             {
-                DateFacture = dto.DateFacture ?? DateTime.Now,
+                DateFacture = dto.DateFacture.Value,
                 DateLimitePaiement = dto.DateLimitePaiement,
                 PeriodeDu = dto.PeriodeDu,
                 PeriodeAu = dto.PeriodeAu,
@@ -164,6 +218,7 @@ namespace backend.Controllers
                 MontantTTC = Math.Round(montantTTC, 3),
                 MontantEnLettres = ConvertirEnLettres(montantTTC),
                 Statut = "Brouillon",
+                TypeDocument = "I-11",
                 Lignes = lignes
             };
 
@@ -183,9 +238,21 @@ namespace backend.Controllers
             if (facture == null)
                 return NotFound(new { message = "Facture introuvable." });
 
+            // Statuts valides
+            string[] statutsValides = { "Brouillon", "SoumiseTTN", "AcceptéeTTN", "Rejetée", "Annulée" };
+            if (!Array.Exists(statutsValides, s => s == dto.Statut))
+                return BadRequest(new { message = $"Statut '{dto.Statut}' invalide." });
+
+            // Une facture AcceptéeTTN ne peut pas redevenir Brouillon
+            if (facture.Statut == "AcceptéeTTN" && dto.Statut == "Brouillon")
+                return BadRequest(new { message = "Une facture acceptée ne peut pas redevenir brouillon." });
+
             facture.Statut = dto.Statut;
             if (!string.IsNullOrEmpty(dto.IdTTN))
                 facture.IdTTN = dto.IdTTN;
+
+            if (dto.Statut == "AcceptéeTTN")
+                facture.DateValidation = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "Statut mis à jour." });
@@ -297,6 +364,7 @@ namespace backend.Controllers
         public string? MontantEnLettres { get; set; }
         public string? IdSaveEfact { get; set; }
         public string? TiersAdresse { get; set; }
+        public string? TypeDocument { get; set; }
         public List<LigneDto> Lignes { get; set; } = new();
     }
 
