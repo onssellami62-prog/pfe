@@ -1,10 +1,13 @@
 import smtplib
 import re
 import json
+import subprocess
+import sys
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from fastapi import FastAPI, Query, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 import mysql.connector
 import pandas as pd
 import numpy as np
@@ -14,6 +17,7 @@ import os
 from datetime import datetime, date
 from typing import Optional
 import tempfile
+from io import BytesIO
 
 load_dotenv()
 
@@ -25,6 +29,41 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Lancement automatique du Dashboard Dash ───────────────────────────────────
+def _start_dashboard():
+    try:
+        dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard.py")
+        if os.path.exists(dashboard_path):
+            subprocess.Popen(
+                [sys.executable, dashboard_path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            print("✅ Dashboard BI démarré sur http://localhost:8050")
+        else:
+            print("⚠️  dashboard.py introuvable")
+    except Exception as e:
+        print(f"⚠️  Impossible de démarrer le dashboard : {e}")
+
+_start_dashboard()
+
+# ── Endpoint export PDF ───────────────────────────────
+@app.get("/bi/export-pdf")
+def export_pdf(
+    periode: str = Query(default="tout"),
+    client_id: Optional[int] = Query(default=None)):
+    """Génère et télécharge le résumé BI en PDF"""
+    try:
+        from export_pdf import generate_pdf
+        pdf_bytes = generate_pdf(periode=periode, client_id=client_id)
+        filename = f"ElFatoora_BI_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        return StreamingResponse(
+            BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur PDF : {str(e)}")
 
 def get_db():
     return mysql.connector.connect(
@@ -85,7 +124,7 @@ async def extract_pdf(file: UploadFile = File(...)):
     try:
         import base64, json, re, httpx
 
-        OPENROUTER_KEY = "os.getenv("OPENROUTER_KEY")"
+        OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
         pdf_b64 = base64.b64encode(content).decode()
 
         prompt = """Tu es un expert en factures tunisiennes. Analyse ce PDF et extrais les informations.
@@ -299,7 +338,7 @@ async def import_excel(file: UploadFile = File(...)):
         headers     = list(df.columns)
         sample_rows = df.head(3).to_dict(orient="records")
 
-        OPENROUTER_KEY = "os.getenv("OPENROUTER_KEY")"
+        OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
 
         prompt = f"""Tu es un expert en facturation tunisienne. Voici les colonnes d'un fichier Excel et quelques exemples de données.
 Identifie à quelle colonne correspond chaque champ de facture.

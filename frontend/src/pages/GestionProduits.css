@@ -1,0 +1,204 @@
+/* GestionProduits.css — même style que Gestionclients.css */
+.gp-page { padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+
+/* ── Toast ── */
+.gp-toast {
+    position: fixed; top: 20px; right: 24px; z-index: 9999;
+    background: #22c55e; color: white;
+    padding: 12px 20px; border-radius: 10px;
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(34,197,94,0.35);
+    animation: gp-slide-in 0.3s ease;
+}
+@keyframes gp-slide-in {
+    from { transform: translateX(100px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+}
+
+/* ── Header ── */
+.gp-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 24px 28px 16px; border-bottom: 1px solid #f1f5f9;
+}
+.gp-header-left h1 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.gp-header-left p  { font-size: 13px; color: #64748b; margin: 0; }
+.gp-header-actions { display: flex; gap: 10px; align-items: center; }
+
+/* ── Buttons ── */
+.gp-btn-primary {
+    display: flex; align-items: center; gap: 7px;
+    background: #2563eb; color: white;
+    border: none; border-radius: 9px;
+    padding: 9px 18px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.18s;
+    font-family: inherit;
+}
+.gp-btn-primary:hover  { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,0.3); }
+.gp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.gp-btn-secondary {
+    background: white; color: #475569;
+    border: 1px solid #e2e8f0; border-radius: 9px;
+    padding: 9px 16px; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.18s; font-family: inherit;
+}
+.gp-btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+/* ── Stats row ── */
+.gp-stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; padding: 20px 28px 0;
+}
+.gp-stat {
+    background: white; border: 1px solid #f1f5f9;
+    border-radius: 12px; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.gp-stat-value { font-size: 24px; font-weight: 800; color: #0f172a; }
+.gp-stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+
+/* ── Toolbar ── */
+.gp-toolbar {
+    display: flex; gap: 12px; align-items: center;
+    padding: 16px 28px 0;
+}
+.gp-search-bar {
+    flex: 1; display: flex; align-items: center; gap: 10px;
+    background: white; border: 1px solid #e2e8f0;
+    border-radius: 10px; padding: 9px 14px;
+}
+.gp-search-bar input {
+    flex: 1; border: none; outline: none;
+    font-size: 13px; color: #334155; background: transparent;
+    font-family: inherit;
+}
+.gp-search-bar input::placeholder { color: #94a3b8; }
+.gp-filter-select {
+    padding: 9px 14px; border: 1px solid #e2e8f0;
+    border-radius: 10px; font-size: 13px; color: #334155;
+    background: white; cursor: pointer; font-family: inherit;
+    outline: none;
+}
+.gp-filter-select:focus { border-color: #2563eb; }
+
+/* ── Table ── */
+.gp-list-view  { padding-bottom: 28px; }
+.gp-table-box  { margin: 16px 28px 0; background: white; border: 1px solid #f1f5f9; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+.gp-table      { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gp-table thead tr { background: #f8fafc; }
+.gp-table th   { padding: 12px 16px; text-align: left; font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid #f1f5f9; }
+.gp-table td   { padding: 13px 16px; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+.gp-table tbody tr:hover { background: #fafbff; }
+.gp-table tbody tr:last-child td { border-bottom: none; }
+
+/* ── Cells ── */
+.gp-code {
+    font-family: 'Courier New', monospace; font-size: 12px;
+    background: #f1f5f9; color: #475569;
+    padding: 3px 8px; border-radius: 6px; font-weight: 600;
+}
+.gp-product-cell { display: flex; align-items: center; gap: 12px; }
+.gp-avatar {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: white; flex-shrink: 0;
+}
+.gp-product-name { font-weight: 600; color: #0f172a; font-size: 13px; }
+.gp-product-desc { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.gp-price     { font-weight: 700; color: #0f172a; font-family: 'Courier New', monospace; }
+.gp-price-ttc { color: #2563eb; }
+
+/* ── Badges ── */
+.gp-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+}
+.gp-badge.gray   { background: #f1f5f9; color: #64748b; }
+.gp-badge.blue   { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.gp-badge.orange { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.gp-badge.purple { background: #faf5ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.gp-badge.green  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+/* ── Actions ── */
+.gp-actions  { display: flex; gap: 6px; }
+.gp-btn-edit, .gp-btn-delete {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 7px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    border: 1px solid; transition: all 0.15s; font-family: inherit;
+}
+.gp-btn-edit   { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.gp-btn-edit:hover   { background: #dbeafe; }
+.gp-btn-delete { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.gp-btn-delete:hover { background: #fee2e2; }
+
+/* ── Voir plus ── */
+.gp-show-more { padding: 14px; text-align: center; border-top: 1px solid #f1f5f9; }
+.gp-show-more button {
+    color: #2563eb; background: none; border: none;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+}
+.gp-show-more button:hover { text-decoration: underline; }
+
+/* ── Loading / Error / Empty ── */
+.gp-loading { text-align: center; padding: 3rem; color: #64748b; margin: 16px 28px; }
+.gp-error   { text-align: center; padding: 2rem; color: #ef4444; background: #fef2f2; border-radius: 8px; margin: 16px 28px; }
+.gp-error button { color: #2563eb; background: none; border: none; cursor: pointer; font-weight: 600; }
+.gp-empty   { text-align: center; padding: 3rem; color: #94a3b8; }
+
+/* ════ FORMULAIRE ════ */
+.gp-form-view { padding: 20px 28px; }
+.gp-form-card {
+    background: white; border: 1px solid #f1f5f9;
+    border-radius: 16px; padding: 28px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); max-width: 720px;
+}
+.gp-form-title { font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 24px; }
+.gp-form       { display: flex; flex-direction: column; gap: 18px; }
+.gp-form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.gp-field { display: flex; flex-direction: column; gap: 5px; }
+.gp-field label {
+    font-size: 12px; font-weight: 700; color: #374151;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.gp-required { color: #ef4444; }
+.gp-field input, .gp-field select, .gp-field textarea {
+    padding: 9px 13px; border: 1.5px solid #e5e7eb;
+    border-radius: 9px; font-size: 13px; color: #0f172a;
+    background: white; transition: border-color 0.15s;
+    font-family: inherit;
+}
+.gp-field input:focus, .gp-field select:focus, .gp-field textarea:focus {
+    outline: none; border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+}
+.gp-field textarea { resize: vertical; min-height: 80px; }
+.gp-hint { font-size: 11px; color: #94a3b8; }
+
+/* ── Aperçu TTC ── */
+.gp-ttc-preview {
+    display: flex; align-items: center; gap: 10px;
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    border-radius: 10px; padding: 12px 16px;
+    font-size: 13px; color: #1e40af;
+}
+.gp-ttc-preview strong { font-size: 16px; font-weight: 800; }
+.gp-ttc-detail { font-size: 11px; color: #3b82f6; }
+
+/* ── Form actions ── */
+.gp-form-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding-top: 8px; border-top: 1px solid #f1f5f9;
+}
+
+@media (max-width: 768px) {
+    .gp-form-row    { grid-template-columns: 1fr; }
+    .gp-stats-row   { grid-template-columns: 1fr 1fr; }
+    .gp-header      { flex-direction: column; gap: 12px; }
+    .gp-toolbar     { flex-direction: column; }
+}

@@ -1,313 +1,284 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Statistics.css';
 
-const IA_BASE = 'http://localhost:8000';
-
-const fmt = (n) => n ? parseFloat(n).toLocaleString('fr-TN', { minimumFractionDigits: 3 }) : '0.000';
-const MOIS_NOMS  = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const MOIS_COURT = ['JAN','FÉV','MAR','AVR','MAI','JUIN','JUIL','AOÛT','SEPT','OCT','NOV','DÉC'];
-
-const PERIODES = [
-    { key: '7j',    label: '7 jours' },
-    { key: '30j',   label: '30 jours' },
-    { key: '90j',   label: '3 mois' },
-    { key: '6mois', label: '6 mois' },
-    { key: '1an',   label: '1 an' },
-    { key: 'tout',  label: 'Tout' },
-];
+const DASH_URL = 'http://localhost:8050';
 
 export default function Statistics() {
-    const [prediction,  setPrediction]  = useState(null);
-    const [topClients,  setTopClients]  = useState([]);
-    const [topProduits, setTopProduits] = useState([]);
-    const [evolution,   setEvolution]   = useState([]);
-    const [panierMoyen, setPanierMoyen] = useState(null);
-    const [loading,     setLoading]     = useState(true);
-    const [error,       setError]       = useState(null);
-    const [periode,     setPeriode]     = useState('30j');
+    const [loaded, setLoaded]   = useState(false);
+    const [ping,   setPing]     = useState(null); // 'ok' | 'down'
+    const iframeRef             = useRef(null);
 
-    useEffect(() => { fetchAll(); }, [periode]);
+    /* ── Vérifier que Dash tourne ─────────────────── */
+    useEffect(() => {
+        const check = async () => {
+            try {
+                await fetch(DASH_URL, { mode: 'no-cors', cache: 'no-store' });
+                setPing('ok');
+            } catch {
+                setPing('down');
+            }
+        };
+        check();
+        const t = setInterval(check, 10_000);
+        return () => clearInterval(t);
+    }, []);
 
-    const fetchAll = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const safe = (promise) => promise.catch(() => ({}));
-            const p = `periode=${periode}`;
-
-            const [pred, clients, produits, evo, panier] = await Promise.all([
-                safe(fetch(`${IA_BASE}/predict/ca?${p}`).then(r => r.json())),
-                safe(fetch(`${IA_BASE}/bi/top-clients?${p}`).then(r => r.json())),
-                safe(fetch(`${IA_BASE}/bi/top-produits?${p}`).then(r => r.json())),
-                safe(fetch(`${IA_BASE}/bi/evolution-ca?${p}`).then(r => r.json())),
-                safe(fetch(`${IA_BASE}/bi/panier-moyen?${p}`).then(r => r.json())),
-            ]);
-
-            setPrediction(pred);
-            setTopClients(clients.topClients   || []);
-            setTopProduits(produits.topProduits || []);
-            setEvolution(evo.evolution          || []);
-            setPanierMoyen(panier);
-        } catch (err) {
-            setError('Erreur connexion au microservice IA.');
-        } finally {
-            setLoading(false);
-        }
+    const handleLoad  = () => setLoaded(true);
+    const handleError = () => setLoaded(true);
+    const reload      = () => {
+        setLoaded(false);
+        if (iframeRef.current) iframeRef.current.src = DASH_URL;
     };
 
-    const maxCA = evolution.length ? Math.max(...evolution.map(e => e.caHT), 1) : 1;
-    const badge = ({
-        'hausse': { bg: '#dcfce7', color: '#16a34a', icon: '📈' },
-        'baisse': { bg: '#fee2e2', color: '#dc2626', icon: '📉' },
-        'stable': { bg: '#f1f5f9', color: '#64748b', icon: '➡️' },
-    }[prediction?.tendance] || { bg: '#f1f5f9', color: '#64748b', icon: '➡️' });
-
-    const FilterBar = () => (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {PERIODES.map(p => (
-                <button key={p.key} onClick={() => setPeriode(p.key)} style={{
-                    padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                    border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                    background: periode === p.key ? '#1e429f' : '#f1f5f9',
-                    color:      periode === p.key ? 'white'   : '#475569',
-                }}>
-                    {p.label}
-                </button>
-            ))}
-        </div>
-    );
-    console.log('pred:', prediction);
-console.log('clients:', topClients);
-console.log('evolution:', evolution);
-    if (loading) return (
-        <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>
-            🤖 Chargement des analyses IA...
-        </div>
-    );
-
-    if (error) return (
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444', background: '#fef2f2', borderRadius: 8, margin: '2rem' }}>
-            {error} — <button onClick={fetchAll} style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>Réessayer</button>
-        </div>
-    );
-
     return (
-        <div className="stats-page">
-            <header className="stats-header">
-                <div className="header-info">
-                    <h1>🤖 Tableau de Bord BI & Intelligence Artificielle</h1>
-                    <p>Analyses avancées et prédictions basées sur vos données de facturation</p>
-                </div>
-                <div className="header-controls" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <FilterBar />
-                    <button className="btn-export" onClick={fetchAll}>🔄</button>
-                </div>
-            </header>
+        <div style={S.wrap} className="stats-page">
 
-            {/* Prédiction CA */}
-            <div style={{ background: 'linear-gradient(135deg, #1e429f 0%, #3b5bdb 100%)', borderRadius: 16, padding: '1.5rem 2rem', marginBottom: '1.5rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                        🤖 Prédiction IA — CA {MOIS_NOMS[(prediction?.moisProchain || 1) - 1]} {prediction?.anneeProchaine}
-                        <span style={{ marginLeft: 8, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 10, fontSize: 11 }}>
-                            Période : {PERIODES.find(p => p.key === periode)?.label}
-                        </span>
-                    </div>
-                    <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-1px' }}>
-                        {fmt(prediction?.prediction)} <span style={{ fontSize: 16, fontWeight: 400, opacity: 0.7 }}>DT</span>
-                    </div>
-                    <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>{prediction?.message}</div>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                    <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 18px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>CONFIANCE</div>
-                        <div style={{ fontSize: 22, fontWeight: 700 }}>{prediction?.confiance}%</div>
-                    </div>
-                    <div style={{ background: badge.bg, borderRadius: 10, padding: '12px 18px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: badge.color, fontWeight: 600, marginBottom: 4 }}>TENDANCE</div>
-                        <div style={{ fontSize: 22 }}>{badge.icon}</div>
-                        <div style={{ fontSize: 12, color: badge.color, fontWeight: 600 }}>{prediction?.tendance?.toUpperCase()}</div>
-                    </div>
-                </div>
-            </div>
+            {/* Contenu */}
+            <div style={S.body}>
 
-            {/* KPIs */}
-            <div className="stats-kpi-grid" style={{ marginBottom: '1.5rem' }}>
-                <div className="kpi-card">
-                    <div className="kpi-top"><div className="kpi-icon blue">🛒</div></div>
-                    <div className="kpi-content">
-                        <span className="label">Panier Moyen Global</span>
-                        <div className="value">{fmt(panierMoyen?.panierMoyenGlobal)} <small>DT</small></div>
-                    </div>
-                </div>
-                <div className="kpi-card">
-                    <div className="kpi-top"><div className="kpi-icon green">👥</div></div>
-                    <div className="kpi-content">
-                        <span className="label">Top Client</span>
-                        <div className="value" style={{ fontSize: 18 }}>{topClients[0]?.nomClient || '—'}</div>
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{fmt(topClients[0]?.caTotal)} DT</div>
-                    </div>
-                </div>
-                <div className="kpi-card">
-                    <div className="kpi-top"><div className="kpi-icon orange">📦</div></div>
-                    <div className="kpi-content">
-                        <span className="label">Top Produit</span>
-                        <div className="value" style={{ fontSize: 18 }}>{topProduits[0]?.nomProduit || '—'}</div>
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{topProduits[0]?.qteTotale || 0} unités vendues</div>
-                    </div>
-                </div>
-                <div className="kpi-card">
-                    <div className="kpi-top"><div className="kpi-icon indigo">📊</div></div>
-                    <div className="kpi-content">
-                        <span className="label">Mois analysés</span>
-                        <div className="value">{evolution.length}</div>
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                            {PERIODES.find(p => p.key === periode)?.label}
+                {/* Dash DOWN → message d'aide */}
+                {ping === 'down' && (
+                    <div style={S.downOverlay}>
+                        <div style={S.downCard}>
+                            <div style={{ fontSize: 48, marginBottom: 16 }}>🚀</div>
+                            <div style={S.downTitle}>Dashboard Dash non démarré</div>
+                            <div style={S.downSub}>
+                                Ouvrez un terminal dans votre dossier Python et lancez :
+                            </div>
+                            <div style={S.codeBlock}>
+                                <code style={{ color: '#34d399', fontSize: 14 }}>
+                                    python dashboard.py
+                                </code>
+                            </div>
+                            <div style={S.downSub} >
+                                Puis revenez ici — la page se recharge automatiquement.
+                            </div>
+                            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center' }}>
+                                <button onClick={reload} style={S.btnPrimary}>
+                                    ⟳ Réessayer
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+
+                {/* Spinner de chargement */}
+                {!loaded && ping === 'ok' && (
+                    <div style={S.spinnerWrap}>
+                        <div style={S.spinner}/>
+                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 14 }}>
+                            Chargement du dashboard BI...
+                        </div>
+                    </div>
+                )}
+
+                {/* iFrame Dash */}
+                {ping === 'ok' && (
+                    <iframe
+                        ref={iframeRef}
+                        src={DASH_URL}
+                        title="El Fatoora BI Dashboard"
+                        onLoad={handleLoad}
+                        onError={handleError}
+                        style={{
+                            ...S.iframe,
+                            opacity: loaded ? 1 : 0,
+                            transition: 'opacity 0.4s ease',
+                        }}
+                        allow="fullscreen"
+                    />
+                )}
             </div>
 
-            <div className="stats-main-grid">
-                {/* Évolution mensuelle */}
-                <div className="stats-chart-card sales-card">
-                    <div className="card-header">
-                        <h3>📊 Évolution mensuelle du CA</h3>
-                        <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: 20 }}>
-                            {PERIODES.find(p => p.key === periode)?.label}
-                        </span>
-                    </div>
-                    <div className="bar-chart">
-                        {evolution.length > 0
-                            ? evolution.map((e, i) => (
-                                <div className="bar-container" key={i} title={`${MOIS_NOMS[e.mois-1]} ${e.annee} : ${fmt(e.caHT)} DT`}>
-                                    <div className="bar" style={{ height: `${(e.caHT / maxCA) * 85}%` }}>
-                                        <div className="bar-top"></div>
-                                    </div>
-                                    <span>{MOIS_COURT[e.mois - 1]}</span>
-                                </div>
-                            ))
-                            : <p style={{ color: '#94a3b8', padding: '2rem' }}>Aucune donnée pour cette période</p>
-                        }
-                    </div>
-                </div>
-
-                {/* Top 5 clients */}
-                <div className="stats-chart-card clients-card">
-                    <div className="card-header">
-                        <h3>⭐ Top 5 Clients par CA</h3>
-                        <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: 20 }}>
-                            {PERIODES.find(p => p.key === periode)?.label}
-                        </span>
-                    </div>
-                    <table className="clients-table">
-                        <thead>
-                            <tr>
-                                <th>CLIENT</th>
-                                <th>FACTURES</th>
-                                <th>CA HT (DT)</th>
-                                <th>PANIER MOY.</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topClients.map((c, i) => (
-                                <tr key={i}>
-                                    <td>
-                                        <div className="client-cell">
-                                            <span className="avatar">{c.nomClient.substring(0, 2).toUpperCase()}</span>
-                                            {c.nomClient}
-                                        </div>
-                                    </td>
-                                    <td>{c.nbFactures}</td>
-                                    <td className="font-bold">{fmt(c.caTotal)}</td>
-                                    <td style={{ color: '#64748b', fontSize: 12 }}>{fmt(c.panierMoyen)}</td>
-                                </tr>
-                            ))}
-                            {topClients.length === 0 && (
-                                <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>Aucune donnée</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Top 5 produits */}
-                <div className="stats-chart-card clients-card">
-                    <div className="card-header">
-                        <h3>📦 Top 5 Produits Vendus</h3>
-                        <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: 20 }}>
-                            {PERIODES.find(p => p.key === periode)?.label}
-                        </span>
-                    </div>
-                    <table className="clients-table">
-                        <thead>
-                            <tr>
-                                <th>PRODUIT</th>
-                                <th>QTÉ</th>
-                                <th>CA HT (DT)</th>
-                                <th>PRIX MOY.</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topProduits.map((p, i) => (
-                                <tr key={i}>
-                                    <td>
-                                        <div className="client-cell">
-                                            <span className="avatar">{p.nomProduit.substring(0, 2).toUpperCase()}</span>
-                                            {p.nomProduit}
-                                        </div>
-                                    </td>
-                                    <td>{p.qteTotale}</td>
-                                    <td className="font-bold">{fmt(p.caHT)}</td>
-                                    <td style={{ color: '#64748b', fontSize: 12 }}>{fmt(p.prixMoyen)}</td>
-                                </tr>
-                            ))}
-                            {topProduits.length === 0 && (
-                                <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>Aucune donnée</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Panier moyen */}
-                <div className="stats-chart-card clients-card">
-                    <div className="card-header">
-                        <h3>🛒 Panier Moyen par Client</h3>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Global: {fmt(panierMoyen?.panierMoyenGlobal)} DT</span>
-                    </div>
-                    <table className="clients-table">
-                        <thead>
-                            <tr>
-                                <th>CLIENT</th>
-                                <th>FACTURES</th>
-                                <th>PANIER MOYEN</th>
-                                <th>MAX</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {panierMoyen?.parClient?.map((c, i) => (
-                                <tr key={i}>
-                                    <td>
-                                        <div className="client-cell">
-                                            <span className="avatar">{c.nomClient.substring(0, 2).toUpperCase()}</span>
-                                            {c.nomClient}
-                                        </div>
-                                    </td>
-                                    <td>{c.nbFactures}</td>
-                                    <td className="font-bold" style={{ color: '#1e429f' }}>{fmt(c.panierMoyen)}</td>
-                                    <td style={{ color: '#64748b', fontSize: 12 }}>{fmt(c.maxFacture)}</td>
-                                </tr>
-                            ))}
-                            {(!panierMoyen?.parClient || panierMoyen.parClient.length === 0) && (
-                                <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>Aucune donnée</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <footer className="stats-footer">
-                <p>🤖 Analyses générées par le microservice IA Python — El Fatoora {new Date().getFullYear()}</p>
-            </footer>
+            <style>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50%       { opacity: 0.4; }
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 }
+
+/* ── Styles ───────────────────────────────────────────── */
+const S = {
+    wrap: {
+        display:        'flex',
+        flexDirection:  'column',
+        height:         '100%',
+        background:     '#070d1a',
+        borderRadius:   12,
+        overflow:       'hidden',
+        border:         '1px solid #1a2740',
+    },
+
+    /* Barre du haut */
+    bar: {
+        display:         'flex',
+        justifyContent:  'space-between',
+        alignItems:      'center',
+        padding:         '10px 16px',
+        background:      '#0d1526',
+        borderBottom:    '1px solid #1a2740',
+        flexShrink:      0,
+        gap:             12,
+        flexWrap:        'wrap',
+    },
+    barLeft: {
+        display:     'flex',
+        alignItems:  'center',
+        gap:         10,
+    },
+    logo: {
+        width:           34,
+        height:          34,
+        borderRadius:    10,
+        background:      'linear-gradient(135deg,#818cf8,#6366f1)',
+        display:         'flex',
+        alignItems:      'center',
+        justifyContent:  'center',
+        fontSize:        12,
+        fontWeight:      900,
+        color:           'white',
+        flexShrink:      0,
+    },
+    barTitle: {
+        fontSize:    13,
+        fontWeight:  700,
+        color:       'white',
+    },
+    barSub: {
+        fontSize:  10,
+        color:     'rgba(255,255,255,0.35)',
+        marginTop: 1,
+    },
+    barRight: {
+        display:     'flex',
+        alignItems:  'center',
+        gap:         8,
+    },
+    statusPill: {
+        display:       'flex',
+        alignItems:    'center',
+        gap:           7,
+        background:    'rgba(255,255,255,0.04)',
+        border:        '1px solid rgba(255,255,255,0.07)',
+        borderRadius:  20,
+        padding:       '5px 12px',
+    },
+    dot: {
+        width:        8,
+        height:       8,
+        borderRadius: '50%',
+        display:      'inline-block',
+        flexShrink:   0,
+    },
+
+    /* Boutons */
+    btnGhost: {
+        padding:         '6px 12px',
+        borderRadius:    9,
+        border:          '1px solid rgba(255,255,255,0.1)',
+        background:      'rgba(255,255,255,0.04)',
+        color:           'rgba(255,255,255,0.6)',
+        fontSize:        12,
+        fontWeight:      600,
+        cursor:          'pointer',
+        fontFamily:      'inherit',
+        transition:      'all 0.2s',
+    },
+    btnPrimary: {
+        padding:         '6px 14px',
+        borderRadius:    9,
+        border:          '1px solid rgba(129,140,248,0.4)',
+        background:      'rgba(129,140,248,0.18)',
+        color:           '#818cf8',
+        fontSize:        12,
+        fontWeight:      700,
+        cursor:          'pointer',
+        fontFamily:      'inherit',
+        transition:      'all 0.2s',
+    },
+
+    /* Zone principale */
+    body: {
+        flex:     1,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+
+    /* iFrame */
+    iframe: {
+        width:        '100%',
+        height:       '100%',
+        border:       'none',
+        display:      'block',
+        background:   '#070d1a',
+        colorScheme:  'dark',
+    },
+
+    /* Spinner */
+    spinnerWrap: {
+        position:        'absolute',
+        inset:           0,
+        display:         'flex',
+        flexDirection:   'column',
+        alignItems:      'center',
+        justifyContent:  'center',
+        background:      '#070d1a',
+        zIndex:          10,
+    },
+    spinner: {
+        width:        36,
+        height:       36,
+        border:       '3px solid rgba(129,140,248,0.15)',
+        borderTop:    '3px solid #818cf8',
+        borderRadius: '50%',
+        animation:    'spin 0.8s linear infinite',
+    },
+
+    /* Dash DOWN */
+    downOverlay: {
+        position:        'absolute',
+        inset:           0,
+        display:         'flex',
+        alignItems:      'center',
+        justifyContent:  'center',
+        background:      '#070d1a',
+        zIndex:          20,
+        padding:         24,
+    },
+    downCard: {
+        background:    '#0d1526',
+        border:        '1px solid #1a2740',
+        borderRadius:  16,
+        padding:       '36px 40px',
+        textAlign:     'center',
+        maxWidth:      480,
+        width:         '100%',
+    },
+    downTitle: {
+        fontSize:    20,
+        fontWeight:  800,
+        color:       'white',
+        marginBottom: 10,
+    },
+    downSub: {
+        fontSize:   13,
+        color:      'rgba(255,255,255,0.4)',
+        lineHeight: 1.6,
+        marginTop:  8,
+    },
+    codeBlock: {
+        background:    '#070d1a',
+        border:        '1px solid #1a2740',
+        borderRadius:  10,
+        padding:       '14px 20px',
+        margin:        '16px 0',
+        fontFamily:    'monospace',
+        textAlign:     'left',
+    },
+};

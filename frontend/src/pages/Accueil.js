@@ -40,7 +40,7 @@ export default function Accueil({ user }) {
         { icon:'✍️', label:'Signature\nÉlectronique', color:'#0891b2', glow:'rgba(8,145,178,0.2)'   },
         { icon:'📄', label:'Génération\nTEIF XML',    color:'#059669', glow:'rgba(5,150,105,0.2)'   },
         { icon:'🚀', label:'Envoi\nau TTN',           color:'#d97706', glow:'rgba(217,119,6,0.2)'   },
-        { icon:'✅', label:'Validation\nInterne',     color:'#16a34a', glow:'rgba(22,163,74,0.2)'   },
+        { icon:'✅', label:'Validation\n',     color:'#16a34a', glow:'rgba(22,163,74,0.2)'   },
     ];
 
     return (

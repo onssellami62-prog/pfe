@@ -1,0 +1,287 @@
+/* ═══════════════════════════════════════════════════════
+   El Fatoora BI — Dark Theme Override
+   Charge automatiquement via le dossier assets/
+═══════════════════════════════════════════════════════ */
+
+/* ── Reset total ────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #react-entry-point, #_dash-app-content {
+  background: #070d1a !important;
+  color: #e2e8f0 !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Force toutes les divs sans bg explicite à être transparentes */
+div {
+  color: inherit;
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(129,140,248,0.35);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(129,140,248,0.6);
+}
+
+/* ── Inputs ─────────────────────────────────────────── */
+input, select, textarea {
+  background: #131f35 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #1a2740 !important;
+  outline: none !important;
+  font-family: inherit !important;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+/* ── Boutons nav sidebar ────────────────────────────── */
+button {
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+.nav-btn-active {
+  background: rgba(129,140,248,0.2) !important;
+  color: #818cf8 !important;
+  box-shadow: inset 3px 0 0 #818cf8;
+}
+
+/* ── Période active ─────────────────────────────────── */
+.period-active {
+  background: rgba(129,140,248,0.25) !important;
+  color: #818cf8 !important;
+  box-shadow: 0 0 12px rgba(129,140,248,0.3) !important;
+}
+
+/* ════════════════════════════════════════════════════
+   DASH DROPDOWN — dark override complet
+════════════════════════════════════════════════════ */
+
+/* Conteneur principal */
+.Select-control,
+.Select--single > .Select-control,
+.Select--multi > .Select-control,
+.VirtualizedSelectFocusedOption,
+.VirtualizedSelectOption {
+  background: #131f35 !important;
+  border: 1px solid #1a2740 !important;
+  color: #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  min-height: 34px !important;
+}
+
+.Select-control:hover {
+  border-color: rgba(129,140,248,0.5) !important;
+  box-shadow: 0 0 0 2px rgba(129,140,248,0.1) !important;
+}
+
+.Select.is-open > .Select-control {
+  background: #131f35 !important;
+  border-color: #818cf8 !important;
+  border-radius: 10px 10px 0 0 !important;
+}
+
+/* Valeur sélectionnée */
+.Select-value,
+.Select-value-label,
+.Select-placeholder,
+.Select-input > input {
+  color: #e2e8f0 !important;
+  font-size: 12px !important;
+  line-height: 34px !important;
+}
+
+.Select-placeholder {
+  color: #4b6080 !important;
+  line-height: 34px !important;
+}
+
+/* Flèche */
+.Select-arrow {
+  border-top-color: #4b6080 !important;
+}
+.Select.is-open .Select-arrow {
+  border-bottom-color: #818cf8 !important;
+}
+
+/* Menu dropdown */
+.Select-menu-outer {
+  background: #0d1526 !important;
+  border: 1px solid #1a2740 !important;
+  border-top: none !important;
+  border-radius: 0 0 10px 10px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+  z-index: 9999 !important;
+}
+
+.Select-menu {
+  background: #0d1526 !important;
+  max-height: 220px !important;
+}
+
+/* Options */
+.Select-option {
+  background: #0d1526 !important;
+  color: rgba(255,255,255,0.65) !important;
+  font-size: 12px !important;
+  padding: 9px 14px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+  cursor: pointer !important;
+}
+
+.Select-option:hover,
+.Select-option.is-focused {
+  background: rgba(129,140,248,0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+.Select-option.is-selected {
+  background: rgba(129,140,248,0.2) !important;
+  color: #818cf8 !important;
+  font-weight: 600 !important;
+}
+
+/* Clear X */
+.Select-clear-zone,
+.Select-clear {
+  color: #4b6080 !important;
+}
+.Select-clear-zone:hover { color: #f87171 !important; }
+
+/* Input de recherche */
+.Select-input {
+  background: transparent !important;
+}
+.Select-input > input {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+  line-height: 30px !important;
+}
+
+/* ════════════════════════════════════════════════════
+   PLOTLY — override fond blanc des graphes
+════════════════════════════════════════════════════ */
+
+.js-plotly-plot,
+.plot-container,
+.plotly {
+  background: transparent !important;
+}
+
+.main-svg {
+  background: transparent !important;
+}
+
+/* Supprimer fond blanc Plotly */
+.js-plotly-plot .plotly .main-svg > rect.bg {
+  fill: transparent !important;
+}
+
+/* Tooltip modebar */
+.modebar {
+  background: rgba(7,13,26,0.8) !important;
+  border-radius: 8px !important;
+}
+
+.modebar-btn path {
+  fill: rgba(255,255,255,0.3) !important;
+}
+
+.modebar-btn:hover path {
+  fill: #818cf8 !important;
+}
+
+/* ════════════════════════════════════════════════════
+   TABS — override Dash par défaut
+════════════════════════════════════════════════════ */
+
+.dash-tab, .tab--selected {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+  border: none !important;
+}
+
+/* ════════════════════════════════════════════════════
+   LOADING — spinner dark
+════════════════════════════════════════════════════ */
+
+._dash-loading {
+  background: rgba(7,13,26,0.85) !important;
+}
+
+._dash-loading-callback {
+  background: rgba(7,13,26,0.7) !important;
+}
+
+/* ════════════════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════════════════ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Entrée douce du contenu */
+#content > div {
+  animation: fadeIn 0.25s ease;
+}
+
+/* ════════════════════════════════════════════════════
+   KPI CARDS — hover effect
+════════════════════════════════════════════════════ */
+.kpi-hover:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* ════════════════════════════════════════════════════
+   TABLE — hover rows
+════════════════════════════════════════════════════ */
+tr:hover td {
+  background: rgba(129,140,248,0.04) !important;
+}
+
+/* ════════════════════════════════════════════════════
+   NOTIFICATION DOT
+════════════════════════════════════════════════════ */
+.dot-green {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+  animation: pulse 2s infinite;
+}

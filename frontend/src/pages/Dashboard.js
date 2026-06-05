@@ -10,7 +10,8 @@ import ErrorDiagnostic from './ErrorDiagnostic';
 import Gestionclients  from './Gestionclients';
 import GestionAvoirs   from './Gestionavoirs';
 import MyInvoices      from './MyInvoices';
-import Accueil         from './Accueil';   // ← nouveau
+import Accueil         from './Accueil';
+import GestionProduits from './GestionProduits';
 
 export default function Dashboard({ onLogout, user }) {
     const [activeNav,         setActiveNav]         = useState('accueil');
@@ -24,7 +25,6 @@ export default function Dashboard({ onLogout, user }) {
 
     const navTo = (key) => setActiveNav(key);
 
-    // ── Permissions ──────────────────────────────────────────────────────
     const hasAccess = (page) => {
         if (!user) return false;
         if (user.role === 'SuperAdmin' || user.role === 'Admin') return true;
@@ -35,6 +35,7 @@ export default function Dashboard({ onLogout, user }) {
     const renderContent = () => {
         if (activeNav === 'avoirs')   return <GestionAvoirs />;
         if (activeNav === 'clients')  return <Gestionclients />;
+        if (activeNav === 'produits') return <GestionProduits />;
         if (activeNav === 'create')   return <CreateInvoice />;
         if (activeNav === 'depot')    return <ImportInvoice />;
         if (activeNav === 'factures') return (
@@ -57,8 +58,6 @@ export default function Dashboard({ onLogout, user }) {
         if (activeNav === 'diagnostic') return (
             <ErrorDiagnostic invoice={diagnosticInvoice} onBack={() => navTo('list-rejected')} />
         );
-
-        // ── Accueil — page par défaut ─────────────────────────────────
         return <Accueil user={user} />;
     };
 
@@ -92,6 +91,18 @@ export default function Dashboard({ onLogout, user }) {
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
                             Gestion Clients
+                        </button>
+                    )}
+
+                    {/* Gestion Produits */}
+                    {hasAccess('produits') && (
+                        <button className={`nav-item ${activeNav === 'produits' ? 'active' : ''}`} onClick={() => navTo('produits')}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                                <line x1="12" y1="22.08" x2="12" y2="12" />
+                            </svg>
+                            Gestion Produits
                         </button>
                     )}
 
@@ -168,7 +179,7 @@ export default function Dashboard({ onLogout, user }) {
                         </button>
                     )}
 
-                    {/* Statistiques */}
+                    {/* Dashboard BI */}
                     {hasAccess('statistiques') && (
                         <button className={`nav-item ${activeNav === 'stats' ? 'active' : ''}`} onClick={() => navTo('stats')}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
