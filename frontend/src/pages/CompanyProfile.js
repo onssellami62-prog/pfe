@@ -13,9 +13,10 @@ const PAGES_DISPONIBLES = [
     { key: 'create',       label: '✏️ Créer une Facture' },
     { key: 'avoirs',       label: '↩️ Avoirs' },
     { key: 'clients',      label: '👥 Gestion Clients' },
+    { key: 'produits',     label: '📦 Gestion Produits' }, // ← ajoute cette ligne
     { key: 'declaration',  label: '📋 Déclaration Fiscale' },
     { key: 'statistiques', label: '📊 Statistiques' },
-    { key: 'depot',        label: '📁 Dépôt Facture' },
+    { key: 'depot',        label: '📁 Importation de Factures' },
 ];
 
 export default function CompanyProfile({ onClose, user }) {
@@ -72,26 +73,29 @@ export default function CompanyProfile({ onClose, user }) {
 
         setSubmitting(true);
         try {
-            const res  = await fetch(`${API_BASE}/utilisateurs`, {
-                method: 'POST', headers: authHeaders(),
-                body: JSON.stringify({ nom: newEmploye.nom, email: newEmploye.email, permissions: newEmploye.permissions })
-            });
-            const data = await res.json();
+           const res  = await fetch(`${API_BASE}/utilisateurs`, {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ nom: newEmploye.nom, email: newEmploye.email, permissions: newEmploye.permissions })
+});
+const data = await res.json();
+console.log('Réponse backend:', data); // ← ajoute ici
 
-            if (!res.ok) { setErrorMsg(data.message || 'Erreur serveur.'); return; }
+if (!res.ok) { setErrorMsg(data.message || 'Erreur serveur.'); return; }
 
-            await fetch(`${IA_BASE}/send-email`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    nom:        newEmploye.nom,
-                    email:      newEmploye.email,
-                    motDePasse: data.motDePasseTemp,
-                    permissions: newEmploye.permissions.map(p =>
-                        PAGES_DISPONIBLES.find(pg => pg.key === p)?.label || p
-                    )
-                })
-            });
+            const emailRes = await fetch(`${IA_BASE}/send-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        nom:        newEmploye.nom,
+        email:      newEmploye.email,
+        motDePasse: data.motDePasseTemp,
+        permissions: newEmploye.permissions.map(p =>
+            PAGES_DISPONIBLES.find(pg => pg.key === p)?.label || p
+        )
+    })
+});
+const emailData = await emailRes.json();
+console.log('Réponse email:', emailData);
 
             setSuccessMsg(`✅ Compte créé ! Email envoyé à ${newEmploye.email}.`);
             setShowForm(false);

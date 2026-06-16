@@ -136,28 +136,22 @@ namespace backend.Controllers
             decimal[] tvaValides = { 7m, 13m, 19m };
             foreach (var ligne in dto.Lignes)
             {
-                // Produit existe
                 var produit = await _context.Produits.FindAsync(ligne.ProduitId);
                 if (produit == null)
                     return BadRequest(new { message = $"Produit ID {ligne.ProduitId} introuvable." });
 
-                // Prix > 0
                 if (ligne.PrixUnitaire <= 0)
                     return BadRequest(new { message = $"Le prix unitaire doit être supérieur à 0 pour '{ligne.Designation}'." });
 
-                // Quantité > 0
                 if (ligne.Quantite <= 0)
                     return BadRequest(new { message = $"La quantité doit être supérieure à 0 pour '{ligne.Designation}'." });
 
-                // TVA valide
                 if (!Array.Exists(tvaValides, t => t == ligne.TauxTVA))
                     return BadRequest(new { message = $"Le taux TVA {ligne.TauxTVA}% est invalide. Valeurs acceptées : 7%, 13%, 19%." });
 
-                // Désignation obligatoire
                 if (string.IsNullOrWhiteSpace(ligne.Designation))
                     return BadRequest(new { message = "La désignation est obligatoire pour chaque ligne." });
 
-                // Remise entre 0 et 100
                 if (ligne.RemiseLigne < 0 || ligne.RemiseLigne > 100)
                     return BadRequest(new { message = $"La remise doit être entre 0% et 100% pour '{ligne.Designation}'." });
             }
@@ -165,6 +159,48 @@ namespace backend.Controllers
             // ── Validation remise globale ────────────────────────────────
             if (dto.RemiseGlobale < 0 || dto.RemiseGlobale > 100)
                 return BadRequest(new { message = "La remise globale doit être entre 0% et 100%." });
+
+            // ── Vérification doublon (même client + même date + mêmes produits) ──
+            var produitIdsNouveaux = dto.Lignes
+                .Select(l => l.ProduitId)
+                .OrderBy(x => x)
+                .ToList();
+
+            var dateFacture = dto.DateFacture.Value.Date;
+
+            var facturesExistantes = await _context.Factures
+                .Include(f => f.Lignes)
+                .Where(f => f.TiersId == dto.TiersId
+                         && f.DateFacture.Date == dateFacture
+                         && f.Statut != "Annulée")
+                .ToListAsync();
+
+            foreach (var existante in facturesExistantes)
+            {
+                var produitIdsExistants = existante.Lignes
+                    .Select(l => l.ProduitId)
+                    .OrderBy(x => x)
+                    .ToList();
+
+                if (produitIdsNouveaux.SequenceEqual(produitIdsExistants))
+                    return Conflict(new
+                    {
+                        message = $"Une facture identique existe déjà (FAC-{existante.NumeroFacture}) — même client, même date et mêmes produits."
+                    });
+            }
+
+            // ── Génération ID personnalisé format AAMMXXXX ───────────────
+            // Ex: 26060001 = juin 2026, séquence 0001
+            var prefixe = DateTime.Now.ToString("yyMM");
+
+            var dernierIdStr = await _context.Factures
+                .Where(f => f.NumeroFacture.ToString().StartsWith(prefixe))
+                .OrderByDescending(f => f.NumeroFacture)
+                .Select(f => f.NumeroFacture)
+                .FirstOrDefaultAsync();
+
+            int sequence = dernierIdStr > 0 ? (dernierIdStr % 10000) + 1 : 1;
+            int nouveauId = int.Parse($"{prefixe}{sequence:D4}");
 
             // ── Calculs automatiques ─────────────────────────────────────
             var lignes = dto.Lignes.Select(l =>
@@ -195,14 +231,14 @@ namespace backend.Controllers
             var montantRemiseGlob = totalHT * (dto.RemiseGlobale / 100);
             var totalHTApresRemise = totalHT - montantRemiseGlob;
             var montantTimbre = dto.TimbreFiscal ? 0.600m : 0m;
-            var montantTTC = totalHTApresRemise + totalTVA + montantTimbre;
+            var montantTTCFinal = totalHTApresRemise + totalTVA + montantTimbre;
 
-            // ── Validation montant final > 0 ─────────────────────────────
-            if (montantTTC <= 0)
+            if (montantTTCFinal <= 0)
                 return BadRequest(new { message = "Le montant TTC doit être supérieur à 0." });
 
             var facture = new Facture
             {
+                NumeroFacture = nouveauId,
                 DateFacture = dto.DateFacture.Value,
                 DateLimitePaiement = dto.DateLimitePaiement,
                 PeriodeDu = dto.PeriodeDu,
@@ -215,8 +251,8 @@ namespace backend.Controllers
                 TotalHTAvantRemise = Math.Round(totalHTAvantRemise, 3),
                 TotalHT = Math.Round(totalHTApresRemise, 3),
                 TotalTVA = Math.Round(totalTVA, 3),
-                MontantTTC = Math.Round(montantTTC, 3),
-                MontantEnLettres = ConvertirEnLettres(montantTTC),
+                MontantTTC = Math.Round(montantTTCFinal, 3),
+                MontantEnLettres = ConvertirEnLettres(montantTTCFinal),
                 Statut = "Brouillon",
                 TypeDocument = "I-11",
                 Lignes = lignes
@@ -238,16 +274,15 @@ namespace backend.Controllers
             if (facture == null)
                 return NotFound(new { message = "Facture introuvable." });
 
-            // Statuts valides
             string[] statutsValides = { "Brouillon", "SoumiseTTN", "AcceptéeTTN", "Rejetée", "Annulée" };
             if (!Array.Exists(statutsValides, s => s == dto.Statut))
                 return BadRequest(new { message = $"Statut '{dto.Statut}' invalide." });
 
-            // Une facture AcceptéeTTN ne peut pas redevenir Brouillon
             if (facture.Statut == "AcceptéeTTN" && dto.Statut == "Brouillon")
                 return BadRequest(new { message = "Une facture acceptée ne peut pas redevenir brouillon." });
 
             facture.Statut = dto.Statut;
+
             if (!string.IsNullOrEmpty(dto.IdTTN))
                 facture.IdTTN = dto.IdTTN;
 

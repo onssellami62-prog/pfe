@@ -11,7 +11,7 @@ export const login = (email, password) =>
   fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, passwordHash: password })
+    body: JSON.stringify({ email, password })  // ← password pas passwordHash
   }).then(r => r.json());
 
 // Factures

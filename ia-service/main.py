@@ -160,7 +160,7 @@ Règles importantes:
                 "X-Title": "El Fatoora PFE",
             },
             json={
-                "model": "google/gemini-2.0-flash-lite-001",
+                "model": "google/gemini-2.5-flash-lite",
                 "messages": [
                     {
                         "role": "user",
@@ -170,9 +170,11 @@ Règles importantes:
                                 "text": prompt
                             },
                             {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:application/pdf;base64,{pdf_b64}"
+                                "type": "document",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "application/pdf",
+                                    "data": pdf_b64
                                 }
                             }
                         ]
@@ -183,8 +185,13 @@ Règles importantes:
             timeout=120.0
         )
 
+        # Log debug si erreur OpenRouter
+        if response.status_code != 200:
+            print(f"DEBUG OpenRouter PDF: {response.text}")
+
         if response.status_code != 200:
             raise Exception(f"OpenRouter error {response.status_code}: {response.text}")
+
 
         result = response.json()
         text = result["choices"][0]["message"]["content"].strip()

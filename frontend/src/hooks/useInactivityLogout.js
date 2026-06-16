@@ -10,7 +10,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const INACTIVITY_DELAY = 2 * 60 * 1000; // 5 minutes en millisecondes
+const INACTIVITY_DELAY = 10 * 60 * 1000; // 5 minutes en millisecondes
 
 export default function useInactivityLogout(user, onLogout) {
     const timerRef    = useRef(null);

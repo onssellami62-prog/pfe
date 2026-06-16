@@ -93,7 +93,7 @@ body {
     border-radius: 10px;
     font-size: 14px;
     font-weight: 500;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,1);
     cursor: pointer;
     transition: all 0.18s ease;
     border: none;
@@ -162,7 +162,7 @@ body {
 .submenu-item {
     font-size: 13.5px !important;
     padding: 9px 14px !important;
-    color: rgba(255,255,255,0.5) !important;
+    color: rgba(255,255,255,1) !important;
     border-radius: 8px !important;
     border-left: 2px solid transparent !important;
 }

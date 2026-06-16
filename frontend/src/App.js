@@ -8,34 +8,74 @@ import ForgotPassword  from './pages/ForgotPassword';
 import ResetPassword   from './pages/ResetPassword';
 import useInactivityLogout from './hooks/useInactivityLogout';
 
+const API_BASE = 'http://localhost:5170/api';
+
 function App() {
-    const [user, setUser]                             = useState(null);
+    const [user, setUser] = useState(() => {
+        // ← restaure l'user depuis localStorage au démarrage
+        try {
+            const saved = localStorage.getItem('user');
+            return saved ? JSON.parse(saved) : null;
+        } catch { return null; }
+    });
     const [mustChangePassword, setMustChangePassword] = useState(false);
     const [installed, setInstalled]                   = useState(null);
 
     useEffect(() => {
-        fetch('http://localhost:5170/api/install/status')
+        fetch(`${API_BASE}/install/status`)
             .then(r => r.json())
             .then(data => setInstalled(data.installed))
             .catch(() => setInstalled(false));
     }, []);
 
     const handleLogin = (userData) => {
+        console.log('handleLogin appelé', userData);
         if (userData.premierConnexion) {
             setUser(userData);
+            localStorage.setItem('user', JSON.stringify(userData)); // ← persist
             setMustChangePassword(true);
         } else {
             setUser(userData);
+            localStorage.setItem('user', JSON.stringify(userData)); // ← persist
         }
     };
 
-    const handleLogout = useCallback(() => {
+    const handleLogout = useCallback((raison = '') => {
         setUser(null);
         setMustChangePassword(false);
+        localStorage.removeItem('user');  // ← nettoyer
+        if (raison === 'desactive') {
+            alert('⚠️ Votre compte a été désactivé par l\'administrateur.');
+        }
     }, []);
 
-    // ── Déconnexion automatique après 5 min d'inactivité ──────────────
     useInactivityLogout(user, handleLogout);
+
+    // ── Vérification statut compte toutes les 30s ──────────────────────
+    useEffect(() => {
+        if (!user) return;
+        if (user.role === 'SuperAdmin') return;
+
+        const checkStatus = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/auth/check-status`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                if (!res.ok) handleLogout('desactive');
+            } catch {}
+        };
+
+        const timeout = setTimeout(() => {
+            checkStatus();
+            const interval = setInterval(checkStatus, 30000);
+            return () => clearInterval(interval);
+        }, 5000);
+
+        return () => clearTimeout(timeout);
+    }, [user, handleLogout]);
 
     if (installed === null) return null;
     if (!installed) return <Install onInstalled={() => setInstalled(true)} />;

@@ -34,6 +34,16 @@ function Login({ onLoginSuccess }) {
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
     const [loginError, setLoginError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    // ── Restaure l'identifiant sauvegardé ─────────────────────────────
+    useEffect(() => {
+        const saved = localStorage.getItem('rememberUser');
+        if (saved) {
+            setIdentifiant(saved);
+            setRememberMe(true);
+        }
+    }, []);
 
     // Carousel state
     const [activeDot, setActiveDot] = useState(0);
@@ -98,10 +108,7 @@ function Login({ onLoginSuccess }) {
         dragStartX.current = null;
     };
 
-    // Liste des utilisateurs statiques pour le test
-   const [loading, setLoading] = useState(false);
-
-const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     setLoginError('');
     setLoading(true);
@@ -117,27 +124,32 @@ const handleSubmit = async (e) => {
 
         if (!response.ok) {
             setLoginError(data.message || 'Identifiant ou mot de passe incorrect.');
-            return;
+            return;  // ← finally s'exécute quand même, pas de problème ici
         }
 
         localStorage.setItem('token', data.token);
-        if (rememberMe) localStorage.setItem('rememberUser', identifiant);
+
+        if (rememberMe) {
+            localStorage.setItem('rememberUser', identifiant);
+        } else {
+            localStorage.removeItem('rememberUser');
+        }
 
         if (onLoginSuccess) onLoginSuccess({
-            name:  data.name,
-            email: data.email,
-            role:  data.role,
+            name:        data.name,
+            email:       data.email,
+            role:        data.role,
             permissions: data.permissions,
-            token: data.token,
+            token:       data.token,
+            premierConnexion: data.premierConnexion ?? false, 
         });
 
     } catch (err) {
         setLoginError('Erreur de connexion au serveur. Vérifiez que le backend est lancé.');
     } finally {
-        setLoading(false);
+        setLoading(false);  // ← toujours exécuté
     }
 };
-
     const slide = SLIDES[activeDot];
 
     return (
@@ -147,16 +159,8 @@ const handleSubmit = async (e) => {
                 {/* Logo */}
                 <div className="login-logo">
                     <div className="login-logo-icon">
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                             <polyline points="14 2 14 8 20 8" />
                             <line x1="16" y1="13" x2="8" y2="13" />
@@ -180,16 +184,8 @@ const handleSubmit = async (e) => {
                         <label htmlFor="identifiant">Identifiant / Login</label>
                         <div className="input-wrapper">
                             <span className="input-icon">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                                     <circle cx="12" cy="7" r="4" />
                                 </svg>
@@ -211,16 +207,8 @@ const handleSubmit = async (e) => {
                         <label htmlFor="password">Mot de passe</label>
                         <div className="input-wrapper">
                             <span className="input-icon">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                 </svg>
@@ -234,42 +222,19 @@ const handleSubmit = async (e) => {
                                 autoComplete="current-password"
                                 required
                             />
-                            <button
-                                type="button"
-                                className="password-toggle"
+                            <button type="button" className="password-toggle"
                                 onClick={() => setShowPassword(!showPassword)}
-                                aria-label={
-                                    showPassword
-                                        ? 'Masquer le mot de passe'
-                                        : 'Afficher le mot de passe'
-                                }
-                            >
+                                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
                                 {showPassword ? (
-                                    <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
                                         <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
                                         <line x1="1" y1="1" x2="23" y2="23" />
                                     </svg>
                                 ) : (
-                                    <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                         <circle cx="12" cy="12" r="3" />
                                     </svg>
@@ -289,19 +254,18 @@ const handleSubmit = async (e) => {
                             />
                             <span>Se souvenir de moi</span>
                         </label>
-                        <span
-                                className="forgot-link"
-                                onClick={() => navigate('/forgot-password')}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                Mot de passe oublié ?
-                            </span>
+                        <span className="forgot-link"
+                            onClick={() => navigate('/forgot-password')}
+                            style={{ cursor: 'pointer' }}>
+                            Mot de passe oublié ?
+                        </span>
                     </div>
 
                     {/* Error message */}
                     {loginError && (
                         <div className="login-error-msg">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10" />
                                 <line x1="12" y1="8" x2="12" y2="12" />
                                 <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -311,8 +275,8 @@ const handleSubmit = async (e) => {
                     )}
 
                     {/* Submit */}
-                    <button type="submit" className="btn-login" id="btn-se-connecter">
-                        Se connecter
+                    <button type="submit" className="btn-login" id="btn-se-connecter" disabled={loading}>
+                        {loading ? 'Connexion...' : 'Se connecter'}
                     </button>
                 </form>
 
@@ -322,35 +286,17 @@ const handleSubmit = async (e) => {
                 <div className="login-footer">
                     <div className="secured-by">
                         <span className="shield-icon">
-                            <svg
-                                width="15"
-                                height="15"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#10b981"
-                                strokeWidth="2.2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                             </svg>
                         </span>
-                        <span>
-                            Sécurisé par <strong>Tunisie TradeNet</strong>
-                        </span>
+                        <span>Sécurisé par <strong>Tunisie TradeNet</strong></span>
                     </div>
                     <div className="footer-links">
                         <a href="/aide">
-                            <svg
-                                width="13"
-                                height="13"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10" />
                                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                                 <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -358,16 +304,8 @@ const handleSubmit = async (e) => {
                             Aide
                         </a>
                         <a href="/contact">
-                            <svg
-                                width="13"
-                                height="13"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                                 <polyline points="22,6 12,13 2,6" />
                             </svg>
@@ -378,37 +316,28 @@ const handleSubmit = async (e) => {
             </div>
 
             {/* ── RIGHT PANEL (CAROUSEL) ── */}
-            <div
-                className="login-right"
+            <div className="login-right"
                 onMouseDown={handleDragStart}
                 onMouseUp={handleDragEnd}
                 onTouchStart={handleDragStart}
-                onTouchEnd={handleDragEnd}
-            >
-                {/* Sliding content */}
-                <div
-                    key={activeDot}
-                    className={`carousel-slide ${animating ? `slide-exit-${direction}` : 'slide-enter'}`}
-                >
+                onTouchEnd={handleDragEnd}>
+                <div key={activeDot}
+                    className={`carousel-slide ${animating ? `slide-exit-${direction}` : 'slide-enter'}`}>
                     <div className="image-card">
                         <img src={slide.image} alt={slide.title} />
                     </div>
-
                     <div className="right-content">
                         <h2>{slide.title}</h2>
                         <p>{slide.description}</p>
                     </div>
                 </div>
 
-                {/* Dots */}
                 <div className="carousel-dots">
                     {SLIDES.map((_, i) => (
-                        <button
-                            key={i}
+                        <button key={i}
                             className={`dot ${activeDot === i ? 'active' : ''}`}
                             onClick={() => handleDotClick(i)}
-                            aria-label={`Slide ${i + 1}`}
-                        />
+                            aria-label={`Slide ${i + 1}`} />
                     ))}
                 </div>
 

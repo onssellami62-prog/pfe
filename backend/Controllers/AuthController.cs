@@ -1,5 +1,6 @@
 ﻿using backend.Data;
 using backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -23,6 +24,21 @@ namespace backend.Controllers
         {
             _context = context;
             _configuration = configuration;
+        }
+
+        // ── CHECK STATUS ─────────────────────────────────────────────────────
+        [HttpGet("check-status")]
+        [Authorize]
+        public async Task<IActionResult> CheckStatus()
+        {
+            var email = User.Identity?.Name;
+            var user = await _context.Utilisateurs
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null || !user.EstActif)
+                return Unauthorized(new { message = "Compte désactivé ou supprimé." });
+
+            return Ok(new { active = true });
         }
 
         // ── REGISTER ────────────────────────────────────────────────────────
@@ -113,28 +129,16 @@ namespace backend.Controllers
             return Ok(new { message = "Mot de passe modifié avec succès." });
         }
 
-        // ════════════════════════════════════════════════════════════════════
-        //  MOT DE PASSE OUBLIÉ — 3 endpoints (diagramme de séquence)
-        // ════════════════════════════════════════════════════════════════════
-
-        // ── ÉTAPE 4 : POST /api/auth/forgot_password ─────────────────────────
-        // Frontend envoie l'email → backend vérifie (étape 5)
-        // Si trouvé  → génère token + envoie email (étapes 6-7)
-        // Si introuvable → retourne 404 (étape 8)
+        // ── FORGOT PASSWORD ──────────────────────────────────────────────────
         [HttpPost("forgot_password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
-            // ÉTAPE 5 — Vérification e-mail dans la base
             var user = await _context.Utilisateurs
                 .FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower().Trim());
 
-            // ÉTAPE 8 — [e-mail non trouvé] : on retourne toujours 200 pour
-            // ne pas révéler si l'email existe (sécurité), mais le message
-            // est neutre. Adapte si tu préfères un 404 explicite.
             if (user == null)
                 return NotFound(new { message = "Adresse e-mail introuvable." });
 
-            // ÉTAPE 6 — Génération du token sécurisé (expire dans 15 min)
             var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var expiry = DateTime.UtcNow.AddMinutes(15);
 
@@ -142,26 +146,20 @@ namespace backend.Controllers
             user.ResetPasswordTokenExpiry = expiry;
             await _context.SaveChangesAsync();
 
-            // ÉTAPE 6 — Envoi du token à l'email service
             var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
             var resetLink = $"{frontendUrl}/reset-password?token={token}";
             await SendResetEmailAsync(user.Email, user.Nom, resetLink);
 
-            // ÉTAPE 7 — Confirmation au frontend : email avec lien envoyé
             return Ok(new { message = "Lien de réinitialisation envoyé." });
         }
 
-        // ── ÉTAPE 11 : GET /api/auth/reset-password?token=... ───────────────
-        // Appelé quand l'utilisateur clique le lien reçu (étape 10)
-        // Backend vérifie token & expiry (étape 12)
-        // Si valide → retourne 200 (étape 13 : affiche formulaire nouveau mdp)
+        // ── VERIFY RESET TOKEN ───────────────────────────────────────────────
         [HttpGet("reset-password")]
         public async Task<IActionResult> VerifyResetToken([FromQuery] string token)
         {
             if (string.IsNullOrWhiteSpace(token))
                 return BadRequest(new { message = "Token manquant." });
 
-            // ÉTAPE 12 — Vérification token & expiry
             var user = await _context.Utilisateurs
                 .FirstOrDefaultAsync(u => u.ResetPasswordToken == token);
 
@@ -171,14 +169,10 @@ namespace backend.Controllers
             if (user.ResetPasswordTokenExpiry == null || user.ResetPasswordTokenExpiry < DateTime.UtcNow)
                 return BadRequest(new { message = "Ce lien a expiré. Veuillez en demander un nouveau." });
 
-            // ÉTAPE 13 — Token valide : frontend peut afficher le formulaire
             return Ok(new { valid = true, email = user.Email });
         }
 
-        // ── ÉTAPE 15 : POST /api/auth/reset-password ────────────────────────
-        // Frontend envoie le nouveau mot de passe (étape 14)
-        // Backend met à jour mdp & invalide le token (étape 16)
-        // Retourne confirmation (étape 17) → frontend redirige vers login (étape 18)
+        // ── RESET PASSWORD ───────────────────────────────────────────────────
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
@@ -191,7 +185,6 @@ namespace backend.Controllers
             if (dto.Password.Length < 8)
                 return BadRequest(new { message = "Le mot de passe doit contenir au moins 8 caractères." });
 
-            // Vérification token & expiry (double vérification côté POST)
             var user = await _context.Utilisateurs
                 .FirstOrDefaultAsync(u => u.ResetPasswordToken == dto.Token);
 
@@ -201,19 +194,17 @@ namespace backend.Controllers
             if (user.ResetPasswordTokenExpiry == null || user.ResetPasswordTokenExpiry < DateTime.UtcNow)
                 return BadRequest(new { message = "Ce lien a expiré. Veuillez en demander un nouveau." });
 
-            // ÉTAPE 16 — MAJ mdp & invalide token
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-            user.ResetPasswordToken = null;           // token invalidé
+            user.ResetPasswordToken = null;
             user.ResetPasswordTokenExpiry = null;
             user.PremierConnexion = false;
 
             await _context.SaveChangesAsync();
 
-            // ÉTAPE 17 — Réinitialisation réussie
             return Ok(new { message = "Mot de passe réinitialisé avec succès." });
         }
 
-        // ── Envoi email (SMTP) ───────────────────────────────────────────────
+        // ── SEND RESET EMAIL (SMTP) ──────────────────────────────────────────
         private async Task SendResetEmailAsync(string toEmail, string nom, string resetLink)
         {
             var smtp = _configuration.GetSection("Smtp");
@@ -280,7 +271,6 @@ namespace backend.Controllers
         public string NouveauPassword { get; set; } = string.Empty;
     }
 
-    // ── DTOs Mot de passe oublié ──────────────────────────────────────────
     public class ForgotPasswordDto
     {
         public string Email { get; set; } = string.Empty;
